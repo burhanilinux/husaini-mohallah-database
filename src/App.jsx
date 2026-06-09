@@ -305,19 +305,24 @@ export default function App() {
   const saveMumin = async () => {
     setSaving(true);
     try {
+      // Keep existing photo_url unless a new file was chosen
       let photoUrl = form.photo_url || null;
-      if (formAttachments[0] && !formAttachments[0].url) {
+      if (formAttachments[0] && formAttachments[0].dataUrl && !formAttachments[0].url) {
         setUploading(true);
         const uploaded = await uploadOne(formAttachments[0], "photos");
         setUploading(false);
         photoUrl = uploaded.url;
       }
       const payload = {
-        its_number: form.its_number || form.itsNumber || "",
-        name: form.name || "", age: form.age ? Number(form.age) : null,
-        gender: form.gender || "Male", phone: form.phone || "",
-        email: form.email || "", address: form.address || "",
-        status: form.status || "Active", photo_url: photoUrl,
+        its_number: form.its_number || "",
+        name: form.name || "",
+        age: form.age ? Number(form.age) : null,
+        gender: form.gender || "Male",
+        phone: form.phone || "",
+        email: form.email || "",
+        address: form.address || "",
+        status: form.status || "Active",
+        photo_url: photoUrl,
       };
       if (modal.mode === "add") await sbInsert("mumin_data", payload);
       else await sbUpdate("mumin_data", form.id, payload);
@@ -331,20 +336,25 @@ export default function App() {
   const saveFile = async () => {
     setSaving(true);
     try {
-      const fileNo = form.file_no || form.fileNo || `HM-${form.year}-${String(Date.now()).slice(-3)}`;
+      const fileNo = form.file_no || `HM-${form.year}-${String(Date.now()).slice(-3)}`;
       const payload = {
-        file_no: fileNo, umoor_type: form.umoor_type || form.umoorType || "",
-        year: Number(form.year) || 2024, title: form.title || "",
-        description: form.description || "", status: form.status || "Active",
+        file_no: fileNo,
+        umoor_type: form.umoor_type || "",
+        year: Number(form.year) || 2024,
+        title: form.title || "",
+        description: form.description || "",
+        status: form.status || "Active",
         date: form.date || "",
       };
+
       let fileId;
       if (modal.mode === "add") {
-        const [created] = await sbInsert("umoor_files", payload);
-        fileId = created.id;
+        const result = await sbInsert("umoor_files", payload);
+        // sbInsert returns array of created rows
+        fileId = Array.isArray(result) ? result[0].id : result.id;
       } else {
-        await sbUpdate("umoor_files", form.id, payload);
         fileId = form.id;
+        await sbUpdate("umoor_files", fileId, payload);
         // delete removed attachments
         const existingIds = attachmentsData.filter(a => a.file_id === fileId).map(a => a.id);
         const keptIds = formAttachments.filter(a => a.id).map(a => a.id);
@@ -352,16 +362,21 @@ export default function App() {
           if (!keptIds.includes(id)) await sbDelete("attachments", id);
         }
       }
-      // upload new attachments
+
+      // upload new attachments (ones without an id are newly added)
       const newAtts = formAttachments.filter(a => !a.id);
       if (newAtts.length > 0) {
         setUploading(true);
         for (const att of newAtts) {
           const uploaded = await uploadOne(att, `files/${fileId}`);
-          await sbInsert("attachments", { file_id: fileId, name: uploaded.name, size: uploaded.size, type: uploaded.type, url: uploaded.url });
+          await sbInsert("attachments", {
+            file_id: fileId, name: uploaded.name,
+            size: uploaded.size, type: uploaded.type, url: uploaded.url,
+          });
         }
         setUploading(false);
       }
+
       showToast(modal.mode === "add" ? "File saved to cloud ☁" : "File updated");
       await loadAll(); closeModal();
     } catch (e) { showToast("Error: " + e.message, "error"); setUploading(false); }
