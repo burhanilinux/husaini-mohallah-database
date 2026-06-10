@@ -375,8 +375,8 @@ function downloadBlob(content, filename, mime) {
 function toCSV(rows, cols) {
   const header = cols.join(",");
   const lines = rows.map(r => cols.map(c => {
-    const v = String(r[c] ?? "").replace(/"/g, '\"\"\"');
-    return v.includes(",") || v.includes("\n") || v.includes('\"') ? `"${v}"` : v;
+    const v = String(r[c] ?? "").replace(/"/g, '""');
+    return v.includes(",") || v.includes("\n") || v.includes('"') ? '"' + v + '"' : v;
   }).join(","));
   return [header, ...lines].join("\n");
 }
@@ -388,7 +388,7 @@ function parseCSV(text) {
   return lines.slice(1).map(line => {
     const vals = []; let cur = ""; let inQ = false;
     for (let i = 0; i < line.length; i++) {
-      if (line[i] === '\"') { inQ = !inQ; }
+      if (line[i] === '"') { inQ = !inQ; }
       else if (line[i] === "," && !inQ) { vals.push(cur); cur = ""; }
       else cur += line[i];
     }
