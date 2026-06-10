@@ -625,6 +625,9 @@ export default function App() {
             localStorage.removeItem("hm_session");
           }
           setAuthLoading(false);
+        }).catch(() => {
+          localStorage.removeItem("hm_session");
+          setAuthLoading(false);
         });
       } catch {
         localStorage.removeItem("hm_session");
