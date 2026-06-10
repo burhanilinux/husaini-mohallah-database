@@ -169,8 +169,6 @@ const styles = `
   .attachment-view { background: none; border: 1px solid rgba(184,152,90,0.2); color: #c9a84c; cursor: pointer; font-size: 11px; padding: 3px 8px; border-radius: 4px; width: auto; }
   .attachment-view:hover { background: rgba(184,152,90,0.08); }
   .attach-chip { display: inline-flex; align-items: center; gap: 4px; background: rgba(201,168,76,0.1); color: #c9a84c; border-radius: 12px; padding: 2px 8px; font-size: 11px; border: 1px solid rgba(201,168,76,0.2); }
-  .mumin-avatar { width: 32px; height: 32px; border-radius: 50%; background: rgba(184,152,90,0.15); display: flex; align-items: center; justify-content: center; font-size: 13px; color: #c9a84c; overflow: hidden; flex-shrink: 0; border: 1px solid rgba(184,152,90,0.2); }
-  .mumin-avatar img { width: 100%; height: 100%; object-fit: cover; }
   .mumin-name-cell { display: flex; align-items: center; gap: 10px; }
   .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 200; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px; }
   .lightbox img { max-width: 90vw; max-height: 80vh; border-radius: 8px; object-fit: contain; }
@@ -441,7 +439,7 @@ export default function App() {
           its_number: r.its_number || '', name: r.name || '',
           age: r.age ? Number(r.age) : null, gender: r.gender || 'Male',
           phone: r.phone || '', email: r.email || '',
-          address: r.address || '', status: r.status || 'Active', photo_url: null,
+          address: r.address || '', status: r.status || 'Active',
         });
         ok++;
       } catch {}
@@ -517,14 +515,6 @@ export default function App() {
   const saveMumin = async () => {
     setSaving(true);
     try {
-      // Keep existing photo_url unless a new file was chosen
-      let photoUrl = form.photo_url || null;
-      if (formAttachments[0] && formAttachments[0].dataUrl && !formAttachments[0].url) {
-        setUploading(true);
-        const uploaded = await uploadOne(formAttachments[0], "photos");
-        setUploading(false);
-        photoUrl = uploaded.url;
-      }
       const payload = {
         its_number: form.its_number || "",
         name: form.name || "",
@@ -534,7 +524,6 @@ export default function App() {
         email: form.email || "",
         address: form.address || "",
         status: form.status || "Active",
-        photo_url: photoUrl,
       };
       if (modal.mode === "add") await sbInsert("mumin_data", payload);
       else await sbUpdate("mumin_data", form.id, payload);
@@ -799,10 +788,7 @@ export default function App() {
                               <td><span className="file-no">{m.its_number}</span></td>
                               <td>
                                 <div className="mumin-name-cell">
-                                  <div className="mumin-avatar" onClick={() => m.photo_url && setLightbox({ url: m.photo_url, name: m.name })} style={{ cursor: m.photo_url ? "zoom-in" : "default" }}>
-                                    {m.photo_url ? <img src={m.photo_url} alt={m.name} /> : (m.name?.[0] || "?")}
-                                  </div>
-                                  <span style={{ fontWeight: 500 }}>{m.name}</span>
+<span style={{ fontWeight: 500 }}>{m.name}</span>
                                 </div>
                               </td>
                               <td>{m.age}</td>
@@ -855,14 +841,7 @@ export default function App() {
                       <div className="form-group"><label>Email</label><input value={form.email || ""} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
                       <div className="form-group full"><label>Address</label><input value={form.address || ""} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} /></div>
                     </div>
-                    <div className="section-divider" />
-                    <div className="section-label">📷 Profile Photo</div>
-                    {(form.photo_url || formAttachments[0]?.dataUrl) && (
-                      <img src={form.photo_url || formAttachments[0]?.dataUrl} alt="preview"
-                        style={{ width: 72, height: 72, borderRadius: 8, objectFit: "cover", border: "1px solid rgba(184,152,90,0.2)", marginBottom: 12 }} />
-                    )}
-                    <UploadZone onFiles={files => setFormAttachments([files[0]])} uploading={uploading} />
-                    <AttachmentsList attachments={formAttachments} onRemove={() => setFormAttachments([])} onView={att => setLightbox({ url: att.url || att.dataUrl, name: att.name })} />
+
                   </>
                 ) : (
                   <>
