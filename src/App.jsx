@@ -182,6 +182,27 @@ const styles = `
   @keyframes spin { to { transform: rotate(360deg); } }
   .loading-overlay { display: flex; align-items: center; justify-content: center; padding: 60px; gap: 12px; color: #6b7280; font-size: 14px; }
   .error-banner { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); border-radius: 10px; padding: 14px 20px; color: #f87171; font-size: 13px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+  /* Import/Export */
+  .ie-modal { background: #111820; border: 1px solid rgba(184,152,90,0.2); border-radius: 16px; width: 500px; box-shadow: 0 25px 60px rgba(0,0,0,0.5); }
+  .ie-tabs { display: flex; border-bottom: 1px solid rgba(184,152,90,0.1); }
+  .ie-tab { flex: 1; padding: 14px; text-align: center; font-size: 13px; cursor: pointer; color: #6b7280; transition: all 0.2s; border: none; background: none; font-family: 'Jost', sans-serif; }
+  .ie-tab.active { color: #c9a84c; border-bottom: 2px solid #c9a84c; }
+  .ie-tab:hover:not(.active) { color: #e2d9c9; }
+  .ie-body { padding: 24px; }
+  .ie-option { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.02); border: 1px solid rgba(184,152,90,0.1); border-radius: 10px; padding: 16px 18px; margin-bottom: 10px; }
+  .ie-option-info { display: flex; flex-direction: column; gap: 3px; }
+  .ie-option-title { font-size: 13px; color: #e2d9c9; font-weight: 500; }
+  .ie-option-desc { font-size: 11px; color: #6b7280; }
+  .drop-zone { border: 2px dashed rgba(184,152,90,0.25); border-radius: 10px; padding: 28px; text-align: center; cursor: pointer; transition: all 0.2s; background: rgba(184,152,90,0.02); margin-top: 8px; }
+  .drop-zone:hover { border-color: #c9a84c; background: rgba(201,168,76,0.05); }
+  .drop-zone-icon { font-size: 28px; margin-bottom: 8px; opacity: 0.5; }
+  .drop-zone-text { font-size: 13px; color: #9ca3af; }
+  .drop-zone-sub { font-size: 11px; color: #4b5563; margin-top: 4px; }
+  .import-preview { background: rgba(255,255,255,0.02); border: 1px solid rgba(184,152,90,0.1); border-radius: 10px; padding: 14px 18px; margin-top: 12px; font-size: 12px; color: #9ca3af; }
+  .import-preview strong { color: #c9a84c; }
+  .import-type-select { display: flex; gap: 8px; margin-bottom: 16px; }
+  .import-type-btn { flex: 1; padding: 8px; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid rgba(184,152,90,0.15); color: #6b7280; background: transparent; transition: all 0.2s; font-family: 'Jost', sans-serif; }
+  .import-type-btn.active { background: rgba(184,152,90,0.1); color: #c9a84c; border-color: rgba(201,168,76,0.3); }
 `;
 
 // ── Small components ──────────────────────────────────────────────
@@ -241,6 +262,156 @@ function AttachmentsList({ attachments, onRemove, onView }) {
 }
 
 // ── Main App ──────────────────────────────────────────────────────
+// ── Export / Import utilities ─────────────────────────────────────
+function downloadBlob(content, filename, mime) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function toCSV(rows, cols) {
+  const header = cols.join(",");
+  const lines = rows.map(r => cols.map(c => {
+    const v = String(r[c] ?? "").replace(/"/g, '\"\"\"');
+    return v.includes(",") || v.includes("\n") || v.includes('\"') ? `"${v}"` : v;
+  }).join(","));
+  return [header, ...lines].join("\n");
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split("\n");
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g, ""));
+  return lines.slice(1).map(line => {
+    const vals = []; let cur = ""; let inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      if (line[i] === '\"') { inQ = !inQ; }
+      else if (line[i] === "," && !inQ) { vals.push(cur); cur = ""; }
+      else cur += line[i];
+    }
+    vals.push(cur);
+    return Object.fromEntries(headers.map((h, i) => [h, (vals[i] || "").trim()]));
+  });
+}
+
+const MUMIN_COLS = ["its_number","name","age","gender","phone","email","address","status"];
+const FILE_COLS  = ["file_no","umoor_type","year","title","description","status","date"];
+
+function ImportExportModal({ onClose, muminData, filesData, onImportMumin, onImportFiles, importing }) {
+  const [tab, setTab] = useState("export");
+  const [importType, setImportType] = useState("mumin");
+  const [preview, setPreview] = useState(null);
+  const [parsedRows, setParsedRows] = useState([]);
+  const fileRef = useRef();
+
+  const exportMuminCSV = () => downloadBlob(toCSV(muminData, MUMIN_COLS), "mumin_data.csv", "text/csv");
+  const exportFilesCSV = () => downloadBlob(toCSV(filesData, FILE_COLS), "umoor_files.csv", "text/csv");
+  const exportMuminJSON = () => downloadBlob(JSON.stringify(muminData.map(r => { const o={}; MUMIN_COLS.forEach(c=>o[c]=r[c]); return o; }), null, 2), "mumin_data.json", "application/json");
+  const exportFilesJSON = () => downloadBlob(JSON.stringify(filesData.map(r => { const o={}; FILE_COLS.forEach(c=>o[c]=r[c]); return o; }), null, 2), "umoor_files.json", "application/json");
+
+  const handleFile = (file) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target.result;
+      try {
+        let rows;
+        if (file.name.endsWith(".json")) rows = JSON.parse(text);
+        else rows = parseCSV(text);
+        setParsedRows(rows);
+        setPreview({ name: file.name, count: rows.length });
+      } catch { setPreview({ error: "Could not parse file. Make sure it is a valid CSV or JSON." }); }
+    };
+    reader.readAsText(file);
+  };
+
+  const confirmImport = () => {
+    if (importType === "mumin") onImportMumin(parsedRows);
+    else onImportFiles(parsedRows);
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="ie-modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <div className="modal-title">Import / Export</div>
+          <button className="modal-close" onClick={onClose}>×</button>
+        </div>
+        <div className="ie-tabs">
+          <button className={`ie-tab ${tab === "export" ? "active" : ""}`} onClick={() => setTab("export")}>⬇ Export</button>
+          <button className={`ie-tab ${tab === "import" ? "active" : ""}`} onClick={() => setTab("import")}>⬆ Import</button>
+        </div>
+        <div className="ie-body">
+          {tab === "export" && (
+            <>
+              <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 16 }}>Download your data as CSV (Excel-compatible) or JSON backup.</div>
+              <div className="ie-option">
+                <div className="ie-option-info">
+                  <div className="ie-option-title">👤 Mumin Data</div>
+                  <div className="ie-option-desc">{muminData.length} records · ITS, name, age, gender, phone…</div>
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button className="btn btn-ghost btn-sm" onClick={exportMuminCSV}>CSV</button>
+                  <button className="btn btn-ghost btn-sm" onClick={exportMuminJSON}>JSON</button>
+                </div>
+              </div>
+              <div className="ie-option">
+                <div className="ie-option-info">
+                  <div className="ie-option-title">🗂 Umoor Files</div>
+                  <div className="ie-option-desc">{filesData.length} records · file no, umoor type, year, title…</div>
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button className="btn btn-ghost btn-sm" onClick={exportFilesCSV}>CSV</button>
+                  <button className="btn btn-ghost btn-sm" onClick={exportFilesJSON}>JSON</button>
+                </div>
+              </div>
+              <div style={{ fontSize: 11, color: "#4b5563", marginTop: 16 }}>
+                💡 CSV files open in Excel or Google Sheets. JSON is useful for backups.
+              </div>
+            </>
+          )}
+          {tab === "import" && (
+            <>
+              <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 14 }}>Import records from a CSV or JSON file. Existing records are not deleted — new rows are added.</div>
+              <div className="import-type-select">
+                <button className={`import-type-btn ${importType === "mumin" ? "active" : ""}`} onClick={() => { setImportType("mumin"); setPreview(null); setParsedRows([]); }}>👤 Mumin Data</button>
+                <button className={`import-type-btn ${importType === "files" ? "active" : ""}`} onClick={() => { setImportType("files"); setPreview(null); setParsedRows([]); }}>🗂 Umoor Files</button>
+              </div>
+              <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 8 }}>
+                Required columns:{" "}
+                <span style={{ color: "#c9a84c", fontFamily: "monospace" }}>
+                  {(importType === "mumin" ? MUMIN_COLS : FILE_COLS).join(", ")}
+                </span>
+              </div>
+              <input ref={fileRef} type="file" accept=".csv,.json" style={{ display: "none" }} onChange={e => e.target.files[0] && handleFile(e.target.files[0])} />
+              <div className="drop-zone" onClick={() => fileRef.current.click()}>
+                <div className="drop-zone-icon">📂</div>
+                <div className="drop-zone-text">Click to choose a CSV or JSON file</div>
+                <div className="drop-zone-sub">Must match the column format above</div>
+              </div>
+              {preview && !preview.error && (
+                <div className="import-preview">
+                  <strong>{preview.name}</strong> — <strong>{preview.count} rows</strong> ready to import into{" "}
+                  <strong>{importType === "mumin" ? "Mumin Data" : "Umoor Files"}</strong>.
+                </div>
+              )}
+              {preview?.error && <div className="import-preview" style={{ color: "#f87171" }}>⚠ {preview.error}</div>}
+              {parsedRows.length > 0 && (
+                <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
+                  <button className="btn btn-primary" onClick={confirmImport} disabled={importing}>
+                    {importing ? <><Spinner /> Importing…</> : `Import ${parsedRows.length} rows ☁`}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [page, setPage] = useState("dashboard");
   const [muminData, setMuminData] = useState([]);
@@ -258,6 +429,47 @@ export default function App() {
   const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState(null);
   const [lightbox, setLightbox] = useState(null);
+  const [ieModal, setIeModal] = useState(false);
+  const [importing, setImporting] = useState(false);
+
+  const handleImportMumin = async (rows) => {
+    setImporting(true);
+    let ok = 0;
+    for (const r of rows) {
+      try {
+        await sbInsert('mumin_data', {
+          its_number: r.its_number || '', name: r.name || '',
+          age: r.age ? Number(r.age) : null, gender: r.gender || 'Male',
+          phone: r.phone || '', email: r.email || '',
+          address: r.address || '', status: r.status || 'Active', photo_url: null,
+        });
+        ok++;
+      } catch {}
+    }
+    await loadAll();
+    setImporting(false); setIeModal(false);
+    showToast(`Imported ${ok} of ${rows.length} mumin records ☁`);
+  };
+
+  const handleImportFiles = async (rows) => {
+    setImporting(true);
+    let ok = 0;
+    for (const r of rows) {
+      try {
+        await sbInsert('umoor_files', {
+          file_no: r.file_no || `HM-${r.year}-${String(Date.now()).slice(-3)}`,
+          umoor_type: r.umoor_type || '', year: Number(r.year) || 2024,
+          title: r.title || '', description: r.description || '',
+          status: r.status || 'Active', date: r.date || '',
+        });
+        ok++;
+      } catch {}
+    }
+    await loadAll();
+    setImporting(false); setIeModal(false);
+    showToast(`Imported ${ok} of ${rows.length} file records ☁`);
+  };
+
 
   const showToast = (msg, type = "success") => { setToast({ msg, type }); setTimeout(() => setToast(null), 3500); };
 
@@ -431,6 +643,15 @@ export default function App() {
                   <span className="nav-icon">{n.icon}</span> {n.label}
                 </div>
               ))}
+            <div style={{ padding: "8px 12px" }}>
+              <div
+                className="nav-item"
+                onClick={() => setIeModal(true)}
+                style={{ color: "#c9a84c", borderColor: "rgba(201,168,76,0.15)" }}
+              >
+                <span className="nav-icon">⇅</span> Import / Export
+              </div>
+            </div>
             </nav>
             <div className="sidebar-footer">Husaini Mohallah © 2025</div>
           </aside>
@@ -686,6 +907,18 @@ export default function App() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* IMPORT/EXPORT MODAL */}
+        {ieModal && (
+          <ImportExportModal
+            onClose={() => setIeModal(false)}
+            muminData={muminData}
+            filesData={filesData}
+            onImportMumin={handleImportMumin}
+            onImportFiles={handleImportFiles}
+            importing={importing}
+          />
         )}
 
         {/* LIGHTBOX */}
