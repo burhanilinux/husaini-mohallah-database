@@ -3,36 +3,40 @@ import { useState, useEffect, useRef } from "react";
 const SUPABASE_URL = "https://fluflwpnbqfqcvcjkgjn.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZsdWZsd3BuYnFmcWN2Y2prZ2puIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5OTgwNTQsImV4cCI6MjA5NjU3NDA1NH0.LT7b18SGQXeth32XhOtVd-CJ2t3WiREf8daze_VwDdo";
 
-const HEADERS = {
-  "Content-Type": "application/json",
-  "apikey": SUPABASE_ANON,
-  "Authorization": `Bearer ${SUPABASE_ANON}`,
-  "Prefer": "return=representation",
-};
+function getHeaders(token) {
+  return {
+    "Content-Type": "application/json",
+    "apikey": SUPABASE_ANON,
+    "Authorization": `Bearer ${token || SUPABASE_ANON}`,
+    "Prefer": "return=representation",
+  };
+}
+// Will be set after login
+let SESSION_TOKEN = null;
 
 // ── Supabase helpers ──────────────────────────────────────────────
 async function sbGet(table, params = "") {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, { headers: HEADERS });
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, { headers: getHeaders(SESSION_TOKEN) });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
 async function sbInsert(table, body) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
-    method: "POST", headers: HEADERS, body: JSON.stringify(body),
+    method: "POST", headers: getHeaders(SESSION_TOKEN), body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
 async function sbUpdate(table, id, body) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
-    method: "PATCH", headers: HEADERS, body: JSON.stringify(body),
+    method: "PATCH", headers: getHeaders(SESSION_TOKEN), body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
 async function sbDelete(table, id) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
-    method: "DELETE", headers: { ...HEADERS, Prefer: "return=minimal" },
+    method: "DELETE", headers: { ...getHeaders(SESSION_TOKEN), Prefer: "return=minimal" },
   });
   if (!res.ok) throw new Error(await res.text());
 }
@@ -42,7 +46,7 @@ async function uploadFile(file, path) {
   const blob = await res2.blob();
   const res = await fetch(`${SUPABASE_URL}/storage/v1/object/uploads/${path}`, {
     method: "POST",
-    headers: { "apikey": SUPABASE_ANON, "Authorization": `Bearer ${SUPABASE_ANON}`, "Content-Type": blob.type },
+    headers: { "apikey": SUPABASE_ANON, "Authorization": `Bearer ${SESSION_TOKEN || SUPABASE_ANON}`, "Content-Type": blob.type },
     body: blob,
   });
   if (!res.ok) {
@@ -50,6 +54,34 @@ async function uploadFile(file, path) {
     throw new Error(txt);
   }
   return `${SUPABASE_URL}/storage/v1/object/public/uploads/${path}`;
+}
+
+
+// ── Auth helpers ──────────────────────────────────────────────────
+async function sbSignIn(email, password) {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "apikey": SUPABASE_ANON },
+    body: JSON.stringify({ email, password }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error_description || data.msg || "Login failed");
+  return data; // { access_token, user, expires_in, ... }
+}
+
+async function sbSignOut(token) {
+  await fetch(`${SUPABASE_URL}/auth/v1/logout`, {
+    method: "POST",
+    headers: { "apikey": SUPABASE_ANON, "Authorization": `Bearer ${token}` },
+  });
+}
+
+async function sbGetUser(token) {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    headers: { "apikey": SUPABASE_ANON, "Authorization": `Bearer ${token}` },
+  });
+  if (!res.ok) return null;
+  return res.json();
 }
 
 // ── Constants ─────────────────────────────────────────────────────
@@ -179,6 +211,28 @@ const styles = `
   .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(201,168,76,0.3); border-top-color: #c9a84c; border-radius: 50%; animation: spin 0.7s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .loading-overlay { display: flex; align-items: center; justify-content: center; padding: 60px; gap: 12px; color: #6b7280; font-size: 14px; }
+
+  /* Login page */
+  .login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #0d1117; }
+  .login-box { width: 400px; background: #111820; border: 1px solid rgba(184,152,90,0.2); border-radius: 20px; padding: 48px 40px; box-shadow: 0 30px 80px rgba(0,0,0,0.5); }
+  .login-logo { text-align: center; margin-bottom: 36px; }
+  .login-logo-arabic { font-family: 'Amiri', serif; font-size: 32px; color: #c9a84c; line-height: 1.2; }
+  .login-logo-sub { font-size: 11px; text-transform: uppercase; letter-spacing: 3px; color: #4b5563; margin-top: 6px; }
+  .login-title { font-size: 16px; font-weight: 600; color: #e2d9c9; margin-bottom: 24px; text-align: center; }
+  .login-form { display: flex; flex-direction: column; gap: 16px; }
+  .login-field { display: flex; flex-direction: column; gap: 6px; }
+  .login-field label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #6b7280; }
+  .login-btn { background: #c9a84c; color: #0d1117; border: none; border-radius: 10px; padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'Jost', sans-serif; transition: background 0.2s; margin-top: 8px; }
+  .login-btn:hover:not(:disabled) { background: #dbb95d; }
+  .login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .login-error { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); border-radius: 8px; padding: 10px 14px; color: #f87171; font-size: 12px; text-align: center; }
+  .login-footer { text-align: center; margin-top: 24px; font-size: 11px; color: #374151; }
+  /* User info in sidebar */
+  .user-info { padding: 12px 16px; margin: 8px 12px; background: rgba(184,152,90,0.05); border: 1px solid rgba(184,152,90,0.1); border-radius: 10px; }
+  .user-email { font-size: 11px; color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .user-role { font-size: 10px; color: #c9a84c; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+  .signout-btn { width: 100%; margin-top: 8px; background: transparent; border: 1px solid rgba(239,68,68,0.2); color: #f87171; border-radius: 6px; padding: 5px 10px; font-size: 11px; cursor: pointer; font-family: 'Jost', sans-serif; transition: all 0.2s; }
+  .signout-btn:hover { background: rgba(239,68,68,0.08); }
   .error-banner { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); border-radius: 10px; padding: 14px 20px; color: #f87171; font-size: 13px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
   /* Import/Export */
   .ie-modal { background: #111820; border: 1px solid rgba(184,152,90,0.2); border-radius: 16px; width: 500px; box-shadow: 0 25px 60px rgba(0,0,0,0.5); }
@@ -260,6 +314,55 @@ function AttachmentsList({ attachments, onRemove, onView }) {
 }
 
 // ── Main App ──────────────────────────────────────────────────────
+// ── Login Page ────────────────────────────────────────────────────
+function LoginPage({ onLogin }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleLogin = async () => {
+    if (!email || !password) { setError("Please enter email and password."); return; }
+    setLoading(true); setError(null);
+    try {
+      const data = await sbSignIn(email, password);
+      onLogin(data);
+    } catch (e) {
+      setError(e.message);
+    }
+    setLoading(false);
+  };
+
+  const handleKey = (e) => { if (e.key === "Enter") handleLogin(); };
+
+  return (
+    <div className="login-page">
+      <div className="login-box">
+        <div className="login-logo">
+          <div className="login-logo-arabic">حسيني محلّه</div>
+          <div className="login-logo-sub">Husaini Mohallah · Database</div>
+        </div>
+        <div className="login-title">Sign in to continue</div>
+        <div className="login-form">
+          {error && <div className="login-error">{error}</div>}
+          <div className="login-field">
+            <label>Email</label>
+            <input type="text" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={handleKey} placeholder="admin@example.com" autoFocus />
+          </div>
+          <div className="login-field">
+            <label>Password</label>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={handleKey} placeholder="••••••••" />
+          </div>
+          <button className="login-btn" onClick={handleLogin} disabled={loading}>
+            {loading ? "Signing in…" : "Sign In"}
+          </button>
+        </div>
+        <div className="login-footer">Husaini Mohallah © 2025</div>
+      </div>
+    </div>
+  );
+}
+
 // ── Export / Import utilities ─────────────────────────────────────
 function downloadBlob(content, filename, mime) {
   const blob = new Blob([content], { type: mime });
@@ -411,6 +514,8 @@ function ImportExportModal({ onClose, muminData, filesData, onImportMumin, onImp
 }
 
 export default function App() {
+  const [session, setSession] = useState(null);   // { access_token, user }
+  const [authLoading, setAuthLoading] = useState(true);
   const [page, setPage] = useState("dashboard");
   const [muminData, setMuminData] = useState([]);
   const [filesData, setFilesData] = useState([]);
@@ -429,6 +534,21 @@ export default function App() {
   const [lightbox, setLightbox] = useState(null);
   const [ieModal, setIeModal] = useState(false);
   const [importing, setImporting] = useState(false);
+
+  const handleLogin = (data) => {
+    SESSION_TOKEN = data.access_token;
+    setSession(data);
+    localStorage.setItem("hm_session", JSON.stringify(data));
+    loadAll();
+  };
+
+  const handleSignOut = async () => {
+    await sbSignOut(session?.access_token);
+    SESSION_TOKEN = null;
+    setSession(null);
+    localStorage.removeItem("hm_session");
+    setMuminData([]); setFilesData([]); setAttachmentsData([]);
+  };
 
   const handleImportMumin = async (rows) => {
     setImporting(true);
@@ -489,7 +609,31 @@ export default function App() {
     setLoading(false);
   };
 
-  useEffect(() => { loadAll(); }, []);
+  useEffect(() => {
+    // Restore session from localStorage on page load
+    const stored = localStorage.getItem("hm_session");
+    if (stored) {
+      try {
+        const s = JSON.parse(stored);
+        // Verify token still valid
+        sbGetUser(s.access_token).then(user => {
+          if (user) {
+            SESSION_TOKEN = s.access_token;
+            setSession(s);
+            loadAll();
+          } else {
+            localStorage.removeItem("hm_session");
+          }
+          setAuthLoading(false);
+        });
+      } catch {
+        localStorage.removeItem("hm_session");
+        setAuthLoading(false);
+      }
+    } else {
+      setAuthLoading(false);
+    }
+  }, []);
 
   const getFileAttachments = (fileId) => attachmentsData.filter(a => a.file_id === fileId);
 
@@ -612,6 +756,13 @@ export default function App() {
   return (
     <>
       <style>{styles}</style>
+      {authLoading ? (
+        <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0d1117", color: "#6b7280", gap: 12, fontSize: 14 }}>
+          <span className="spinner" /> Loading…
+        </div>
+      ) : !session ? (
+        <LoginPage onLogin={handleLogin} />
+      ) : (
       <div className="app">
         <div className="layout">
           <aside className="sidebar">
@@ -642,6 +793,13 @@ export default function App() {
               </div>
             </div>
             </nav>
+            <div style={{ padding: "0 12px 12px" }}>
+              <div className="user-info">
+                <div className="user-role">● Signed In</div>
+                <div className="user-email">{session?.user?.email}</div>
+                <button className="signout-btn" onClick={handleSignOut}>Sign Out</button>
+              </div>
+            </div>
             <div className="sidebar-footer">Husaini Mohallah © 2025</div>
           </aside>
 
