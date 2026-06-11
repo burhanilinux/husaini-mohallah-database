@@ -3,13 +3,19 @@ import { useState, useEffect, useRef } from "react";
 const SUPABASE_URL = "https://fluflwpnbqfqcvcjkgjn.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZsdWZsd3BuYnFmcWN2Y2prZ2puIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5OTgwNTQsImV4cCI6MjA5NjU3NDA1NH0.LT7b18SGQXeth32XhOtVd-CJ2t3WiREf8daze_VwDdo";
 
-let SESSION_TOKEN = null;
+function getToken() {
+  try {
+    var s = localStorage.getItem("hm_session");
+    if (s) { var p = JSON.parse(s); return p.access_token || SUPABASE_ANON; }
+  } catch(e) {}
+  return SUPABASE_ANON;
+}
 
 function getHeaders() {
   return {
     "Content-Type": "application/json",
     "apikey": SUPABASE_ANON,
-    "Authorization": "Bearer " + (SESSION_TOKEN || SUPABASE_ANON),
+    "Authorization": "Bearer " + getToken(),
     "Prefer": "return=representation",
   };
 }
@@ -48,7 +54,7 @@ async function uploadStorage(file, path) {
     method: "POST",
     headers: {
       "apikey": SUPABASE_ANON,
-      "Authorization": "Bearer " + (SESSION_TOKEN || SUPABASE_ANON),
+      "Authorization": "Bearer " + getToken(),
       "Content-Type": blob.type,
     },
     body: blob,
@@ -562,8 +568,7 @@ export default function App() {
         var s = JSON.parse(stored);
         sbGetUser(s.access_token).then(function(user) {
           if (user && user.id) {
-            SESSION_TOKEN = s.access_token;
-            setSession(s);
+                    setSession(s);
             loadAll();
           } else {
             try { localStorage.removeItem("hm_session"); } catch(e) {}
@@ -583,7 +588,6 @@ export default function App() {
   }, []);
 
   function handleLogin(data) {
-    SESSION_TOKEN = data.access_token;
     setSession(data);
     try { localStorage.setItem("hm_session", JSON.stringify(data)); } catch(e) {}
     loadAll();
@@ -591,7 +595,6 @@ export default function App() {
 
   function handleSignOut() {
     sbSignOut(session && session.access_token);
-    SESSION_TOKEN = null;
     setSession(null);
     setMuminData([]); setFilesData([]); setAttsData([]);
     try { localStorage.removeItem("hm_session"); } catch(e) {}
