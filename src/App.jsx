@@ -1221,10 +1221,18 @@ export default function App() {
         var members = fam ? familyMembers.filter(function(m) { return m.family_id === fam.id; }) : [];
         var getMumin = function(its) { return muminData.find(function(m) { return m.its_number === its; }); };
         var saveFam = function() {
-          var payload = { family_name: famForm.family_name || "", address: famForm.address || "", notes: famForm.notes || "" };
+          if (!famForm.family_name || famForm.family_name.trim() === "") {
+            showToast("Please enter a family name", "error"); return;
+          }
+          var payload = { family_name: famForm.family_name.trim(), address: famForm.address || "", notes: famForm.notes || "" };
           var p = famModal.mode === "add" ? sbInsert("families", payload) : sbUpdate("families", fam.id, payload);
-          p.then(function() { loadAll(); setFamModal(null); showToast(famModal.mode === "add" ? "Family created" : "Family updated"); })
-           .catch(function(e) { showToast("Error: " + e.message, "error"); });
+          p.then(function(r) {
+            loadAll();
+            setFamModal(null);
+            showToast(famModal.mode === "add" ? "Family created ☁" : "Family updated ☁");
+          }).catch(function(e) {
+            showToast("Error: " + e.message, "error");
+          });
         };
         var addMember = function() {
           if (!famMemberForm.its_number) return;
