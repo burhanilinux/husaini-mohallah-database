@@ -82,10 +82,18 @@ async function sbGetUser(token) {
 }
 
 const UMOOR_TYPES = [
-  "Umoor Dakheliyah", "Umoor Deeniyah", "Umoor Marafiq Burhaniyah",
-  "Umoor Maliyah", "Umoor Talimiyah", "Umoor Ijtima'iyah",
-  "Umoor Tibbiyah", "Umoor Tijarah", "Umoor Kharijiyah",
-  "Umoor Siyasiyah", "Umoor Qanuniyah", "Umoor Akhbar",
+  "Umoor Talimiyah (Education)",
+  "Umoor Mawarid Bashariyah (Human Resources)",
+  "Umoor Marafiq Burhaniyah (Upliftment)",
+  "Umoor Maliyah (Finance)",
+  "Umoor Kharejiyah (Public Relations)",
+  "Umoor Iqtesadiyah (Qardan Hasanah)",
+  "Umoor Faizul Mawaid Burhaniyah (FMB)",
+  "Umoor Deeniyah (Deeni Umoor)",
+  "Umoor Al-Sehaat (Medical)",
+  "Umoor Al-Qaza (Legal)",
+  "Umoor Dakheliyah (I.T)",
+  "Umoor Al-Amlaak (Trusts & Properties)",
 ];
 const currentYear = new Date().getFullYear();
 const YEARS = Array.from({ length: currentYear - 2022 + 1 }, function(_, i) { return 2022 + i; });
