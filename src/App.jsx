@@ -550,10 +550,14 @@ export default function App() {
         sbGet("mumin_data", "order=id.asc"),
         sbGet("umoor_files", "order=id.desc"),
         sbGet("attachments", "order=id.asc"),
+        sbGet("families", "order=id.asc"),
+        sbGet("family_members", "order=id.asc"),
       ]);
       setMuminData(results[0] || []);
       setFilesData(results[1] || []);
       setAttsData(results[2] || []);
+      setFamiliesData(results[3] || []);
+      setFamilyMembers(results[4] || []);
     } catch(e) {
       setDbError(e.message);
     }
