@@ -512,6 +512,11 @@ export default function App() {
   const [muminData, setMuminData] = useState([]);
   const [filesData, setFilesData] = useState([]);
   const [attsData, setAttsData] = useState([]);
+  const [familiesData, setFamiliesData] = useState([]);
+  const [familyMembers, setFamilyMembers] = useState([]);
+  const [famModal, setFamModal] = useState(null);
+  const [famForm, setFamForm] = useState({});
+  const [famMemberForm, setFamMemberForm] = useState({ its_number: "", role: "Head" });
   const [loading, setLoading] = useState(false);
   const [dbError, setDbError] = useState(null);
   const [selYear, setSelYear] = useState(2024);
@@ -766,6 +771,7 @@ export default function App() {
               { id: "dashboard", icon: "◈", label: "Dashboard" },
               { id: "files", icon: "🗂", label: "Umoor Files" },
               { id: "mumin", icon: "👤", label: "Mumin Data" },
+              { id: "families", icon: "🏠", label: "Families" },
             ].map(function(n) {
               return (
                 <div key={n.id} className={"nav-item" + (page === n.id ? " active" : "")}
@@ -842,6 +848,150 @@ export default function App() {
                       </div>
                     </div>
                   </div>
+
+                  {/* ── Charts ── */}
+                  <div className="charts-row">
+                    <div className="chart-card">
+                      <div className="chart-title">Files per Umoor — {selYear}</div>
+                      <div className="bar-wrap">
+                        {(function() {
+                          var max = Math.max(1, ...umoorStats.map(function(u) { return u.count; }));
+                          return umoorStats.map(function(u) {
+                            return (
+                              <div className="bar-row" key={u.name}>
+                                <div className="bar-label" title={u.name}>{u.name.split(" (")[0]}</div>
+                                <div className="bar-track">
+                                  <div className="bar-fill" style={{ width: (u.count / max * 100) + "%" }} />
+                                </div>
+                                <div className="bar-val">{u.count}</div>
+                              </div>
+                            );
+                          });
+                        })()}
+                      </div>
+                    </div>
+
+                    <div className="chart-card">
+                      <div className="chart-title">File Status Breakdown</div>
+                      {(function() {
+                        var yr = filesData.filter(function(f) { return f.year === selYear; });
+                        var active = yr.filter(function(f) { return f.status === "Active"; }).length;
+                        var closed = yr.filter(function(f) { return f.status === "Closed"; }).length;
+                        var pending = yr.filter(function(f) { return f.status === "Pending"; }).length;
+                        var total = yr.length || 1;
+                        var segments = [
+                          { label: "Active", count: active, color: "#34d399" },
+                          { label: "Closed", count: closed, color: "#6b7280" },
+                          { label: "Pending", count: pending, color: "#fbbf24" },
+                        ];
+                        var r = 54; var cx = 70; var cy = 70; var circ = 2 * Math.PI * r;
+                        var offset = 0;
+                        return (
+                          <div className="donut-wrap">
+                            <svg width="140" height="140" style={{ flexShrink: 0 }}>
+                              <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="18" />
+                              {segments.map(function(s) {
+                                var dash = (s.count / total) * circ;
+                                var gap = circ - dash;
+                                var el = (
+                                  <circle key={s.label} cx={cx} cy={cy} r={r} fill="none"
+                                    stroke={s.color} strokeWidth="18"
+                                    strokeDasharray={dash + " " + gap}
+                                    strokeDashoffset={-offset}
+                                    style={{ transform: "rotate(-90deg)", transformOrigin: "70px 70px" }} />
+                                );
+                                offset += dash;
+                                return el;
+                              })}
+                              <text x={cx} y={cy-6} textAnchor="middle" fill="#e2d9c9" fontSize="18" fontWeight="600">{total}</text>
+                              <text x={cx} y={cy+12} textAnchor="middle" fill="#6b7280" fontSize="10">files</text>
+                            </svg>
+                            <div className="donut-legend">
+                              {segments.map(function(s) {
+                                return (
+                                  <div className="legend-item" key={s.label}>
+                                    <div className="legend-dot" style={{ background: s.color }} />
+                                    <span>{s.label}</span>
+                                    <span style={{ marginLeft: "auto", color: "#e2d9c9", fontWeight: 600 }}>{s.count}</span>
+                                  </div>
+                                );
+                              })}
+                              <div className="legend-item" style={{ marginTop: 8, borderTop: "1px solid rgba(184,152,90,0.1)", paddingTop: 8 }}>
+                                <span>Members</span>
+                                <span style={{ marginLeft: "auto", color: "#c9a84c", fontWeight: 600 }}>{muminData.length}</span>
+                              </div>
+                              <div className="legend-item">
+                                <span>Families</span>
+                                <span style={{ marginLeft: "auto", color: "#c9a84c", fontWeight: 600 }}>{familiesData.length}</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </div>
+
+                </div>
+              )}
+            </div>
+          )}
+
+          {page === "families" && (
+            <div>
+              <div className="page-hdr" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+                <div>
+                  <div className="page-title">Families</div>
+                  <div className="page-sub">Household groups linking Mumin members together</div>
+                </div>
+                <button className="btn btn-primary" onClick={function() { setFamForm({}); setFamModal({ mode: "add" }); }}>+ New Family</button>
+              </div>
+              {loading ? <div className="loading"><Spinner /> Loading…</div> : (
+                <div>
+                  {familiesData.length === 0 ? (
+                    <div className="card">
+                      <div className="empty" style={{ padding: 60 }}>
+                        <div className="empty-icon">🏠</div>
+                        <div>No families yet. Create one and link Mumin members to it.</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="fam-grid">
+                      {familiesData.map(function(fam) {
+                        var members = familyMembers.filter(function(m) { return m.family_id === fam.id; });
+                        var getMumin = function(its) { return muminData.find(function(m) { return m.its_number === its; }); };
+                        return (
+                          <div className="fam-card" key={fam.id}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                              <div>
+                                <div className="fam-name">{fam.family_name}</div>
+                                <div className="fam-meta">{members.length} member{members.length !== 1 ? "s" : ""} · {fam.address || "No address"}</div>
+                              </div>
+                              <div style={{ display: "flex", gap: 6 }}>
+                                <button className="btn btn-ghost btn-sm" onClick={function(e) { e.stopPropagation(); setFamForm(fam); setFamModal({ mode: "edit", record: fam }); }}>Edit</button>
+                                <button className="btn btn-danger" onClick={function(e) { e.stopPropagation(); sbDelete("families", fam.id).then(loadAll); }}>Del</button>
+                              </div>
+                            </div>
+                            <div className="fam-members">
+                              {members.slice(0, 4).map(function(mem) {
+                                var mumin = getMumin(mem.its_number);
+                                return (
+                                  <div className="fam-member-row" key={mem.id}>
+                                    <span className="fam-member-name">{mumin ? mumin.name : mem.its_number}</span>
+                                    <span className={"fam-member-role role-" + mem.role.toLowerCase()}>{mem.role}</span>
+                                  </div>
+                                );
+                              })}
+                              {members.length > 4 && <div style={{ fontSize: 11, color: "#4b5563", paddingTop: 4 }}>+{members.length - 4} more…</div>}
+                            </div>
+                            <button className="btn btn-ghost btn-sm" style={{ marginTop: 10, width: "100%" }}
+                              onClick={function() { setFamModal({ mode: "view", record: fam }); }}>
+                              Manage Members
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1065,6 +1215,104 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {famModal && (function() {
+        var fam = famModal.record;
+        var members = fam ? familyMembers.filter(function(m) { return m.family_id === fam.id; }) : [];
+        var getMumin = function(its) { return muminData.find(function(m) { return m.its_number === its; }); };
+        var saveFam = function() {
+          var payload = { family_name: famForm.family_name || "", address: famForm.address || "", notes: famForm.notes || "" };
+          var p = famModal.mode === "add" ? sbInsert("families", payload) : sbUpdate("families", fam.id, payload);
+          p.then(function() { loadAll(); setFamModal(null); showToast(famModal.mode === "add" ? "Family created" : "Family updated"); })
+           .catch(function(e) { showToast("Error: " + e.message, "error"); });
+        };
+        var addMember = function() {
+          if (!famMemberForm.its_number) return;
+          sbInsert("family_members", { family_id: fam.id, its_number: famMemberForm.its_number, role: famMemberForm.role || "Head" })
+            .then(function() { loadAll(); setFamMemberForm({ its_number: "", role: "Head" }); showToast("Member added"); })
+            .catch(function(e) { showToast("Error: " + e.message, "error"); });
+        };
+        var removeMember = function(id) {
+          sbDelete("family_members", id).then(loadAll).catch(function(e) { showToast("Error: " + e.message, "error"); });
+        };
+        return (
+          <div className="modal-overlay" onClick={function() { setFamModal(null); }}>
+            <div className="modal" onClick={function(e) { e.stopPropagation(); }}>
+              <div className="modal-hdr">
+                <div className="modal-title">{famModal.mode === "add" ? "New Family" : famModal.mode === "edit" ? "Edit Family" : (fam ? fam.family_name : "")}</div>
+                <button className="modal-close" onClick={function() { setFamModal(null); }}>x</button>
+              </div>
+              <div className="modal-body">
+                {(famModal.mode === "add" || famModal.mode === "edit") && (
+                  <div className="form-grid">
+                    <div className="form-grp full"><label>Family Name</label>
+                      <input value={famForm.family_name || ""} onChange={function(e) { setFamForm(function(f) { return Object.assign({},f,{family_name:e.target.value}); }); }} placeholder="e.g. Al-Hussaini Family" />
+                    </div>
+                    <div className="form-grp full"><label>Address</label>
+                      <input value={famForm.address || ""} onChange={function(e) { setFamForm(function(f) { return Object.assign({},f,{address:e.target.value}); }); }} placeholder="Block / Street / Area" />
+                    </div>
+                    <div className="form-grp full"><label>Notes</label>
+                      <textarea value={famForm.notes || ""} onChange={function(e) { setFamForm(function(f) { return Object.assign({},f,{notes:e.target.value}); }); }} placeholder="Any notes" />
+                    </div>
+                  </div>
+                )}
+                {famModal.mode === "view" && fam && (
+                  <div>
+                    {fam.address && <div style={{fontSize:12,color:"#6b7280",marginBottom:4}}>{fam.address}</div>}
+                    {fam.notes && <div style={{fontSize:12,color:"#9ca3af",marginBottom:16}}>{fam.notes}</div>}
+                    <div className="sec-label">Members ({members.length})</div>
+                    <div className="fam-modal-members">
+                      {members.map(function(mem) {
+                        var mumin = getMumin(mem.its_number);
+                        return (
+                          <div className="fam-member-item" key={mem.id}>
+                            <div className="fam-member-info">
+                              <div className="fam-member-its">{mem.its_number}</div>
+                              <div style={{fontSize:13,color:"#e2d9c9"}}>{mumin ? mumin.name : "Unknown ITS"}</div>
+                              {mumin && <div style={{fontSize:11,color:"#6b7280"}}>{mumin.gender}{mumin.age ? ", age "+mumin.age : ""}</div>}
+                            </div>
+                            <div style={{display:"flex",alignItems:"center",gap:8}}>
+                              <span className={"fam-member-role role-"+(mem.role||"").toLowerCase()}>{mem.role}</span>
+                              <button className="btn btn-danger" style={{padding:"3px 8px"}} onClick={function(){removeMember(mem.id);}}>x</button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {members.length === 0 && <div style={{color:"#4b5563",fontSize:13,padding:"12px 0"}}>No members yet.</div>}
+                    </div>
+                    <div className="sec-divider" />
+                    <div className="sec-label">Add Member</div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 130px 80px",gap:10,alignItems:"end"}}>
+                      <div className="form-grp"><label>Select Mumin</label>
+                        <select value={famMemberForm.its_number} onChange={function(e){setFamMemberForm(function(f){return Object.assign({},f,{its_number:e.target.value});});}}>
+                          <option value="">Choose member...</option>
+                          {muminData.filter(function(m){return !members.find(function(mem){return mem.its_number===m.its_number;});}).map(function(m){
+                            return <option key={m.id} value={m.its_number}>{m.name} ({m.its_number})</option>;
+                          })}
+                        </select>
+                      </div>
+                      <div className="form-grp"><label>Role</label>
+                        <select value={famMemberForm.role} onChange={function(e){setFamMemberForm(function(f){return Object.assign({},f,{role:e.target.value});});}}>
+                          <option>Head</option><option>Spouse</option><option>Child</option><option>Other</option>
+                        </select>
+                      </div>
+                      <div className="form-grp"><label style={{opacity:0}}>x</label>
+                        <button className="btn btn-primary" onClick={addMember}>Add</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              {(famModal.mode === "add" || famModal.mode === "edit") && (
+                <div className="modal-ftr">
+                  <button className="btn btn-ghost" onClick={function(){setFamModal(null);}}>Cancel</button>
+                  <button className="btn btn-primary" onClick={saveFam}>Save Family</button>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {ieModal && (
         <IEModal
