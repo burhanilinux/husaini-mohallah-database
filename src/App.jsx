@@ -87,7 +87,8 @@ const UMOOR_TYPES = [
   "Umoor Tibbiyah", "Umoor Tijarah", "Umoor Kharijiyah",
   "Umoor Siyasiyah", "Umoor Qanuniyah", "Umoor Akhbar",
 ];
-const YEARS = [2022, 2023, 2024, 2025];
+const currentYear = new Date().getFullYear();
+const YEARS = Array.from({ length: currentYear - 2022 + 1 }, function(_, i) { return 2022 + i; });
 const MUMIN_COLS = ["its_number","name","age","gender","phone","email","address","status"];
 const FILE_COLS  = ["file_no","umoor_type","year","title","description","status","date"];
 
