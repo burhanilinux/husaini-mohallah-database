@@ -113,6 +113,31 @@ function downloadBlob(content, filename, mime) {
   a.href = url; a.download = filename; a.click();
   URL.revokeObjectURL(url);
 }
+function toXLS(rows, cols, sheetName) {
+  // Build a simple XML-based Excel file (SpreadsheetML)
+  var xml = '<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?>';
+  xml += '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" ';
+  xml += 'xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">';
+  xml += '<Worksheet ss:Name="' + (sheetName || 'Sheet1') + '"><Table>';
+  // Header row
+  xml += '<Row>';
+  cols.forEach(function(c) { xml += '<Cell><Data ss:Type="String">' + c + '</Data></Cell>'; });
+  xml += '</Row>';
+  // Data rows
+  rows.forEach(function(r) {
+    xml += '<Row>';
+    cols.forEach(function(c) {
+      var v = r[c] === null || r[c] === undefined ? '' : String(r[c]);
+      var t = isNaN(v) || v === '' ? 'String' : 'Number';
+      v = v.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      xml += '<Cell><Data ss:Type="' + t + '">' + v + '</Data></Cell>';
+    });
+    xml += '</Row>';
+  });
+  xml += '</Table></Worksheet></Workbook>';
+  downloadBlob(xml, sheetName ? sheetName + '.xls' : 'export.xls', 'application/vnd.ms-excel');
+}
+
 function toCSV(rows, cols) {
   const escape = (v) => {
     const s = String(v == null ? "" : v).split('"').join('""');
@@ -305,6 +330,42 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280
 .lightbox-name{color:#9ca3af;font-size:13px}
 .lightbox-close{position:absolute;top:24px;right:28px;background:none;border:none;color:#9ca3af;cursor:pointer;font-size:28px;width:auto}
 .lightbox-close:hover{color:#fff}
+
+@media (max-width: 768px) {
+  .layout{flex-direction:column}
+  .sidebar{width:100%;height:auto;position:relative;flex-direction:column}
+  .nav{display:flex;flex-wrap:wrap;padding:8px;gap:4px}
+  .nav-lbl{display:none}
+  .nav-item{flex:1;min-width:80px;justify-content:center;text-align:center;padding:8px 6px;font-size:11px}
+  .main{margin-left:0 !important;padding:16px}
+  .stats-grid{grid-template-columns:1fr 1fr !important}
+  .charts-row{grid-template-columns:1fr !important}
+  .umoor-grid{grid-template-columns:1fr 1fr !important}
+  .fam-grid{grid-template-columns:1fr !important}
+  .form-grid{grid-template-columns:1fr !important}
+  .form-grp.full{grid-column:span 1 !important}
+  .modal{width:95vw !important;max-width:95vw !important;margin:0 10px}
+  .ie-modal{width:95vw !important}
+  .card-hdr{flex-wrap:wrap;gap:8px}
+  table{display:block;overflow-x:auto;white-space:nowrap}
+  .toolbar{flex-direction:column;align-items:stretch}
+  .toolbar input,.toolbar select{width:100% !important}
+  .sb-logo{padding:16px}
+  .user-box{margin:4px 8px;padding:8px 12px}
+  .sb-footer{display:none}
+  .cloud-badge{display:none}
+  .page-title{font-size:22px}
+  .year-tabs{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px}
+  .year-tab{flex-shrink:0}
+  .bar-label{width:120px !important}
+  .donut-wrap{flex-direction:column;align-items:center}
+}
+@media (max-width: 480px) {
+  .stats-grid{grid-template-columns:1fr !important}
+  .umoor-grid{grid-template-columns:1fr !important}
+  .stat-val{font-size:24px}
+  .nav-item{min-width:60px;font-size:10px;padding:6px 4px}
+}
 `;
 
 function Spinner() {
@@ -422,19 +483,55 @@ function IEModal({ onClose, muminData, filesData, onImportMumin, onImportFiles, 
   const ref = useRef();
 
   function handleFile(file) {
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      try {
-        var rows = file.name.indexOf(".json") >= 0
-          ? JSON.parse(e.target.result)
-          : parseCSV(e.target.result);
-        setParsedRows(rows);
-        setPreview({ name: file.name, count: rows.length });
-      } catch(err) {
-        setPreview({ error: "Could not parse file." });
-      }
-    };
-    reader.readAsText(file);
+    var name = file.name.toLowerCase();
+    if (name.indexOf(".xls") >= 0) {
+      // Parse XLS/XLSX using FileReader as binary, extract via simple XML parse
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          var txt = e.target.result;
+          // Try SpreadsheetML XML format first
+          if (txt.indexOf('<Row>') >= 0 || txt.indexOf('<ss:Row') >= 0) {
+            var rowMatches = txt.match(/<Row[^>]*>([\s\S]*?)<\/Row>/g) || [];
+            var allRows = rowMatches.map(function(row) {
+              var cells = row.match(/<Data[^>]*>([\s\S]*?)<\/Data>/g) || [];
+              return cells.map(function(c) { return c.replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>'); });
+            });
+            if (allRows.length < 2) { setPreview({ error: "No data rows found in XLS." }); return; }
+            var headers = allRows[0];
+            var rows = allRows.slice(1).map(function(cells) {
+              var obj = {};
+              headers.forEach(function(h,i) { obj[h] = cells[i] || ''; });
+              return obj;
+            });
+            setParsedRows(rows);
+            setPreview({ name: file.name, count: rows.length });
+          } else {
+            // Try parsing as CSV (some XLS files are tab-separated)
+            var rows = parseCSV(txt.replace(/	/g, ','));
+            setParsedRows(rows);
+            setPreview({ name: file.name, count: rows.length });
+          }
+        } catch(err) {
+          setPreview({ error: "Could not parse XLS. Try saving as CSV from Excel first." });
+        }
+      };
+      reader.readAsText(file);
+    } else {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          var rows = name.indexOf(".json") >= 0
+            ? JSON.parse(e.target.result)
+            : parseCSV(e.target.result);
+          setParsedRows(rows);
+          setPreview({ name: file.name, count: rows.length });
+        } catch(err) {
+          setPreview({ error: "Could not parse file." });
+        }
+      };
+      reader.readAsText(file);
+    }
   }
 
   return (
@@ -457,8 +554,9 @@ function IEModal({ onClose, muminData, filesData, onImportMumin, onImportFiles, 
                   <div className="ie-opt-title">👤 Mumin Data</div>
                   <div className="ie-opt-desc">{muminData.length} records</div>
                 </div>
-                <div style={{ display: "flex", gap: 8 }}>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   <button className="btn btn-ghost btn-sm" onClick={function() { downloadBlob(toCSV(muminData, MUMIN_COLS), "mumin_data.csv", "text/csv"); }}>CSV</button>
+                  <button className="btn btn-ghost btn-sm" onClick={function() { toXLS(muminData, MUMIN_COLS, "mumin_data"); }}>XLS</button>
                   <button className="btn btn-ghost btn-sm" onClick={function() { downloadBlob(JSON.stringify(muminData, null, 2), "mumin_data.json", "application/json"); }}>JSON</button>
                 </div>
               </div>
@@ -467,8 +565,9 @@ function IEModal({ onClose, muminData, filesData, onImportMumin, onImportFiles, 
                   <div className="ie-opt-title">🗂 Umoor Files</div>
                   <div className="ie-opt-desc">{filesData.length} records</div>
                 </div>
-                <div style={{ display: "flex", gap: 8 }}>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   <button className="btn btn-ghost btn-sm" onClick={function() { downloadBlob(toCSV(filesData, FILE_COLS), "umoor_files.csv", "text/csv"); }}>CSV</button>
+                  <button className="btn btn-ghost btn-sm" onClick={function() { toXLS(filesData, FILE_COLS, "umoor_files"); }}>XLS</button>
                   <button className="btn btn-ghost btn-sm" onClick={function() { downloadBlob(JSON.stringify(filesData, null, 2), "umoor_files.json", "application/json"); }}>JSON</button>
                 </div>
               </div>
@@ -484,10 +583,11 @@ function IEModal({ onClose, muminData, filesData, onImportMumin, onImportFiles, 
               <p style={{ fontSize: 11, color: "#6b7280", marginBottom: 8 }}>
                 Columns: <span style={{ color: "#c9a84c", fontFamily: "monospace" }}>{(importType === "mumin" ? MUMIN_COLS : FILE_COLS).join(", ")}</span>
               </p>
-              <input ref={ref} type="file" accept=".csv,.json" style={{ display: "none" }} onChange={function(e) { if (e.target.files[0]) handleFile(e.target.files[0]); }} />
+              <input ref={ref} type="file" accept=".csv,.json,.xls,.xlsx" style={{ display: "none" }} onChange={function(e) { if (e.target.files[0]) handleFile(e.target.files[0]); }} />
               <div className="drop-zone" onClick={function() { ref.current.click(); }}>
                 <div style={{ fontSize: 28, marginBottom: 8, opacity: 0.5 }}>📂</div>
-                <div style={{ fontSize: 13, color: "#9ca3af" }}>Click to choose CSV or JSON file</div>
+                <div style={{ fontSize: 13, color: "#9ca3af" }}>Click to choose file</div>
+                <div style={{ fontSize: 11, color: "#4b5563", marginTop: 4 }}>CSV, JSON, XLS supported</div>
               </div>
               {preview && !preview.error && (
                 <div className="imp-preview"><strong>{preview.name}</strong> — <strong>{preview.count} rows</strong> ready to import.</div>
