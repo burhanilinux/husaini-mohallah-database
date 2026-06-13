@@ -365,6 +365,63 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280
 .att-viewer-empty{color:#4b5563;font-size:13px;padding:20px 0;text-align:center}
 .clickable-row{cursor:pointer}
 .clickable-row:hover td{background:rgba(201,168,76,.05) !important}
+
+/* Global Search */
+.gsearch-wrap{position:relative;margin:0 12px 12px}
+.gsearch-input{width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(184,152,90,.2);color:#e2d9c9;border-radius:10px;padding:9px 14px 9px 36px;font-size:13px;font-family:'Jost',sans-serif;outline:none;transition:border .2s}
+.gsearch-input:focus{border-color:rgba(201,168,76,.5)}
+.gsearch-icon{position:absolute;left:24px;top:50%;transform:translateY(-50%);color:#6b7280;font-size:14px;pointer-events:none}
+.gsearch-results{position:absolute;top:calc(100% + 6px);left:0;right:0;background:#111820;border:1px solid rgba(184,152,90,.2);border-radius:12px;box-shadow:0 20px 50px rgba(0,0,0,.6);z-index:50;max-height:400px;overflow-y:auto}
+.gsearch-section{padding:8px 0}
+.gsearch-sec-title{font-size:9px;text-transform:uppercase;letter-spacing:2px;color:#4b5563;padding:6px 16px}
+.gsearch-item{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;transition:background .15s}
+.gsearch-item:hover{background:rgba(184,152,90,.08)}
+.gsearch-item-icon{font-size:16px;flex-shrink:0}
+.gsearch-item-main{flex:1;min-width:0}
+.gsearch-item-title{font-size:13px;color:#e2d9c9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gsearch-item-sub{font-size:11px;color:#6b7280;margin-top:1px}
+.gsearch-empty{padding:20px;text-align:center;color:#4b5563;font-size:13px}
+.gsearch-divider{height:1px;background:rgba(184,152,90,.08);margin:4px 0}
+
+/* Reminders */
+.reminder-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;display:inline-block}
+.reminder-overdue{background:#ef4444}
+.reminder-soon{background:#f59e0b}
+.reminder-ok{background:#34d399}
+.reminders-banner{margin-bottom:20px}
+.reminder-card{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.02);border:1px solid rgba(184,152,90,.1);border-radius:10px;padding:12px 16px;margin-bottom:8px;cursor:pointer;transition:all .2s}
+.reminder-card:hover{border-color:rgba(201,168,76,.3);background:rgba(184,152,90,.04)}
+.reminder-card.overdue{border-color:rgba(239,68,68,.25);background:rgba(239,68,68,.04)}
+.reminder-card.soon{border-color:rgba(245,158,11,.25);background:rgba(245,158,11,.04)}
+.reminder-info{flex:1;min-width:0}
+.reminder-title{font-size:13px;color:#e2d9c9;font-weight:500}
+.reminder-meta{font-size:11px;color:#6b7280;margin-top:2px}
+.reminder-badge{font-size:11px;padding:2px 8px;border-radius:10px;flex-shrink:0}
+.rb-overdue{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.2)}
+.rb-soon{background:rgba(245,158,11,.15);color:#fbbf24;border:1px solid rgba(245,158,11,.2)}
+
+/* User Roles */
+.role-admin{background:rgba(201,168,76,.15);color:#c9a84c;border:1px solid rgba(201,168,76,.3)}
+.role-editor{background:rgba(96,165,250,.1);color:#60a5fa;border:1px solid rgba(96,165,250,.2)}
+.role-viewer{background:rgba(107,114,128,.1);color:#9ca3af;border:1px solid rgba(107,114,128,.2)}
+.users-table td,.users-table th{padding:10px 16px}
+
+/* Print */
+@media print {
+  .sidebar,.toolbar,.act-col,.btn,.modal-overlay,.gsearch-wrap,.user-box,
+  .nav,.sb-footer,.cloud-badge,.year-tabs,.page-hdr button{display:none!important}
+  .main{margin-left:0!important;padding:10px!important}
+  .card{border:1px solid #ccc!important;box-shadow:none!important}
+  body{background:#fff!important;color:#000!important}
+  table{width:100%!important}
+  th,td{color:#000!important;border-bottom:1px solid #eee!important;font-size:11px!important}
+  .badge{border:1px solid #999!important;color:#000!important;background:#f0f0f0!important}
+  .file-no{color:#000!important}
+  .print-header{display:block!important}
+}
+.print-header{display:none;text-align:center;margin-bottom:20px;border-bottom:2px solid #c9a84c;padding-bottom:12px}
+.print-header h2{font-size:20px;margin-bottom:4px}
+.print-header p{font-size:12px;color:#666}
 @media (max-width: 768px) {
   .layout{flex-direction:column}
   .sidebar{width:100%;height:auto;position:relative;flex-direction:column}
@@ -657,6 +714,16 @@ export default function App() {
   const [famModal, setFamModal] = useState(null);
   const [famForm, setFamForm] = useState({});
   const [famMemberForm, setFamMemberForm] = useState({ its_number: "", role: "Head" });
+  const [gSearch, setGSearch] = useState("");
+  const [gSearchOpen, setGSearchOpen] = useState(false);
+  const [userRole, setUserRole] = useState("admin"); // admin|editor|viewer
+
+  // Role helpers — computed from userRole
+  var canEdit   = userRole === "admin" || userRole === "editor";
+  var canDelete = userRole === "admin";
+  var isAdmin   = userRole === "admin";
+  const [usersData, setUsersData] = useState([]);
+  const [printTarget, setPrintTarget] = useState(null); // {type:'mumin'|'files'|'umoor', umoor:''}
   const [loading, setLoading] = useState(false);
   const [dbError, setDbError] = useState(null);
   const [selYear, setSelYear] = useState(2024);
@@ -784,6 +851,7 @@ export default function App() {
         description: form.description || "",
         status: form.status || "Active",
         date: form.date || "",
+        due_date: form.due_date || null,
       };
       var fileId;
       if (modal.mode === "add") {
@@ -915,7 +983,9 @@ export default function App() {
               { id: "files", icon: "🗂", label: "Umoor Files" },
               { id: "mumin", icon: "👤", label: "Mumin Data" },
               { id: "families", icon: "🏠", label: "Families" },
-            ].map(function(n) {
+              { id: "reports", icon: "📄", label: "Reports" },
+              isAdmin ? { id: "users", icon: "👥", label: "Users" } : null,
+            ].filter(Boolean).map(function(n) {
               return (
                 <div key={n.id} className={"nav-item" + (page === n.id ? " active" : "")}
                   onClick={function() { setPage(n.id); setSearch(""); setSelUmoor(null); }}>
@@ -926,6 +996,71 @@ export default function App() {
             <div className="nav-item" style={{ color: "#c9a84c", borderColor: "rgba(201,168,76,.15)", marginTop: 4 }}
               onClick={function() { setIeModal(true); }}>
               <span>⇅</span> Import / Export
+            </div>
+            <div style={{ marginTop: 8, position: "relative" }} className="gsearch-wrap">
+              <span className="gsearch-icon">🔍</span>
+              <input className="gsearch-input" placeholder="Search everything..."
+                value={gSearch}
+                onChange={function(e) { setGSearch(e.target.value); setGSearchOpen(e.target.value.length > 0); }}
+                onFocus={function() { if (gSearch.length > 0) setGSearchOpen(true); }}
+                onBlur={function() { setTimeout(function() { setGSearchOpen(false); }, 200); }}
+              />
+              {gSearchOpen && (function() {
+                var q = gSearch.toLowerCase();
+                var mRes = muminData.filter(function(m) { return (m.name||"").toLowerCase().includes(q) || (m.its_number||"").includes(q); }).slice(0,5);
+                var fRes = filesData.filter(function(f) { return (f.title||"").toLowerCase().includes(q) || (f.file_no||"").toLowerCase().includes(q); }).slice(0,5);
+                var famRes = familiesData.filter(function(f) { return (f.family_name||"").toLowerCase().includes(q); }).slice(0,3);
+                var total = mRes.length + fRes.length + famRes.length;
+                return (
+                  <div className="gsearch-results">
+                    {total === 0 && <div className="gsearch-empty">No results for "{gSearch}"</div>}
+                    {mRes.length > 0 && (
+                      <div className="gsearch-section">
+                        <div className="gsearch-sec-title">Mumin</div>
+                        {mRes.map(function(m) { return (
+                          <div className="gsearch-item" key={m.id} onClick={function() { setMuminPreview(m); setGSearch(""); setGSearchOpen(false); }}>
+                            <span className="gsearch-item-icon">👤</span>
+                            <div className="gsearch-item-main">
+                              <div className="gsearch-item-title">{m.name}</div>
+                              <div className="gsearch-item-sub">ITS: {m.its_number} · {m.gender}</div>
+                            </div>
+                          </div>
+                        ); })}
+                      </div>
+                    )}
+                    {fRes.length > 0 && mRes.length > 0 && <div className="gsearch-divider" />}
+                    {fRes.length > 0 && (
+                      <div className="gsearch-section">
+                        <div className="gsearch-sec-title">Files</div>
+                        {fRes.map(function(f) { return (
+                          <div className="gsearch-item" key={f.id} onClick={function() { setFilePreview(f); setGSearch(""); setGSearchOpen(false); }}>
+                            <span className="gsearch-item-icon">🗂</span>
+                            <div className="gsearch-item-main">
+                              <div className="gsearch-item-title">{f.title}</div>
+                              <div className="gsearch-item-sub">{f.file_no} · {f.umoor_type}</div>
+                            </div>
+                          </div>
+                        ); })}
+                      </div>
+                    )}
+                    {famRes.length > 0 && (fRes.length > 0 || mRes.length > 0) && <div className="gsearch-divider" />}
+                    {famRes.length > 0 && (
+                      <div className="gsearch-section">
+                        <div className="gsearch-sec-title">Families</div>
+                        {famRes.map(function(f) { return (
+                          <div className="gsearch-item" key={f.id} onClick={function() { setPage("families"); setGSearch(""); setGSearchOpen(false); }}>
+                            <span className="gsearch-item-icon">🏠</span>
+                            <div className="gsearch-item-main">
+                              <div className="gsearch-item-title">{f.family_name}</div>
+                              <div className="gsearch-item-sub">{f.address||"No address"}</div>
+                            </div>
+                          </div>
+                        ); })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           </nav>
           <div className="user-box">
@@ -1140,6 +1275,204 @@ export default function App() {
             </div>
           )}
 
+
+          {page === "reports" && (
+            <div>
+              <div className="page-hdr" style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between"}}>
+                <div><div className="page-title">Reports</div><div className="page-sub">Print and export formatted reports</div></div>
+              </div>
+              <div className="print-header" id="print-header">
+                <h2>Husaini Mohallah — {printTarget && printTarget.label}</h2>
+                <p>Generated: {new Date().toLocaleDateString()}</p>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16,marginBottom:28}}>
+                {[
+                  {id:"mumin", icon:"👤", label:"Mumin Directory", desc:"Full list of all registered members", data:muminData.length + " members"},
+                  {id:"files_all", icon:"🗂", label:"All Umoor Files", desc:"Complete file list across all departments", data:filesData.length + " files"},
+                  {id:"reminders", icon:"⏰", label:"Reminders Report", desc:"All files with due dates — overdue and upcoming", data:filesData.filter(function(f){return f.due_date;}).length + " files with dates"},
+                  {id:"families", icon:"🏠", label:"Family Directory", desc:"All families and their members", data:familiesData.length + " families"},
+                  {id:"age_groups", icon:"📊", label:"Age Group Summary", desc:"Members broken down by age group", data:muminData.length + " members"},
+                ].map(function(r) { return (
+                  <div key={r.id} className="umoor-card" style={{cursor:"pointer"}} onClick={function(){
+                    setPrintTarget(r);
+                    setTimeout(function(){ window.print(); }, 300);
+                  }}>
+                    <div style={{fontSize:28,marginBottom:8}}>{r.icon}</div>
+                    <div className="umoor-name" style={{fontSize:14,marginBottom:4}}>{r.label}</div>
+                    <div className="umoor-count">{r.desc}</div>
+                    <div style={{marginTop:10,fontSize:11,color:"#c9a84c"}}>{r.data} · Click to Print</div>
+                  </div>
+                ); })}
+              </div>
+
+              {/* Per-Umoor report cards */}
+              <div className="card">
+                <div className="card-hdr" style={{padding:"16px 24px",borderBottom:"1px solid rgba(184,152,90,.1)"}}>
+                  <span style={{fontSize:14,fontWeight:600,color:"#e2d9c9"}}>Print by Umoor Department</span>
+                </div>
+                <div style={{padding:16,display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
+                  {UMOOR_TYPES.map(function(u) {
+                    var count = filesData.filter(function(f){return f.umoor_type===u;}).length;
+                    return (
+                      <div key={u} className="umoor-card" onClick={function(){
+                        setPrintTarget({id:"umoor",label:u,umoor:u});
+                        setTimeout(function(){ window.print(); }, 300);
+                      }}>
+                        <div className="umoor-name" style={{fontSize:12}}>{u}</div>
+                        <div className="umoor-count">{count} files · Click to Print</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Print preview tables (hidden on screen, shown on print) */}
+              <div style={{marginTop:24}}>
+                {printTarget && printTarget.id === "mumin" && (
+                  <table style={{width:"100%",borderCollapse:"collapse"}}>
+                    <thead><tr><th>ITS</th><th>Name</th><th>Age</th><th>Gender</th><th>Phone</th><th>Address</th><th>Status</th></tr></thead>
+                    <tbody>{muminData.map(function(m){return(<tr key={m.id}><td><span className="file-no">{m.its_number}</span></td><td>{m.name}</td><td>{m.age}</td><td>{m.gender}</td><td>{m.phone}</td><td>{m.address}</td><td><span className={"badge badge-"+(m.status||"").toLowerCase()}>{m.status}</span></td></tr>);})}</tbody>
+                  </table>
+                )}
+                {printTarget && printTarget.id === "files_all" && (
+                  <table style={{width:"100%",borderCollapse:"collapse"}}>
+                    <thead><tr><th>File No.</th><th>Title</th><th>Umoor</th><th>Year</th><th>Status</th><th>Due Date</th></tr></thead>
+                    <tbody>{filesData.map(function(f){return(<tr key={f.id}><td><span className="file-no">{f.file_no}</span></td><td>{f.title}</td><td style={{fontSize:11}}>{f.umoor_type}</td><td>{f.year}</td><td><span className={"badge badge-"+(f.status||"").toLowerCase()}>{f.status}</span></td><td>{f.due_date||"—"}</td></tr>);})}</tbody>
+                  </table>
+                )}
+                {printTarget && printTarget.id === "reminders" && (
+                  <table style={{width:"100%",borderCollapse:"collapse"}}>
+                    <thead><tr><th>File No.</th><th>Title</th><th>Umoor</th><th>Status</th><th>Due Date</th></tr></thead>
+                    <tbody>{filesData.filter(function(f){return f.due_date;}).sort(function(a,b){return new Date(a.due_date)-new Date(b.due_date);}).map(function(f){return(<tr key={f.id}><td><span className="file-no">{f.file_no}</span></td><td>{f.title}</td><td style={{fontSize:11}}>{f.umoor_type}</td><td><span className={"badge badge-"+(f.status||"").toLowerCase()}>{f.status}</span></td><td>{f.due_date}</td></tr>);})}</tbody>
+                  </table>
+                )}
+                {printTarget && printTarget.id === "age_groups" && (function(){
+                  var groups=[{label:"Children (0-15)",min:0,max:15},{label:"Youth (16-30)",min:16,max:30},{label:"Adults (31-60)",min:31,max:60},{label:"Seniors (61+)",min:61,max:999}];
+                  return (
+                    <table style={{width:"100%",borderCollapse:"collapse"}}>
+                      <thead><tr><th>Age Group</th><th>Count</th><th>Male</th><th>Female</th><th>% of Total</th></tr></thead>
+                      <tbody>{groups.map(function(g){
+                        var mem=muminData.filter(function(m){return m.age>=g.min&&m.age<=g.max;});
+                        var male=mem.filter(function(m){return m.gender==="Male";}).length;
+                        var pct=muminData.length>0?((mem.length/muminData.length)*100).toFixed(1):0;
+                        return(<tr key={g.label}><td>{g.label}</td><td style={{fontWeight:600}}>{mem.length}</td><td>{male}</td><td>{mem.length-male}</td><td>{pct}%</td></tr>);
+                      })}</tbody>
+                    </table>
+                  );
+                })()}
+                {printTarget && printTarget.id === "families" && (
+                  <table style={{width:"100%",borderCollapse:"collapse"}}>
+                    <thead><tr><th>Family Name</th><th>Address</th><th>Members</th></tr></thead>
+                    <tbody>{familiesData.map(function(f){var cnt=familyMembers.filter(function(m){return m.family_id===f.id;}).length;return(<tr key={f.id}><td style={{fontWeight:500}}>{f.family_name}</td><td>{f.address||"—"}</td><td>{cnt}</td></tr>);})}</tbody>
+                  </table>
+                )}
+                {printTarget && printTarget.id === "umoor" && (
+                  <table style={{width:"100%",borderCollapse:"collapse"}}>
+                    <thead><tr><th>File No.</th><th>Title</th><th>Year</th><th>Date</th><th>Status</th><th>Due Date</th></tr></thead>
+                    <tbody>{filesData.filter(function(f){return f.umoor_type===printTarget.umoor;}).map(function(f){return(<tr key={f.id}><td><span className="file-no">{f.file_no}</span></td><td>{f.title}</td><td>{f.year}</td><td>{f.date||"—"}</td><td><span className={"badge badge-"+(f.status||"").toLowerCase()}>{f.status}</span></td><td>{f.due_date||"—"}</td></tr>);})}</tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          )}
+
+          {page === "users" && (
+            <div>
+              <div className="page-hdr" style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between"}}>
+                <div><div className="page-title">Users & Roles</div><div className="page-sub">Manage access levels for each user</div></div>
+              </div>
+
+              {/* Role explanation cards */}
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16,marginBottom:24}}>
+                {[
+                  {role:"admin",  label:"Admin",  icon:"👑", desc:"Full access — create, edit, delete everything", color:"#c9a84c"},
+                  {role:"editor", label:"Editor", icon:"✏️", desc:"Can add and edit records but cannot delete", color:"#60a5fa"},
+                  {role:"viewer", label:"Viewer", icon:"👁",  desc:"Read-only access — cannot modify any data", color:"#9ca3af"},
+                ].map(function(r){ return (
+                  <div key={r.role} className={"umoor-card" + (userRole===r.role ? " selected" : "")} style={{cursor:"default"}}>
+                    <div style={{fontSize:26,marginBottom:8}}>{r.icon}</div>
+                    <div style={{fontSize:13,fontWeight:600,color:r.color,marginBottom:4}}>{r.label}</div>
+                    <div style={{fontSize:11,color:"#6b7280",lineHeight:1.6}}>{r.desc}</div>
+                    {userRole===r.role && <div style={{marginTop:8,fontSize:10,color:r.color}}>● Your current role</div>}
+                  </div>
+                );}) }
+              </div>
+
+              {/* My role */}
+              <div className="card" style={{marginBottom:20}}>
+                <div style={{padding:"16px 24px",borderBottom:"1px solid rgba(184,152,90,.1)",fontSize:14,fontWeight:600,color:"#e2d9c9"}}>Your Access</div>
+                <div style={{padding:"20px 24px",display:"flex",alignItems:"center",gap:16}}>
+                  <div style={{fontSize:36}}>{userRole==="admin"?"👑":userRole==="editor"?"✏️":"👁"}</div>
+                  <div>
+                    <div style={{fontSize:16,fontWeight:600,color:userRole==="admin"?"#c9a84c":userRole==="editor"?"#60a5fa":"#9ca3af",textTransform:"capitalize"}}>{userRole}</div>
+                    <div style={{fontSize:12,color:"#6b7280",marginTop:2}}>{session && session.user && session.user.email}</div>
+                  </div>
+                  <div style={{marginLeft:"auto",display:"flex",gap:10,flexWrap:"wrap"}}>
+                    <span style={{fontSize:12,color:canEdit?"#34d399":"#f87171"}}>{canEdit?"✓":"✗"} Can Edit</span>
+                    <span style={{fontSize:12,color:canDelete?"#34d399":"#f87171",marginLeft:12}}>{canDelete?"✓":"✗"} Can Delete</span>
+                    <span style={{fontSize:12,color:"#34d399",marginLeft:12}}>✓ Can View</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* User role assignments — admin only */}
+              {isAdmin && (
+                <div className="card">
+                  <div style={{padding:"16px 24px",borderBottom:"1px solid rgba(184,152,90,.1)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span style={{fontSize:14,fontWeight:600,color:"#e2d9c9"}}>Assign Roles to Users</span>
+                    <span style={{fontSize:11,color:"#6b7280"}}>Users must first be created in Supabase → Authentication → Users</span>
+                  </div>
+                  <div style={{padding:24}}>
+                    <div style={{background:"rgba(201,168,76,.05)",border:"1px solid rgba(201,168,76,.12)",borderRadius:10,padding:"16px 20px",marginBottom:20}}>
+                      <div style={{fontSize:12,color:"#c9a84c",fontWeight:600,marginBottom:8}}>How to assign a role</div>
+                      <div style={{fontSize:12,color:"#9ca3af",lineHeight:1.8}}>
+                        Run this in your <strong style={{color:"#e2d9c9"}}>Supabase SQL Editor</strong>, replacing the email and role:
+                      </div>
+                      <div style={{background:"#0d1117",borderRadius:8,padding:"12px 16px",marginTop:10,fontFamily:"monospace",fontSize:12,color:"#34d399",lineHeight:1.8}}>
+                        {"INSERT INTO user_roles (user_id, role)"}<br/>
+                        {"SELECT id, 'editor' FROM auth.users"}<br/>
+                        {"WHERE email = 'user@example.com'"}<br/>
+                        {"ON CONFLICT (user_id) DO UPDATE SET role = 'editor';"}
+                      </div>
+                      <div style={{marginTop:10,fontSize:11,color:"#6b7280"}}>
+                        Replace <code style={{color:"#c9a84c"}}>'editor'</code> with <code style={{color:"#c9a84c"}}>'admin'</code>, <code style={{color:"#c9a84c"}}>'editor'</code>, or <code style={{color:"#c9a84c"}}>'viewer'</code>
+                      </div>
+                    </div>
+                    <div style={{background:"rgba(96,165,250,.04)",border:"1px solid rgba(96,165,250,.12)",borderRadius:10,padding:"16px 20px"}}>
+                      <div style={{fontSize:12,color:"#60a5fa",fontWeight:600,marginBottom:8}}>Permission Summary</div>
+                      <table style={{width:"100%",fontSize:12}}>
+                        <thead>
+                          <tr>
+                            <th style={{textAlign:"left",color:"#6b7280",padding:"4px 0",fontWeight:500}}>Action</th>
+                            <th style={{textAlign:"center",color:"#c9a84c",padding:"4px 8px"}}>Admin</th>
+                            <th style={{textAlign:"center",color:"#60a5fa",padding:"4px 8px"}}>Editor</th>
+                            <th style={{textAlign:"center",color:"#9ca3af",padding:"4px 8px"}}>Viewer</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[
+                            ["View all data","✓","✓","✓"],
+                            ["Add records","✓","✓","✗"],
+                            ["Edit records","✓","✓","✗"],
+                            ["Delete records","✓","✗","✗"],
+                            ["Import data","✓","✓","✗"],
+                            ["Manage users","✓","✗","✗"],
+                          ].map(function(row){return(
+                            <tr key={row[0]} style={{borderTop:"1px solid rgba(255,255,255,.03)"}}>
+                              <td style={{padding:"7px 0",color:"#d1c9bb"}}>{row[0]}</td>
+                              <td style={{textAlign:"center",color:row[1]==="✓"?"#34d399":"#f87171"}}>{row[1]}</td>
+                              <td style={{textAlign:"center",color:row[2]==="✓"?"#34d399":"#f87171"}}>{row[2]}</td>
+                              <td style={{textAlign:"center",color:row[3]==="✓"?"#34d399":"#f87171"}}>{row[3]}</td>
+                            </tr>
+                          );})}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           {page === "files" && (
             <div>
               <div className="page-hdr">
@@ -1155,7 +1488,7 @@ export default function App() {
               <div className="card">
                 <div className="card-hdr">
                   <span className="card-title">Files ({filteredFiles.length})</span>
-                  <button className="btn btn-primary" onClick={function() { openModal("file", "add"); }}>+ New File</button>
+                  {canEdit && <button className="btn btn-primary" onClick={function() { openModal("file", "add"); }}>+ New File</button>}
                 </div>
                 <div className="toolbar">
                   <input style={{ width: 220 }} placeholder="Search files…" value={search} onChange={function(e) { setSearch(e.target.value); }} />
@@ -1170,7 +1503,7 @@ export default function App() {
                 ) : (
                   <table>
                     <thead>
-                      <tr><th>File No.</th><th>Title</th><th>Umoor</th><th>Year</th><th>Date</th><th>Attachments</th><th>Status</th><th>Actions</th></tr>
+                      <tr><th>File No.</th><th>Title</th><th>Umoor</th><th>Year</th><th>Date</th><th>Due Date</th><th>Attachments</th><th>Status</th><th>Actions</th></tr>
                     </thead>
                     <tbody>
                       {filteredFiles.map(function(f) {
@@ -1182,12 +1515,18 @@ export default function App() {
                             <td style={{ fontSize: 12, color: "#9ca3af" }}>{f.umoor_type}</td>
                             <td>{f.year}</td>
                             <td style={{ fontSize: 12, color: "#6b7280" }}>{f.date}</td>
+                            <td>{f.due_date ? (function(){
+                              var d=new Date(f.due_date); var t=new Date(); t.setHours(0,0,0,0); d.setHours(0,0,0,0);
+                              var diff=(d-t)/(1000*60*60*24);
+                              var cls=diff<0?"rb-overdue":diff<=7?"rb-soon":"";
+                              return <span className={"reminder-badge "+cls} style={{fontSize:10}}>{f.due_date}</span>;
+                            })() : <span style={{color:"#4b5563",fontSize:12}}>—</span>}</td>
                             <td>{atts.length > 0 ? <span className="attach-chip">📎 {atts.length}</span> : <span style={{ color: "#4b5563", fontSize: 12 }}>—</span>}</td>
                             <td><span className={"badge badge-" + (f.status || "").toLowerCase()}>{f.status}</span></td>
                             <td>
                               <div className="act-col" onClick={function(e) { e.stopPropagation(); }}>
-                                <button className="btn btn-ghost btn-sm" onClick={function() { openModal("file", "edit", f); }}>Edit</button>
-                                <button className="btn btn-danger" onClick={function() { deleteRecord("file", f.id); }}>Del</button>
+                                {canEdit && <button className="btn btn-ghost btn-sm" onClick={function() { openModal("file", "edit", f); }}>Edit</button>}
+                                {canDelete && <button className="btn btn-danger" onClick={function() { deleteRecord("file", f.id); }}>Del</button>}
                               </div>
                             </td>
                           </tr>
@@ -1211,7 +1550,7 @@ export default function App() {
                   <span className="card-title">Members ({filteredMumin.length})</span>
                   <div style={{ display: "flex", gap: 10 }}>
                     <button className="btn btn-ghost btn-sm" onClick={loadAll}>{loading ? <Spinner /> : "↻"}</button>
-                    <button className="btn btn-primary" onClick={function() { openModal("mumin", "add"); }}>+ Add Mumin</button>
+                    {canEdit && <button className="btn btn-primary" onClick={function() { openModal("mumin", "add"); }}>+ Add Mumin</button>}
                   </div>
                 </div>
                 <div className="toolbar">
@@ -1237,8 +1576,8 @@ export default function App() {
                             <td><span className={"badge badge-" + (m.status || "").toLowerCase()}>{m.status}</span></td>
                             <td>
                               <div className="act-col" onClick={function(e) { e.stopPropagation(); }}>
-                                <button className="btn btn-ghost btn-sm" onClick={function() { openModal("mumin", "edit", m); }}>Edit</button>
-                                <button className="btn btn-danger" onClick={function() { deleteRecord("mumin", m.id); }}>Del</button>
+                                {canEdit && <button className="btn btn-ghost btn-sm" onClick={function() { openModal("mumin", "edit", m); }}>Edit</button>}
+                                {canDelete && <button className="btn btn-danger" onClick={function() { deleteRecord("mumin", m.id); }}>Del</button>}
                               </div>
                             </td>
                           </tr>
