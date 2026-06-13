@@ -331,6 +331,40 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280
 .lightbox-close{position:absolute;top:24px;right:28px;background:none;border:none;color:#9ca3af;cursor:pointer;font-size:28px;width:auto}
 .lightbox-close:hover{color:#fff}
 
+
+/* Mumin profile preview */
+.preview-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:150;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.preview-box{background:#111820;border:1px solid rgba(184,152,90,.2);border-radius:16px;width:520px;max-height:88vh;overflow-y:auto;box-shadow:0 25px 60px rgba(0,0,0,.5)}
+.preview-hdr{display:flex;justify-content:space-between;align-items:flex-start;padding:24px 28px 20px;border-bottom:1px solid rgba(184,152,90,.1)}
+.preview-avatar{width:56px;height:56px;border-radius:50%;background:rgba(184,152,90,.15);display:flex;align-items:center;justify-content:center;font-size:22px;color:#c9a84c;border:2px solid rgba(184,152,90,.3);flex-shrink:0}
+.preview-name{font-family:'Amiri',serif;font-size:22px;color:#c9a84c;line-height:1.2}
+.preview-its{font-size:11px;color:#6b7280;font-family:monospace;margin-top:2px}
+.preview-body{padding:20px 28px}
+.preview-section{margin-bottom:20px}
+.preview-sec-title{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#6b7280;margin-bottom:10px;font-weight:600}
+.preview-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.preview-field{background:rgba(255,255,255,.02);border:1px solid rgba(184,152,90,.08);border-radius:8px;padding:10px 14px}
+.preview-field-label{font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
+.preview-field-val{font-size:13px;color:#e2d9c9}
+.preview-family-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.2);border-radius:8px;padding:8px 14px;font-size:13px;color:#c9a84c;margin-top:4px}
+/* File viewer */
+.file-preview-box{background:#111820;border:1px solid rgba(184,152,90,.2);border-radius:16px;width:680px;max-height:90vh;overflow-y:auto;box-shadow:0 25px 60px rgba(0,0,0,.5)}
+.file-preview-hdr{padding:22px 28px 18px;border-bottom:1px solid rgba(184,152,90,.1);display:flex;justify-content:space-between;align-items:flex-start}
+.file-preview-title{font-family:'Amiri',serif;font-size:20px;color:#c9a84c;max-width:480px}
+.file-preview-body{padding:20px 28px}
+.file-meta-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.file-meta-item{background:rgba(255,255,255,.02);border:1px solid rgba(184,152,90,.08);border-radius:8px;padding:10px 14px}
+.file-meta-label{font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
+.file-meta-val{font-size:13px;color:#e2d9c9}
+.att-viewer-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-top:8px}
+.att-viewer-item{background:rgba(255,255,255,.02);border:1px solid rgba(184,152,90,.1);border-radius:10px;overflow:hidden;cursor:pointer;transition:all .2s}
+.att-viewer-item:hover{border-color:rgba(201,168,76,.3);transform:translateY(-2px)}
+.att-viewer-thumb{width:100%;height:100px;object-fit:cover;display:block}
+.att-viewer-pdf{width:100%;height:100px;display:flex;align-items:center;justify-content:center;background:rgba(239,68,68,.06);font-size:32px}
+.att-viewer-name{padding:8px 10px;font-size:11px;color:#9ca3af;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.att-viewer-empty{color:#4b5563;font-size:13px;padding:20px 0;text-align:center}
+.clickable-row{cursor:pointer}
+.clickable-row:hover td{background:rgba(201,168,76,.05) !important}
 @media (max-width: 768px) {
   .layout{flex-direction:column}
   .sidebar{width:100%;height:auto;position:relative;flex-direction:column}
@@ -635,6 +669,8 @@ export default function App() {
   const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState(null);
   const [lightbox, setLightbox] = useState(null);
+  const [muminPreview, setMuminPreview] = useState(null);
+  const [filePreview, setFilePreview] = useState(null);
   const [ieModal, setIeModal] = useState(false);
   const [importing, setImporting] = useState(false);
 
@@ -1140,7 +1176,7 @@ export default function App() {
                       {filteredFiles.map(function(f) {
                         var atts = getFileAtts(f.id);
                         return (
-                          <tr key={f.id}>
+                          <tr key={f.id} className="clickable-row" onClick={function() { setFilePreview(f); }}>
                             <td><span className="file-no">{f.file_no}</span></td>
                             <td style={{ fontWeight: 500 }}>{f.title}</td>
                             <td style={{ fontSize: 12, color: "#9ca3af" }}>{f.umoor_type}</td>
@@ -1149,7 +1185,7 @@ export default function App() {
                             <td>{atts.length > 0 ? <span className="attach-chip">📎 {atts.length}</span> : <span style={{ color: "#4b5563", fontSize: 12 }}>—</span>}</td>
                             <td><span className={"badge badge-" + (f.status || "").toLowerCase()}>{f.status}</span></td>
                             <td>
-                              <div className="act-col">
+                              <div className="act-col" onClick={function(e) { e.stopPropagation(); }}>
                                 <button className="btn btn-ghost btn-sm" onClick={function() { openModal("file", "edit", f); }}>Edit</button>
                                 <button className="btn btn-danger" onClick={function() { deleteRecord("file", f.id); }}>Del</button>
                               </div>
@@ -1191,7 +1227,7 @@ export default function App() {
                     <tbody>
                       {filteredMumin.map(function(m) {
                         return (
-                          <tr key={m.id}>
+                          <tr key={m.id} className="clickable-row" onClick={function() { setMuminPreview(m); }}>
                             <td><span className="file-no">{m.its_number}</span></td>
                             <td style={{ fontWeight: 500 }}>{m.name}</td>
                             <td>{m.age}</td>
@@ -1200,7 +1236,7 @@ export default function App() {
                             <td style={{ fontSize: 12, color: "#6b7280" }}>{m.address}</td>
                             <td><span className={"badge badge-" + (m.status || "").toLowerCase()}>{m.status}</span></td>
                             <td>
-                              <div className="act-col">
+                              <div className="act-col" onClick={function(e) { e.stopPropagation(); }}>
                                 <button className="btn btn-ghost btn-sm" onClick={function() { openModal("mumin", "edit", m); }}>Edit</button>
                                 <button className="btn btn-danger" onClick={function() { deleteRecord("mumin", m.id); }}>Del</button>
                               </div>
@@ -1439,6 +1475,117 @@ export default function App() {
           importing={importing}
         />
       )}
+
+
+      {muminPreview && (function() {
+        var m = muminPreview;
+        var family = (function() {
+          var mem = familyMembers.find(function(fm) { return fm.its_number === m.its_number; });
+          if (!mem) return null;
+          return { fam: familiesData.find(function(f) { return f.id === mem.family_id; }), role: mem.role };
+        })();
+        return (
+          <div className="preview-overlay" onClick={function() { setMuminPreview(null); }}>
+            <div className="preview-box" onClick={function(e) { e.stopPropagation(); }}>
+              <div className="preview-hdr">
+                <div style={{ display:"flex", alignItems:"center", gap:16 }}>
+                  <div className="preview-avatar">{m.name ? m.name[0].toUpperCase() : "?"}</div>
+                  <div>
+                    <div className="preview-name">{m.name}</div>
+                    <div className="preview-its">ITS: {m.its_number}</div>
+                    <span className={"badge badge-" + (m.status||"").toLowerCase()} style={{ marginTop:6, display:"inline-block" }}>{m.status}</span>
+                  </div>
+                </div>
+                <button className="modal-close" onClick={function() { setMuminPreview(null); }}>x</button>
+              </div>
+              <div className="preview-body">
+                <div className="preview-section">
+                  <div className="preview-sec-title">Personal Details</div>
+                  <div className="preview-grid">
+                    <div className="preview-field"><div className="preview-field-label">Age</div><div className="preview-field-val">{m.age||"—"}</div></div>
+                    <div className="preview-field"><div className="preview-field-label">Gender</div><div className="preview-field-val">{m.gender||"—"}</div></div>
+                    <div className="preview-field"><div className="preview-field-label">Phone</div><div className="preview-field-val">{m.phone||"—"}</div></div>
+                    <div className="preview-field"><div className="preview-field-label">Email</div><div className="preview-field-val" style={{fontSize:12}}>{m.email||"—"}</div></div>
+                    <div className="preview-field" style={{gridColumn:"span 2"}}><div className="preview-field-label">Address</div><div className="preview-field-val">{m.address||"—"}</div></div>
+                  </div>
+                </div>
+                {family && family.fam && (
+                  <div className="preview-section">
+                    <div className="preview-sec-title">Family</div>
+                    <div className="preview-family-chip">
+                      {"\uD83C\uDFE0"} {family.fam.family_name}
+                      <span className={"fam-member-role role-"+(family.role||"").toLowerCase()} style={{marginLeft:4}}>{family.role}</span>
+                    </div>
+                    {family.fam.address && <div style={{fontSize:12,color:"#6b7280",marginTop:8}}>{family.fam.address}</div>}
+                  </div>
+                )}
+                <div style={{display:"flex",gap:10,marginTop:8}}>
+                  <button className="btn btn-primary" style={{flex:1}} onClick={function(){ setMuminPreview(null); openModal("mumin","edit",m); }}>Edit Record</button>
+                  <button className="btn btn-ghost" onClick={function(){ setMuminPreview(null); }}>Close</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {filePreview && (function() {
+        var f = filePreview;
+        var atts = getFileAtts(f.id);
+        return (
+          <div className="preview-overlay" onClick={function() { setFilePreview(null); }}>
+            <div className="file-preview-box" onClick={function(e) { e.stopPropagation(); }}>
+              <div className="file-preview-hdr">
+                <div>
+                  <div style={{fontSize:11,color:"#c9a84c",marginBottom:4,textTransform:"uppercase",letterSpacing:2}}>{f.umoor_type}</div>
+                  <div className="file-preview-title">{f.title}</div>
+                  <span className={"badge badge-"+(f.status||"").toLowerCase()} style={{marginTop:8,display:"inline-block"}}>{f.status}</span>
+                </div>
+                <button className="modal-close" onClick={function(){ setFilePreview(null); }}>x</button>
+              </div>
+              <div className="file-preview-body">
+                <div className="file-meta-grid">
+                  <div className="file-meta-item"><div className="file-meta-label">File No.</div><div className="file-meta-val" style={{fontFamily:"monospace",color:"#c9a84c"}}>{f.file_no}</div></div>
+                  <div className="file-meta-item"><div className="file-meta-label">Year</div><div className="file-meta-val">{f.year}</div></div>
+                  <div className="file-meta-item"><div className="file-meta-label">Date</div><div className="file-meta-val">{f.date||"—"}</div></div>
+                </div>
+                {f.description && (
+                  <div style={{background:"rgba(255,255,255,.02)",border:"1px solid rgba(184,152,90,.08)",borderRadius:8,padding:"12px 16px",marginBottom:20}}>
+                    <div style={{fontSize:10,color:"#6b7280",textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>Description</div>
+                    <div style={{fontSize:13,color:"#d1c9bb",lineHeight:1.6}}>{f.description}</div>
+                  </div>
+                )}
+                <div className="preview-sec-title">Attachments ({atts.length})</div>
+                {atts.length === 0 ? (
+                  <div className="att-viewer-empty">No attachments for this file.</div>
+                ) : (
+                  <div className="att-viewer-grid">
+                    {atts.map(function(att) {
+                      var isImg = att.type && att.type.startsWith("image/");
+                      var isPdf = att.type === "application/pdf";
+                      return (
+                        <div className="att-viewer-item" key={att.id} onClick={function(){
+                          if (isImg) setLightbox({ url: att.url, name: att.name });
+                          else if (att.url) window.open(att.url, "_blank");
+                        }}>
+                          {isImg
+                            ? <img className="att-viewer-thumb" src={att.url} alt={att.name} />
+                            : <div className="att-viewer-pdf">{isPdf ? "\uD83D\uDCC4" : "\uD83D\uDCCE"}</div>}
+                          <div className="att-viewer-name" title={att.name}>{att.name}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                <div style={{display:"flex",gap:10,marginTop:20}}>
+                  <button className="btn btn-primary" style={{flex:1}} onClick={function(){ setFilePreview(null); openModal("file","edit",f); }}>Edit File</button>
+                  <button className="btn btn-ghost" onClick={function(){ setFilePreview(null); }}>Close</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {lightbox && (
         <div className="lightbox" onClick={function() { setLightbox(null); }}>
