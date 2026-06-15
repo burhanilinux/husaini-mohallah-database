@@ -184,8 +184,9 @@ function fmtBytes(b) {
 
 const CSS = `
 @import url('https://fonts.cdnfonts.com/css/al-kanz');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{background:#0d1117;color:#e2d9c9;font-family:'Al-Kanz',sans-serif}
+body{background:#0d1117;color:#e2d9c9;font-family:'Roboto',sans-serif}
 .layout{display:flex;min-height:100vh}
 .sidebar{width:260px;flex-shrink:0;background:linear-gradient(180deg,#111820,#0d1117);border-right:1px solid rgba(184,152,90,.15);display:flex;flex-direction:column;position:fixed;height:100vh;overflow-y:auto;z-index:10}
 .sb-logo{padding:28px 24px 20px;border-bottom:1px solid rgba(184,152,90,.12)}
@@ -200,12 +201,12 @@ body{background:#0d1117;color:#e2d9c9;font-family:'Al-Kanz',sans-serif}
 .user-box{margin:8px 12px;background:rgba(184,152,90,.05);border:1px solid rgba(184,152,90,.1);border-radius:10px;padding:12px 14px}
 .user-role{font-size:10px;color:#c9a84c;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
 .user-email{font-size:11px;color:#9ca3af;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.signout-btn{width:100%;margin-top:8px;background:transparent;border:1px solid rgba(239,68,68,.2);color:#f87171;border-radius:6px;padding:5px;font-size:11px;cursor:pointer;font-family:'Al-Kanz',sans-serif}
+.signout-btn{width:100%;margin-top:8px;background:transparent;border:1px solid rgba(239,68,68,.2);color:#f87171;border-radius:6px;padding:5px;font-size:11px;cursor:pointer;font-family:'Roboto',sans-serif}
 .signout-btn:hover{background:rgba(239,68,68,.08)}
 .sb-footer{padding:16px 24px;border-top:1px solid rgba(184,152,90,.1);font-size:11px;color:#374151}
 .main{margin-left:260px;padding:36px;flex:1}
 .page-hdr{margin-bottom:32px}
-.page-title{font-family:'Al-Kanz',sans-serif;font-size:28px;color:#c9a84c;font-weight:700}
+.page-title{font-family:'Roboto',sans-serif;font-size:28px;color:#c9a84c;font-weight:700}
 .page-sub{font-size:13px;color:#6b7280;margin-top:4px}
 .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px}
 .stat-card{background:rgba(255,255,255,.02);border:1px solid rgba(184,152,90,.12);border-radius:12px;padding:20px;position:relative;overflow:hidden}
@@ -217,12 +218,12 @@ body{background:#0d1117;color:#e2d9c9;font-family:'Al-Kanz',sans-serif}
 .card-hdr{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid rgba(184,152,90,.1)}
 .card-title{font-size:14px;font-weight:600;color:#e2d9c9}
 .toolbar{display:flex;align-items:center;gap:12px;padding:16px 24px;border-bottom:1px solid rgba(184,152,90,.08);flex-wrap:wrap}
-input,select,textarea{background:rgba(255,255,255,.04);border:1px solid rgba(184,152,90,.15);color:#e2d9c9;border-radius:8px;padding:8px 12px;font-size:13px;font-family:'Al-Kanz',sans-serif;outline:none;transition:border .2s;width:100%}
+input,select,textarea{background:rgba(255,255,255,.04);border:1px solid rgba(184,152,90,.15);color:#e2d9c9;border-radius:8px;padding:8px 12px;font-size:13px;font-family:'Roboto',sans-serif;outline:none;transition:border .2s;width:100%}
 input:focus,select:focus,textarea:focus{border-color:rgba(201,168,76,.4)}
 input::placeholder,textarea::placeholder{color:#4b5563}
 select option{background:#111820}
 textarea{resize:vertical;min-height:72px}
-.btn{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .2s;font-family:'Al-Kanz',sans-serif;display:inline-flex;align-items:center;gap:6px}
+.btn{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .2s;font-family:'Roboto',sans-serif;display:inline-flex;align-items:center;gap:6px}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 .btn-primary{background:#c9a84c;color:#0d1117}
 .btn-primary:hover:not(:disabled){background:#dbb95d}
@@ -245,7 +246,7 @@ tr:hover td{background:rgba(184,152,90,.03)}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 .modal{background:#111820;border:1px solid rgba(184,152,90,.2);border-radius:16px;width:580px;max-height:88vh;overflow-y:auto;box-shadow:0 25px 60px rgba(0,0,0,.5)}
 .modal-hdr{padding:24px 28px 20px;border-bottom:1px solid rgba(184,152,90,.1);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#111820;z-index:1}
-.modal-title{font-family:'Al-Kanz',sans-serif;font-size:20px;color:#c9a84c}
+.modal-title{font-family:'Roboto',sans-serif;font-size:20px;color:#c9a84c}
 .modal-close{background:none;border:none;color:#6b7280;cursor:pointer;font-size:22px;line-height:1;padding:0;width:auto}
 .modal-close:hover{color:#e2d9c9}
 .modal-body{padding:24px 28px}
@@ -304,14 +305,14 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280
 .login-title{font-size:16px;font-weight:600;color:#e2d9c9;margin-bottom:24px;text-align:center}
 .login-fields{display:flex;flex-direction:column;gap:16px}
 .login-field{display:flex;flex-direction:column;gap:6px}
-.login-btn{background:#c9a84c;color:#0d1117;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Al-Kanz',sans-serif;transition:background .2s;margin-top:8px;width:100%}
+.login-btn{background:#c9a84c;color:#0d1117;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Roboto',sans-serif;transition:background .2s;margin-top:8px;width:100%}
 .login-btn:hover:not(:disabled){background:#dbb95d}
 .login-btn:disabled{opacity:.6;cursor:not-allowed}
 .login-err{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:10px 14px;color:#f87171;font-size:12px;text-align:center}
 .login-footer{text-align:center;margin-top:24px;font-size:11px;color:#374151}
 .ie-modal{background:#111820;border:1px solid rgba(184,152,90,.2);border-radius:16px;width:500px;box-shadow:0 25px 60px rgba(0,0,0,.5)}
 .ie-tabs{display:flex;border-bottom:1px solid rgba(184,152,90,.1)}
-.ie-tab{flex:1;padding:14px;text-align:center;font-size:13px;cursor:pointer;color:#6b7280;transition:all .2s;border:none;background:none;font-family:'Al-Kanz',sans-serif}
+.ie-tab{flex:1;padding:14px;text-align:center;font-size:13px;cursor:pointer;color:#6b7280;transition:all .2s;border:none;background:none;font-family:'Roboto',sans-serif}
 .ie-tab.active{color:#c9a84c;border-bottom:2px solid #c9a84c}
 .ie-tab:hover:not(.active){color:#e2d9c9}
 .ie-body{padding:24px}
@@ -323,7 +324,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280
 .imp-preview{background:rgba(255,255,255,.02);border:1px solid rgba(184,152,90,.1);border-radius:10px;padding:14px 18px;margin-top:12px;font-size:12px;color:#9ca3af}
 .imp-preview strong{color:#c9a84c}
 .imp-type{display:flex;gap:8px;margin-bottom:16px}
-.imp-type-btn{flex:1;padding:8px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid rgba(184,152,90,.15);color:#6b7280;background:transparent;transition:all .2s;font-family:'Al-Kanz',sans-serif}
+.imp-type-btn{flex:1;padding:8px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid rgba(184,152,90,.15);color:#6b7280;background:transparent;transition:all .2s;font-family:'Roboto',sans-serif}
 .imp-type-btn.active{background:rgba(184,152,90,.1);color:#c9a84c;border-color:rgba(201,168,76,.3)}
 .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:200;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px}
 .lightbox img{max-width:90vw;max-height:80vh;border-radius:8px;object-fit:contain}
@@ -337,7 +338,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280
 .preview-box{background:#111820;border:1px solid rgba(184,152,90,.2);border-radius:16px;width:520px;max-height:88vh;overflow-y:auto;box-shadow:0 25px 60px rgba(0,0,0,.5)}
 .preview-hdr{display:flex;justify-content:space-between;align-items:flex-start;padding:24px 28px 20px;border-bottom:1px solid rgba(184,152,90,.1)}
 .preview-avatar{width:56px;height:56px;border-radius:50%;background:rgba(184,152,90,.15);display:flex;align-items:center;justify-content:center;font-size:22px;color:#c9a84c;border:2px solid rgba(184,152,90,.3);flex-shrink:0}
-.preview-name{font-family:'Al-Kanz',sans-serif;font-size:22px;color:#c9a84c;line-height:1.2}
+.preview-name{font-family:'Roboto',sans-serif;font-size:22px;color:#c9a84c;line-height:1.2}
 .preview-its{font-size:11px;color:#6b7280;font-family:monospace;margin-top:2px}
 .preview-body{padding:20px 28px}
 .preview-section{margin-bottom:20px}
@@ -350,7 +351,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280
 /* File viewer */
 .file-preview-box{background:#111820;border:1px solid rgba(184,152,90,.2);border-radius:16px;width:680px;max-height:90vh;overflow-y:auto;box-shadow:0 25px 60px rgba(0,0,0,.5)}
 .file-preview-hdr{padding:22px 28px 18px;border-bottom:1px solid rgba(184,152,90,.1);display:flex;justify-content:space-between;align-items:flex-start}
-.file-preview-title{font-family:'Al-Kanz',sans-serif;font-size:20px;color:#c9a84c;max-width:480px}
+.file-preview-title{font-family:'Roboto',sans-serif;font-size:20px;color:#c9a84c;max-width:480px}
 .file-preview-body{padding:20px 28px}
 .file-meta-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
 .file-meta-item{background:rgba(255,255,255,.02);border:1px solid rgba(184,152,90,.08);border-radius:8px;padding:10px 14px}
@@ -368,7 +369,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280
 
 /* Global Search */
 .gsearch-wrap{position:relative;margin:0 12px 12px}
-.gsearch-input{width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(184,152,90,.2);color:#e2d9c9;border-radius:10px;padding:9px 14px 9px 36px;font-size:13px;font-family:'Al-Kanz',sans-serif;outline:none;transition:border .2s}
+.gsearch-input{width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(184,152,90,.2);color:#e2d9c9;border-radius:10px;padding:9px 14px 9px 36px;font-size:13px;font-family:'Roboto',sans-serif;outline:none;transition:border .2s}
 .gsearch-input:focus{border-color:rgba(201,168,76,.5)}
 .gsearch-icon{position:absolute;left:24px;top:50%;transform:translateY(-50%);color:#6b7280;font-size:14px;pointer-events:none}
 .gsearch-results{position:absolute;top:calc(100% + 6px);left:0;right:0;background:#111820;border:1px solid rgba(184,152,90,.2);border-radius:12px;box-shadow:0 20px 50px rgba(0,0,0,.6);z-index:50;max-height:400px;overflow-y:auto}
@@ -430,9 +431,9 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280
     .print-area { position: fixed; inset: 0; background: white; color: black; padding: 32px; z-index: 9999; }
     .no-print { display: none !important; }
   }
-  .print-doc { font-family: 'Al-Kanz', sans-serif; color: #111; }
+  .print-doc { font-family: 'Roboto', sans-serif; color: #111; }
   .print-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #c9a84c; padding-bottom: 16px; margin-bottom: 20px; }
-  .print-logo { font-family: 'Al-Kanz', sans-serif; font-size: 22px; color: #8a6a1a; }
+  .print-logo { font-family: 'Roboto', sans-serif; font-size: 22px; color: #8a6a1a; }
   .print-logo-sub { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #888; margin-top: 2px; }
   .print-date { font-size: 11px; color: #888; text-align: right; }
   .print-title { font-size: 20px; font-weight: 700; color: #111; margin-bottom: 4px; }
@@ -736,7 +737,7 @@ function IEModal({ onClose, muminData, filesData, onImportMumin, onImportFiles, 
 
 // -- Print helpers --
 var PRINT_CSS = [
-  "body{margin:40px;font-family:'Al-Kanz',sans-serif;background:#fff;color:#111}",
+  "body{margin:40px;font-family:'Roboto',sans-serif;background:#fff;color:#111}",
   ".print-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #c9a84c;padding-bottom:16px;margin-bottom:20px}",
   ".print-logo{font-size:20px;font-weight:700;color:#8a6a1a}",
   ".print-logo-sub{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#888;margin-top:3px}",
