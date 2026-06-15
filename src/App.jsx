@@ -734,139 +734,111 @@ function IEModal({ onClose, muminData, filesData, onImportMumin, onImportFiles, 
 }
 
 
-// ── Print helpers ─────────────────────────────────────────────────
+// -- Print helpers --
+var PRINT_CSS = [
+  "body{margin:40px;font-family:Arial,sans-serif;background:#fff;color:#111}",
+  ".print-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #c9a84c;padding-bottom:16px;margin-bottom:20px}",
+  ".print-logo{font-size:20px;font-weight:700;color:#8a6a1a}",
+  ".print-logo-sub{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#888;margin-top:3px}",
+  ".print-date{font-size:11px;color:#888;text-align:right;line-height:1.6}",
+  ".print-type{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#8a6a1a;margin-bottom:6px}",
+  ".print-title{font-size:22px;font-weight:700;color:#111;margin-bottom:6px}",
+  ".print-subtitle{font-size:12px;color:#666;margin-bottom:20px}",
+  ".print-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}",
+  ".print-field{border:1px solid #e5e5e5;border-radius:6px;padding:8px 12px}",
+  ".print-field.full{grid-column:span 2}",
+  ".print-field-label{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:3px}",
+  ".print-field-val{font-size:13px;color:#111;font-weight:500}",
+  ".print-section-title{font-size:9px;text-transform:uppercase;letter-spacing:2px;color:#8a6a1a;margin:18px 0 8px;font-weight:700;border-bottom:1px solid #f0e6cc;padding-bottom:4px}",
+  ".print-desc{border:1px solid #e5e5e5;border-radius:6px;padding:12px 16px;font-size:13px;color:#333;line-height:1.7;margin-bottom:16px}",
+  ".print-family-box{border:1px solid #f0e6cc;border-radius:8px;padding:12px 16px;background:#fffdf7;margin-bottom:16px}",
+  ".print-family-name{font-size:14px;font-weight:600;color:#8a6a1a}",
+  ".print-family-role{font-size:11px;color:#666;margin-left:8px}",
+  ".print-att-list{display:flex;flex-direction:column;gap:6px}",
+  ".print-att-item{font-size:12px;color:#333;background:#fafafa;border:1px solid #eee;border-radius:6px;padding:6px 12px}",
+  ".print-due{border:1px solid #fde68a;border-radius:6px;padding:10px 16px;font-size:13px;color:#92400e;background:#fffbeb;margin-bottom:16px}",
+  ".print-badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid}",
+  ".print-badge-active{color:#15803d;border-color:#86efac;background:#f0fdf4}",
+  ".print-badge-closed{color:#6b7280;border-color:#d1d5db;background:#f9fafb}",
+  ".print-badge-pending{color:#92400e;border-color:#fde68a;background:#fffbeb}",
+  ".print-footer{margin-top:36px;padding-top:12px;border-top:1px solid #e5e5e5;font-size:10px;color:#aaa;display:flex;justify-content:space-between}"
+].join("");
+
+function openPrint(title, bodyHtml) {
+  var fullHtml = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>" + title + "</title><style>" + PRINT_CSS + "</style></head><body>" + bodyHtml + "<scr" + "ipt>window.onload=function(){window.print();}<" + "/scr" + "ipt></body></html>";
+  var blob = new Blob([fullHtml], { type: "text/html;charset=utf-8" });
+  var url = URL.createObjectURL(blob);
+  var w = window.open(url, "_blank");
+  if (!w) { alert("Please allow popups for this site to enable printing."); return; }
+  setTimeout(function() { URL.revokeObjectURL(url); }, 15000);
+}
+
 function printMumin(m, family) {
-  var w = window.open("","_blank","width=750,height=950");
-  if (!w) { alert("Please allow popups for this site to print."); return; }
-  var css = 'body{margin:40px;font-family:Arial,sans-serif;background:#fff;color:#111}
-.print-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #c9a84c;padding-bottom:16px;margin-bottom:20px}
-.print-logo{font-size:20px;font-weight:700;color:#8a6a1a}
-.print-logo-sub{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#888;margin-top:3px}
-.print-date{font-size:11px;color:#888;text-align:right;line-height:1.6}
-.print-type{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#8a6a1a;margin-bottom:6px}
-.print-title{font-size:22px;font-weight:700;color:#111;margin-bottom:6px}
-.print-subtitle{font-size:12px;color:#666;margin-bottom:20px}
-.print-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
-.print-field{border:1px solid #e5e5e5;border-radius:6px;padding:8px 12px}
-.print-field.full{grid-column:span 2}
-.print-field-label{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:3px}
-.print-field-val{font-size:13px;color:#111;font-weight:500}
-.print-section-title{font-size:9px;text-transform:uppercase;letter-spacing:2px;color:#8a6a1a;margin:18px 0 8px;font-weight:700;border-bottom:1px solid #f0e6cc;padding-bottom:4px}
-.print-desc{border:1px solid #e5e5e5;border-radius:6px;padding:12px 16px;font-size:13px;color:#333;line-height:1.7;margin-bottom:16px}
-.print-family-box{border:1px solid #f0e6cc;border-radius:8px;padding:12px 16px;background:#fffdf7;margin-bottom:16px}
-.print-family-name{font-size:14px;font-weight:600;color:#8a6a1a}
-.print-family-role{font-size:11px;color:#666;margin-left:8px}
-.print-att-list{display:flex;flex-direction:column;gap:6px}
-.print-att-item{font-size:12px;color:#333;background:#fafafa;border:1px solid #eee;border-radius:6px;padding:6px 12px}
-.print-due{border:1px solid #fde68a;border-radius:6px;padding:10px 16px;font-size:13px;color:#92400e;background:#fffbeb;margin-bottom:16px}
-.print-badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid}
-.print-badge-active{color:#15803d;border-color:#86efac;background:#f0fdf4}
-.print-badge-closed{color:#6b7280;border-color:#d1d5db;background:#f9fafb}
-.print-badge-pending{color:#92400e;border-color:#fde68a;background:#fffbeb}
-.print-footer{margin-top:36px;padding-top:12px;border-top:1px solid #e5e5e5;font-size:10px;color:#aaa;display:flex;justify-content:space-between}';
-  var full = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + (m.name||'Mumin') + '</title><style>' + css + '</style></head><body>' + ((function(){
-    var sc = (m.status||"active").toLowerCase();
-    var today = new Date().toLocaleDateString("en-GB",{day:"2-digit",month:"long",year:"numeric"});
-    var h = "";
-    h += '<div class="print-header">';
-    h += '<div><div class="print-logo">Husaini Mohallah</div><div class="print-logo-sub">&#x62D;&#x633;&#x6CC;&#x646;&#x6CC; &#x645;&#x62D;&#x644;&#x651;&#x647;</div></div>';
-    h += '<div class="print-date"><strong>Mumin Record</strong><br/>' + today + '</div>';
-    h += '</div>';
-    h += '<div class="print-title">' + (m.name||"") + '</div>';
-    h += '<div class="print-subtitle">ITS: ' + (m.its_number||"") + ' &nbsp;&nbsp; <span class="print-badge print-badge-' + sc + '">' + (m.status||"") + '</span></div>';
-    h += '<div class="print-section-title">Personal Details</div>';
-    h += '<div class="print-grid">';
-    h += '<div class="print-field"><div class="print-field-label">Age</div><div class="print-field-val">' + (m.age||"&#x2014;") + '</div></div>';
-    h += '<div class="print-field"><div class="print-field-label">Gender</div><div class="print-field-val">' + (m.gender||"&#x2014;") + '</div></div>';
-    h += '<div class="print-field"><div class="print-field-label">Phone</div><div class="print-field-val">' + (m.phone||"&#x2014;") + '</div></div>';
-    h += '<div class="print-field"><div class="print-field-label">Email</div><div class="print-field-val">' + (m.email||"&#x2014;") + '</div></div>';
-    h += '<div class="print-field full"><div class="print-field-label">Address</div><div class="print-field-val">' + (m.address||"&#x2014;") + '</div></div>';
-    h += '</div>';
-    if (family && family.fam) {
-      h += '<div class="print-section-title">Family</div>';
-      h += '<div class="print-family-box">';
-      h += '<div class="print-family-name">' + family.fam.family_name + '<span class="print-family-role">(' + (family.role||"") + ')</span></div>';
-      if (family.fam.address) h += '<div style="font-size:12px;color:#666;margin-top:4px">' + family.fam.address + '</div>';
-      h += '</div>';
-    }
-    h += '<div class="print-footer"><span>Husaini Mohallah Database</span><span>Printed: ' + new Date().toLocaleString() + '</span></div>';
-    return h;
-  })()) + '<scr' + 'ipt>window.onload=function(){window.print();}<\/scr' + 'ipt></body></html>';
-  w.document.open();
-  w.document.write(full);
-  w.document.close();
+  var sc = (m.status || "active").toLowerCase();
+  var today = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
+  var h = "";
+  h += "<div class='print-header'>";
+  h += "<div><div class='print-logo'>Husaini Mohallah</div><div class='print-logo-sub'>Husaini Mohallah &bull; Database</div></div>";
+  h += "<div class='print-date'><strong>Mumin Record</strong><br/>" + today + "</div>";
+  h += "</div>";
+  h += "<div class='print-title'>" + (m.name || "") + "</div>";
+  h += "<div class='print-subtitle'>ITS: " + (m.its_number || "") + " &nbsp;&nbsp; <span class='print-badge print-badge-" + sc + "'>" + (m.status || "") + "</span></div>";
+  h += "<div class='print-section-title'>Personal Details</div>";
+  h += "<div class='print-grid'>";
+  h += "<div class='print-field'><div class='print-field-label'>Age</div><div class='print-field-val'>" + (m.age || "—") + "</div></div>";
+  h += "<div class='print-field'><div class='print-field-label'>Gender</div><div class='print-field-val'>" + (m.gender || "—") + "</div></div>";
+  h += "<div class='print-field'><div class='print-field-label'>Phone</div><div class='print-field-val'>" + (m.phone || "—") + "</div></div>";
+  h += "<div class='print-field'><div class='print-field-label'>Email</div><div class='print-field-val'>" + (m.email || "—") + "</div></div>";
+  h += "<div class='print-field full'><div class='print-field-label'>Address</div><div class='print-field-val'>" + (m.address || "—") + "</div></div>";
+  h += "</div>";
+  if (family && family.fam) {
+    h += "<div class='print-section-title'>Family</div>";
+    h += "<div class='print-family-box'>";
+    h += "<div class='print-family-name'>" + family.fam.family_name + "<span class='print-family-role'>(" + (family.role || "") + ")</span></div>";
+    if (family.fam.address) h += "<div style='font-size:12px;color:#666;margin-top:4px'>" + family.fam.address + "</div>";
+    h += "</div>";
+  }
+  h += "<div class='print-footer'><span>Husaini Mohallah Database</span><span>Printed: " + new Date().toLocaleString() + "</span></div>";
+  openPrint("Mumin - " + (m.name || ""), h);
 }
 
 function printFile(f, atts) {
-  var w = window.open("","_blank","width=750,height=950");
-  if (!w) { alert("Please allow popups for this site to print."); return; }
-  var css = 'body{margin:40px;font-family:Arial,sans-serif;background:#fff;color:#111}
-.print-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #c9a84c;padding-bottom:16px;margin-bottom:20px}
-.print-logo{font-size:20px;font-weight:700;color:#8a6a1a}
-.print-logo-sub{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#888;margin-top:3px}
-.print-date{font-size:11px;color:#888;text-align:right;line-height:1.6}
-.print-type{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#8a6a1a;margin-bottom:6px}
-.print-title{font-size:22px;font-weight:700;color:#111;margin-bottom:6px}
-.print-subtitle{font-size:12px;color:#666;margin-bottom:20px}
-.print-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
-.print-field{border:1px solid #e5e5e5;border-radius:6px;padding:8px 12px}
-.print-field.full{grid-column:span 2}
-.print-field-label{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:3px}
-.print-field-val{font-size:13px;color:#111;font-weight:500}
-.print-section-title{font-size:9px;text-transform:uppercase;letter-spacing:2px;color:#8a6a1a;margin:18px 0 8px;font-weight:700;border-bottom:1px solid #f0e6cc;padding-bottom:4px}
-.print-desc{border:1px solid #e5e5e5;border-radius:6px;padding:12px 16px;font-size:13px;color:#333;line-height:1.7;margin-bottom:16px}
-.print-family-box{border:1px solid #f0e6cc;border-radius:8px;padding:12px 16px;background:#fffdf7;margin-bottom:16px}
-.print-family-name{font-size:14px;font-weight:600;color:#8a6a1a}
-.print-family-role{font-size:11px;color:#666;margin-left:8px}
-.print-att-list{display:flex;flex-direction:column;gap:6px}
-.print-att-item{font-size:12px;color:#333;background:#fafafa;border:1px solid #eee;border-radius:6px;padding:6px 12px}
-.print-due{border:1px solid #fde68a;border-radius:6px;padding:10px 16px;font-size:13px;color:#92400e;background:#fffbeb;margin-bottom:16px}
-.print-badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid}
-.print-badge-active{color:#15803d;border-color:#86efac;background:#f0fdf4}
-.print-badge-closed{color:#6b7280;border-color:#d1d5db;background:#f9fafb}
-.print-badge-pending{color:#92400e;border-color:#fde68a;background:#fffbeb}
-.print-footer{margin-top:36px;padding-top:12px;border-top:1px solid #e5e5e5;font-size:10px;color:#aaa;display:flex;justify-content:space-between}';
-  var full = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + (f.title||'File') + '</title><style>' + css + '</style></head><body>' + ((function(){
-    var sc = (f.status||"active").toLowerCase();
-    var today = new Date().toLocaleDateString("en-GB",{day:"2-digit",month:"long",year:"numeric"});
-    var h = "";
-    h += '<div class="print-header">';
-    h += '<div><div class="print-logo">Husaini Mohallah</div><div class="print-logo-sub">&#x62D;&#x633;&#x6CC;&#x646;&#x6CC; &#x645;&#x62D;&#x644;&#x651;&#x647;</div></div>';
-    h += '<div class="print-date"><strong>Umoor File</strong><br/>' + today + '</div>';
-    h += '</div>';
-    h += '<div class="print-type">' + (f.umoor_type||"") + '</div>';
-    h += '<div class="print-title">' + (f.title||"") + '</div>';
-    h += '<div class="print-subtitle"><span class="print-badge print-badge-' + sc + '">' + (f.status||"") + '</span></div>';
-    h += '<div class="print-section-title">File Details</div>';
-    h += '<div class="print-grid">';
-    h += '<div class="print-field"><div class="print-field-label">File No.</div><div class="print-field-val" style="font-family:monospace;color:#8a6a1a">' + (f.file_no||"&#x2014;") + '</div></div>';
-    h += '<div class="print-field"><div class="print-field-label">Year</div><div class="print-field-val">' + (f.year||"&#x2014;") + '</div></div>';
-    h += '<div class="print-field"><div class="print-field-label">Date</div><div class="print-field-val">' + (f.date||"&#x2014;") + '</div></div>';
-    h += '<div class="print-field"><div class="print-field-label">Status</div><div class="print-field-val">' + (f.status||"&#x2014;") + '</div></div>';
-    h += '</div>';
-    if (f.description) {
-      h += '<div class="print-section-title">Description</div>';
-      h += '<div class="print-desc">' + f.description + '</div>';
-    }
-    if (f.due_date) {
-      h += '<div class="print-section-title">Due Date</div>';
-      h += '<div class="print-due">Due: ' + f.due_date + '</div>';
-    }
-    if (atts && atts.length > 0) {
-      h += '<div class="print-section-title">Attachments (' + atts.length + ')</div>';
-      h += '<div class="print-att-list">';
-      atts.forEach(function(att) {
-        var icon = att.type && att.type.startsWith("image/") ? "[IMG]" : att.type === "application/pdf" ? "[PDF]" : "[FILE]";
-        h += '<div class="print-att-item">' + icon + ' ' + att.name + '</div>';
-      });
-      h += '</div>';
-    }
-    h += '<div class="print-footer"><span>Husaini Mohallah Database</span><span>Printed: ' + new Date().toLocaleString() + '</span></div>';
-    return h;
-  })()) + '<scr' + 'ipt>window.onload=function(){window.print();}<\/scr' + 'ipt></body></html>';
-  w.document.open();
-  w.document.write(full);
-  w.document.close();
+  var sc = (f.status || "active").toLowerCase();
+  var today = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
+  var h = "";
+  h += "<div class='print-header'>";
+  h += "<div><div class='print-logo'>Husaini Mohallah</div><div class='print-logo-sub'>Husaini Mohallah &bull; Database</div></div>";
+  h += "<div class='print-date'><strong>Umoor File</strong><br/>" + today + "</div>";
+  h += "</div>";
+  h += "<div class='print-type'>" + (f.umoor_type || "") + "</div>";
+  h += "<div class='print-title'>" + (f.title || "") + "</div>";
+  h += "<div class='print-subtitle'><span class='print-badge print-badge-" + sc + "'>" + (f.status || "") + "</span></div>";
+  h += "<div class='print-section-title'>File Details</div>";
+  h += "<div class='print-grid'>";
+  h += "<div class='print-field'><div class='print-field-label'>File No.</div><div class='print-field-val' style='font-family:monospace;color:#8a6a1a'>" + (f.file_no || "—") + "</div></div>";
+  h += "<div class='print-field'><div class='print-field-label'>Year</div><div class='print-field-val'>" + (f.year || "—") + "</div></div>";
+  h += "<div class='print-field'><div class='print-field-label'>Date</div><div class='print-field-val'>" + (f.date || "—") + "</div></div>";
+  h += "<div class='print-field'><div class='print-field-label'>Status</div><div class='print-field-val'>" + (f.status || "—") + "</div></div>";
+  h += "</div>";
+  if (f.description) {
+    h += "<div class='print-section-title'>Description</div>";
+    h += "<div class='print-desc'>" + f.description + "</div>";
+  }
+  if (f.due_date) {
+    h += "<div class='print-section-title'>Due Date</div>";
+    h += "<div class='print-due'>Due: " + f.due_date + "</div>";
+  }
+  if (atts && atts.length > 0) {
+    h += "<div class='print-section-title'>Attachments (" + atts.length + ")</div>";
+    h += "<div class='print-att-list'>";
+    atts.forEach(function(att) {
+      var icon = att.type && att.type.startsWith("image/") ? "[IMG]" : att.type === "application/pdf" ? "[PDF]" : "[FILE]";
+      h += "<div class='print-att-item'>" + icon + " " + att.name + "</div>";
+    });
+    h += "</div>";
+  }
+  h += "<div class='print-footer'><span>Husaini Mohallah Database</span><span>Printed: " + new Date().toLocaleString() + "</span></div>";
+  openPrint("File - " + (f.title || ""), h);
 }
 
 export default function App() {
