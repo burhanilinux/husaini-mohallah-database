@@ -422,6 +422,37 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280
 .print-header{display:none;text-align:center;margin-bottom:20px;border-bottom:2px solid #c9a84c;padding-bottom:12px}
 .print-header h2{font-size:20px;margin-bottom:4px}
 .print-header p{font-size:12px;color:#666}
+
+  /* Print styles */
+  @media print {
+    body * { visibility: hidden !important; }
+    .print-area, .print-area * { visibility: visible !important; }
+    .print-area { position: fixed; inset: 0; background: white; color: black; padding: 32px; z-index: 9999; }
+    .no-print { display: none !important; }
+  }
+  .print-doc { font-family: 'Jost', sans-serif; color: #111; }
+  .print-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #c9a84c; padding-bottom: 16px; margin-bottom: 20px; }
+  .print-logo { font-family: 'Amiri', serif; font-size: 22px; color: #8a6a1a; }
+  .print-logo-sub { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #888; margin-top: 2px; }
+  .print-date { font-size: 11px; color: #888; text-align: right; }
+  .print-title { font-size: 20px; font-weight: 700; color: #111; margin-bottom: 4px; }
+  .print-subtitle { font-size: 12px; color: #666; margin-bottom: 20px; }
+  .print-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+  .print-field { border: 1px solid #e5e5e5; border-radius: 6px; padding: 8px 12px; }
+  .print-field-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 2px; }
+  .print-field-val { font-size: 13px; color: #111; font-weight: 500; }
+  .print-section-title { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #8a6a1a; margin: 16px 0 8px; font-weight: 600; border-bottom: 1px solid #f0e6cc; padding-bottom: 4px; }
+  .print-att-list { display: flex; flex-direction: column; gap: 6px; }
+  .print-att-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #333; background: #fafafa; border: 1px solid #eee; border-radius: 6px; padding: 6px 12px; }
+  .print-badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; border: 1px solid; }
+  .print-badge-active { color: #15803d; border-color: #86efac; background: #f0fdf4; }
+  .print-badge-closed { color: #6b7280; border-color: #d1d5db; background: #f9fafb; }
+  .print-badge-pending { color: #92400e; border-color: #fde68a; background: #fffbeb; }
+  .print-footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e5e5e5; font-size: 10px; color: #aaa; display: flex; justify-content: space-between; }
+  .print-family-box { border: 1px solid #f0e6cc; border-radius: 8px; padding: 12px 16px; background: #fffdf7; margin-bottom: 16px; }
+  .print-family-name { font-size: 14px; font-weight: 600; color: #8a6a1a; }
+  .print-family-role { display: inline-block; font-size: 11px; color: #666; margin-left: 8px; }
+
 @media (max-width: 768px) {
   .layout{flex-direction:column}
   .sidebar{width:100%;height:auto;position:relative;flex-direction:column}
@@ -700,6 +731,92 @@ function IEModal({ onClose, muminData, filesData, onImportMumin, onImportFiles, 
       </div>
     </div>
   );
+}
+
+
+// ── Print helpers ─────────────────────────────────────────────────
+function printMumin(m, family, atts) {
+  var statusClass = (m.status||"active").toLowerCase();
+  var html = '<div class="print-doc">';
+  html += '<div class="print-header">';
+  html += '<div><div class="print-logo">\u062D\u0633\u064A\u0646\u064A \u0645\u062D\u0644\u0651\u0647</div><div class="print-logo-sub">Husaini Mohallah</div></div>';
+  html += '<div class="print-date">Mumin Record<br/>' + new Date().toLocaleDateString("en-GB", {day:"2-digit",month:"long",year:"numeric"}) + '</div>';
+  html += '</div>';
+  html += '<div class="print-title">' + (m.name||"") + '</div>';
+  html += '<div class="print-subtitle">ITS: ' + (m.its_number||"") + ' &nbsp;|&nbsp; <span class="print-badge print-badge-' + statusClass + '">' + (m.status||"") + '</span></div>';
+  html += '<div class="print-section-title">Personal Details</div>';
+  html += '<div class="print-grid">';
+  html += '<div class="print-field"><div class="print-field-label">Age</div><div class="print-field-val">' + (m.age||"—") + '</div></div>';
+  html += '<div class="print-field"><div class="print-field-label">Gender</div><div class="print-field-val">' + (m.gender||"—") + '</div></div>';
+  html += '<div class="print-field"><div class="print-field-label">Phone</div><div class="print-field-val">' + (m.phone||"—") + '</div></div>';
+  html += '<div class="print-field"><div class="print-field-label">Email</div><div class="print-field-val">' + (m.email||"—") + '</div></div>';
+  html += '<div class="print-field" style="grid-column:span 2"><div class="print-field-label">Address</div><div class="print-field-val">' + (m.address||"—") + '</div></div>';
+  html += '</div>';
+  if (family && family.fam) {
+    html += '<div class="print-section-title">Family</div>';
+    html += '<div class="print-family-box">';
+    html += '<div class="print-family-name">' + family.fam.family_name + '<span class="print-family-role">(' + (family.role||"") + ')</span></div>';
+    if (family.fam.address) html += '<div style="font-size:12px;color:#666;margin-top:4px">' + family.fam.address + '</div>';
+    html += '</div>';
+  }
+  html += '<div class="print-footer"><span>Husaini Mohallah Database</span><span>Printed ' + new Date().toLocaleString() + '</span></div>';
+  html += '</div>';
+  var w = window.open("","_blank","width=700,height=900");
+  w.document.write('<html><head><title>Mumin — ' + (m.name||"") + '</title>');
+  w.document.write('<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">');
+  w.document.write('<style>body{margin:32px;font-family:Jost,sans-serif;background:#fff;color:#111}' + document.querySelector('style') ? '' : '' );
+  w.document.write('.print-doc{font-family:Jost,sans-serif}.print-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #c9a84c;padding-bottom:16px;margin-bottom:20px}.print-logo{font-family:Amiri,serif;font-size:22px;color:#8a6a1a}.print-logo-sub{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#888;margin-top:2px}.print-date{font-size:11px;color:#888;text-align:right}.print-title{font-size:22px;font-weight:700;color:#111;margin-bottom:4px}.print-subtitle{font-size:12px;color:#666;margin-bottom:20px}.print-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}.print-field{border:1px solid #e5e5e5;border-radius:6px;padding:8px 12px}.print-field-label{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:2px}.print-field-val{font-size:13px;color:#111;font-weight:500}.print-section-title{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#8a6a1a;margin:16px 0 8px;font-weight:600;border-bottom:1px solid #f0e6cc;padding-bottom:4px}.print-family-box{border:1px solid #f0e6cc;border-radius:8px;padding:12px 16px;background:#fffdf7;margin-bottom:16px}.print-family-name{font-size:14px;font-weight:600;color:#8a6a1a}.print-family-role{display:inline-block;font-size:11px;color:#666;margin-left:8px}.print-badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid}.print-badge-active{color:#15803d;border-color:#86efac;background:#f0fdf4}.print-badge-closed{color:#6b7280;border-color:#d1d5db;background:#f9fafb}.print-badge-pending{color:#92400e;border-color:#fde68a;background:#fffbeb}.print-footer{margin-top:32px;padding-top:12px;border-top:1px solid #e5e5e5;font-size:10px;color:#aaa;display:flex;justify-content:space-between}</style>');
+  w.document.write('</head><body>');
+  w.document.write(html);
+  w.document.write('<script>window.onload=function(){window.print();}<\/script>');
+  w.document.write('</body></html>');
+  w.document.close();
+}
+
+function printFile(f, atts) {
+  var statusClass = (f.status||"active").toLowerCase();
+  var html = '<div class="print-doc">';
+  html += '<div class="print-header">';
+  html += '<div><div class="print-logo">\u062D\u0633\u064A\u0646\u064A \u0645\u062D\u0644\u0651\u0647</div><div class="print-logo-sub">Husaini Mohallah</div></div>';
+  html += '<div class="print-date">Umoor File<br/>' + new Date().toLocaleDateString("en-GB",{day:"2-digit",month:"long",year:"numeric"}) + '</div>';
+  html += '</div>';
+  html += '<div style="font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#8a6a1a;margin-bottom:6px">' + (f.umoor_type||"") + '</div>';
+  html += '<div class="print-title">' + (f.title||"") + '</div>';
+  html += '<div class="print-subtitle"><span class="print-badge print-badge-' + statusClass + '">' + (f.status||"") + '</span></div>';
+  html += '<div class="print-section-title">File Details</div>';
+  html += '<div class="print-grid">';
+  html += '<div class="print-field"><div class="print-field-label">File No.</div><div class="print-field-val" style="font-family:monospace;color:#8a6a1a">' + (f.file_no||"—") + '</div></div>';
+  html += '<div class="print-field"><div class="print-field-label">Year</div><div class="print-field-val">' + (f.year||"—") + '</div></div>';
+  html += '<div class="print-field"><div class="print-field-label">Date</div><div class="print-field-val">' + (f.date||"—") + '</div></div>';
+  html += '<div class="print-field"><div class="print-field-label">Status</div><div class="print-field-val">' + (f.status||"—") + '</div></div>';
+  html += '</div>';
+  if (f.description) {
+    html += '<div class="print-section-title">Description</div>';
+    html += '<div style="border:1px solid #e5e5e5;border-radius:6px;padding:12px 16px;font-size:13px;color:#333;line-height:1.7;margin-bottom:16px">' + f.description + '</div>';
+  }
+  if (f.due_date) {
+    html += '<div class="print-section-title">Due Date</div>';
+    html += '<div style="border:1px solid #fde68a;border-radius:6px;padding:10px 16px;font-size:13px;color:#92400e;background:#fffbeb;margin-bottom:16px">\u23F0 ' + f.due_date + '</div>';
+  }
+  if (atts && atts.length > 0) {
+    html += '<div class="print-section-title">Attachments (' + atts.length + ')</div>';
+    html += '<div class="print-att-list">';
+    atts.forEach(function(att) {
+      var icon = att.type && att.type.startsWith("image/") ? "\uD83D\uDDBC" : att.type === "application/pdf" ? "\uD83D\uDCC4" : "\uD83D\uDCCE";
+      html += '<div class="print-att-item">' + icon + ' ' + att.name + '</div>';
+    });
+    html += '</div>';
+  }
+  html += '<div class="print-footer"><span>Husaini Mohallah Database</span><span>Printed ' + new Date().toLocaleString() + '</span></div>';
+  html += '</div>';
+  var w = window.open("","_blank","width=700,height=900");
+  w.document.write('<html><head><title>File — ' + (f.title||"") + '</title>');
+  w.document.write('<style>body{margin:32px;font-family:Arial,sans-serif;background:#fff;color:#111}.print-doc{font-family:Arial,sans-serif}.print-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #c9a84c;padding-bottom:16px;margin-bottom:20px}.print-logo{font-size:20px;color:#8a6a1a;font-weight:700}.print-logo-sub{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#888;margin-top:2px}.print-date{font-size:11px;color:#888;text-align:right}.print-title{font-size:20px;font-weight:700;color:#111;margin-bottom:8px}.print-subtitle{margin-bottom:20px}.print-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}.print-field{border:1px solid #e5e5e5;border-radius:6px;padding:8px 12px}.print-field-label{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:2px}.print-field-val{font-size:13px;color:#111;font-weight:500}.print-section-title{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#8a6a1a;margin:16px 0 8px;font-weight:600;border-bottom:1px solid #f0e6cc;padding-bottom:4px}.print-att-list{display:flex;flex-direction:column;gap:6px}.print-att-item{display:flex;align-items:center;gap:8px;font-size:12px;color:#333;background:#fafafa;border:1px solid #eee;border-radius:6px;padding:6px 12px}.print-badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid}.print-badge-active{color:#15803d;border-color:#86efac;background:#f0fdf4}.print-badge-closed{color:#6b7280;border-color:#d1d5db;background:#f9fafb}.print-badge-pending{color:#92400e;border-color:#fde68a;background:#fffbeb}.print-footer{margin-top:32px;padding-top:12px;border-top:1px solid #e5e5e5;font-size:10px;color:#aaa;display:flex;justify-content:space-between}</style>');
+  w.document.write('</head><body>');
+  w.document.write(html);
+  w.document.write('<script>window.onload=function(){window.print();}<\/script>');
+  w.document.write('</body></html>');
+  w.document.close();
 }
 
 export default function App() {
@@ -1859,7 +1976,8 @@ export default function App() {
                   </div>
                 )}
                 <div style={{display:"flex",gap:10,marginTop:8}}>
-                  <button className="btn btn-primary" style={{flex:1}} onClick={function(){ setMuminPreview(null); openModal("mumin","edit",m); }}>Edit Record</button>
+                  {canEdit && <button className="btn btn-primary" style={{flex:1}} onClick={function(){ setMuminPreview(null); openModal("mumin","edit",m); }}>Edit Record</button>}
+                  <button className="btn btn-ghost" onClick={function(){ printMumin(m, family); }}>🖨 Print</button>
                   <button className="btn btn-ghost" onClick={function(){ setMuminPreview(null); }}>Close</button>
                 </div>
               </div>
@@ -1917,7 +2035,8 @@ export default function App() {
                   </div>
                 )}
                 <div style={{display:"flex",gap:10,marginTop:20}}>
-                  <button className="btn btn-primary" style={{flex:1}} onClick={function(){ setFilePreview(null); openModal("file","edit",f); }}>Edit File</button>
+                  {canEdit && <button className="btn btn-primary" style={{flex:1}} onClick={function(){ setFilePreview(null); openModal("file","edit",f); }}>Edit File</button>}
+                  <button className="btn btn-ghost" onClick={function(){ printFile(f, atts); }}>🖨 Print</button>
                   <button className="btn btn-ghost" onClick={function(){ setFilePreview(null); }}>Close</button>
                 </div>
               </div>
