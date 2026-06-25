@@ -592,7 +592,7 @@ function LoginPage({ onLogin }) {
             {loading ? "Signing in…" : "Sign In"}
           </button>
         </div>
-        <div className="login-footer">Husaini Mohallah © 2026</div>
+        <div className="login-footer">Husaini Mohallah © 2026 · Developed by Juzer Dana</div>
       </div>
     </div>
   );
@@ -1208,7 +1208,7 @@ export default function App() {
             <div className="user-email">{session && session.user && session.user.email}</div>
             <button className="signout-btn" onClick={handleSignOut}>Sign Out</button>
           </div>
-          <div className="sb-footer">Husaini Mohallah © 2026</div>
+          <div className="sb-footer">Husaini Mohallah © 2026 · Developed by Juzer Dana</div>
         </aside>
 
         <main className="main">
