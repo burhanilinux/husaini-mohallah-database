@@ -436,7 +436,6 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280
   .nav-item{flex:1;min-width:80px;justify-content:center;text-align:center;padding:8px 6px;font-size:11px}
   .main{margin-left:0 !important;padding:16px}
   .stats-grid{grid-template-columns:1fr 1fr !important}
-  .charts-row{grid-template-columns:1fr !important}
   .umoor-grid{grid-template-columns:1fr 1fr !important}
   .fam-grid{grid-template-columns:1fr !important}
   .form-grid{grid-template-columns:1fr !important}
@@ -454,8 +453,6 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280
   .page-title{font-size:22px}
   .year-tabs{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px}
   .year-tab{flex-shrink:0}
-  .bar-label{width:120px !important}
-  .donut-wrap{flex-direction:column;align-items:center}
 }
 @media (max-width: 480px) {
   .stats-grid{grid-template-columns:1fr !important}
@@ -1241,67 +1238,6 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* ── Charts ── */}
-                  <div className="charts-row" style={{ display: "flex", justifyContent: "center" }}>
-                    <div className="chart-card" style={{ width: "100%", maxWidth: 480 }}>
-                      <div className="chart-title">File Status Breakdown</div>
-                      {(function() {
-                        var yr = filesData.filter(function(f) { return f.year === selYear; });
-                        var active = yr.filter(function(f) { return f.status === "Active"; }).length;
-                        var closed = yr.filter(function(f) { return f.status === "Closed"; }).length;
-                        var pending = yr.filter(function(f) { return f.status === "Pending"; }).length;
-                        var total = yr.length || 1;
-                        var segments = [
-                          { label: "Active", count: active, color: "#34d399" },
-                          { label: "Closed", count: closed, color: "#6b7280" },
-                          { label: "Pending", count: pending, color: "#fbbf24" },
-                        ];
-                        var r = 54; var cx = 70; var cy = 70; var circ = 2 * Math.PI * r;
-                        var offset = 0;
-                        return (
-                          <div className="donut-wrap">
-                            <svg width="140" height="140" style={{ flexShrink: 0 }}>
-                              <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="18" />
-                              {segments.map(function(s) {
-                                var dash = (s.count / total) * circ;
-                                var gap = circ - dash;
-                                var el = (
-                                  <circle key={s.label} cx={cx} cy={cy} r={r} fill="none"
-                                    stroke={s.color} strokeWidth="18"
-                                    strokeDasharray={dash + " " + gap}
-                                    strokeDashoffset={-offset}
-                                    style={{ transform: "rotate(-90deg)", transformOrigin: "70px 70px" }} />
-                                );
-                                offset += dash;
-                                return el;
-                              })}
-                              <text x={cx} y={cy-6} textAnchor="middle" fill="#e2d9c9" fontSize="18" fontWeight="600">{total}</text>
-                              <text x={cx} y={cy+12} textAnchor="middle" fill="#6b7280" fontSize="10">files</text>
-                            </svg>
-                            <div className="donut-legend">
-                              {segments.map(function(s) {
-                                return (
-                                  <div className="legend-item" key={s.label}>
-                                    <div className="legend-dot" style={{ background: s.color }} />
-                                    <span>{s.label}</span>
-                                    <span style={{ marginLeft: "auto", color: "#e2d9c9", fontWeight: 600 }}>{s.count}</span>
-                                  </div>
-                                );
-                              })}
-                              <div className="legend-item" style={{ marginTop: 8, borderTop: "1px solid rgba(184,152,90,0.1)", paddingTop: 8 }}>
-                                <span>Members</span>
-                                <span style={{ marginLeft: "auto", color: "#c9a84c", fontWeight: 600 }}>{muminData.length}</span>
-                              </div>
-                              <div className="legend-item">
-                                <span>Families</span>
-                                <span style={{ marginLeft: "auto", color: "#c9a84c", fontWeight: 600 }}>{familiesData.length}</span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  </div>
 
                 </div>
               )}
