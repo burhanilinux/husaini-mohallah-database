@@ -1242,28 +1242,8 @@ export default function App() {
                   </div>
 
                   {/* ── Charts ── */}
-                  <div className="charts-row">
-                    <div className="chart-card">
-                      <div className="chart-title">Files per Umoor — {selYear}</div>
-                      <div className="bar-wrap">
-                        {(function() {
-                          var max = Math.max(1, ...umoorStats.map(function(u) { return u.count; }));
-                          return umoorStats.map(function(u) {
-                            return (
-                              <div className="bar-row" key={u.name}>
-                                <div className="bar-label" title={u.name}>{u.name.split(" (")[0]}</div>
-                                <div className="bar-track">
-                                  <div className="bar-fill" style={{ width: (u.count / max * 100) + "%" }} />
-                                </div>
-                                <div className="bar-val">{u.count}</div>
-                              </div>
-                            );
-                          });
-                        })()}
-                      </div>
-                    </div>
-
-                    <div className="chart-card">
+                  <div className="charts-row" style={{ display: "flex", justifyContent: "center" }}>
+                    <div className="chart-card" style={{ width: "100%", maxWidth: 480 }}>
                       <div className="chart-title">File Status Breakdown</div>
                       {(function() {
                         var yr = filesData.filter(function(f) { return f.year === selYear; });
