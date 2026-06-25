@@ -413,7 +413,7 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280
 
 /* Print */
 @media print {
-  .sidebar,.toolbar,.act-col,.btn,.modal-overlay,.gsearch-wrap,.user-box,
+  .sidebar,.toolbar,.act-col,.btn,.modal-overlay,.gsearch-wrap,.user-box,.no-print,
   .nav,.sb-footer,.cloud-badge,.year-tabs,.page-hdr button{display:none!important}
   .main{margin-left:0!important;padding:10px!important}
   .card{border:1px solid #ccc!important;box-shadow:none!important}
@@ -427,36 +427,6 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280
 .print-header{display:none;text-align:center;margin-bottom:20px;border-bottom:2px solid #c9a84c;padding-bottom:12px}
 .print-header h2{font-size:20px;margin-bottom:4px}
 .print-header p{font-size:12px;color:#666}
-
-  /* Print styles */
-  @media print {
-    body * { visibility: hidden !important; }
-    .print-area, .print-area * { visibility: visible !important; }
-    .print-area { position: fixed; inset: 0; background: white; color: black; padding: 32px; z-index: 9999; }
-    .no-print { display: none !important; }
-  }
-  .print-doc { font-family: 'Roboto', sans-serif; color: #111; }
-  .print-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #c9a84c; padding-bottom: 16px; margin-bottom: 20px; }
-  .print-logo { font-family: 'Roboto', sans-serif; font-size: 22px; color: #8a6a1a; }
-  .print-logo-sub { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #888; margin-top: 2px; }
-  .print-date { font-size: 11px; color: #888; text-align: right; }
-  .print-title { font-size: 20px; font-weight: 700; color: #111; margin-bottom: 4px; }
-  .print-subtitle { font-size: 12px; color: #666; margin-bottom: 20px; }
-  .print-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-  .print-field { border: 1px solid #e5e5e5; border-radius: 6px; padding: 8px 12px; }
-  .print-field-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 2px; }
-  .print-field-val { font-size: 13px; color: #111; font-weight: 500; }
-  .print-section-title { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #8a6a1a; margin: 16px 0 8px; font-weight: 600; border-bottom: 1px solid #f0e6cc; padding-bottom: 4px; }
-  .print-att-list { display: flex; flex-direction: column; gap: 6px; }
-  .print-att-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #333; background: #fafafa; border: 1px solid #eee; border-radius: 6px; padding: 6px 12px; }
-  .print-badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; border: 1px solid; }
-  .print-badge-active { color: #15803d; border-color: #86efac; background: #f0fdf4; }
-  .print-badge-closed { color: #6b7280; border-color: #d1d5db; background: #f9fafb; }
-  .print-badge-pending { color: #92400e; border-color: #fde68a; background: #fffbeb; }
-  .print-footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e5e5e5; font-size: 10px; color: #aaa; display: flex; justify-content: space-between; }
-  .print-family-box { border: 1px solid #f0e6cc; border-radius: 8px; padding: 12px 16px; background: #fffdf7; margin-bottom: 16px; }
-  .print-family-name { font-size: 14px; font-weight: 600; color: #8a6a1a; }
-  .print-family-role { display: inline-block; font-size: 11px; color: #666; margin-left: 8px; }
 
 @media (max-width: 768px) {
   .layout{flex-direction:column}
@@ -1422,14 +1392,14 @@ export default function App() {
 
           {page === "reports" && (
             <div>
-              <div className="page-hdr" style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between"}}>
+              <div className="page-hdr no-print" style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between"}}>
                 <div><div className="page-title">Reports</div><div className="page-sub">Print and export formatted reports</div></div>
               </div>
               <div className="print-header" id="print-header">
                 <h2>Husaini Mohallah — {printTarget && printTarget.label}</h2>
                 <p>Generated: {new Date().toLocaleDateString()}</p>
               </div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16,marginBottom:28}}>
+              <div className="no-print" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16,marginBottom:28}}>
                 {[
                   {id:"mumin", icon:"👤", label:"Mumin Directory", desc:"Full list of all registered members", data:muminData.length + " members"},
                   {id:"files_all", icon:"🗂", label:"All Umoor Files", desc:"Complete file list across all departments", data:filesData.length + " files"},
@@ -1450,7 +1420,7 @@ export default function App() {
               </div>
 
               {/* Per-Umoor report cards */}
-              <div className="card">
+              <div className="card no-print">
                 <div className="card-hdr" style={{padding:"16px 24px",borderBottom:"1px solid rgba(184,152,90,.1)"}}>
                   <span style={{fontSize:14,fontWeight:600,color:"#e2d9c9"}}>Print by Umoor Department</span>
                 </div>
