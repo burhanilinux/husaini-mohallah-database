@@ -256,6 +256,10 @@ tr:hover td{background:rgba(184,152,90,.03)}
 .form-grp.full{grid-column:span 2}
 label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280}
 .year-tabs{display:flex;gap:6px;margin-bottom:24px;flex-wrap:wrap}
+.year-dropdown-wrap{margin-bottom:24px}
+.year-dropdown{appearance:none;background:rgba(255,255,255,.03);border:1px solid rgba(184,152,90,.25);color:#c9a84c;font-size:14px;font-weight:600;padding:9px 36px 9px 16px;border-radius:10px;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23c9a84c' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;transition:border-color .2s}
+.year-dropdown:hover,.year-dropdown:focus{border-color:rgba(201,168,76,.5);outline:none}
+.year-dropdown option{background:#111820;color:#e2d9c9}
 .year-tab{padding:7px 18px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid rgba(184,152,90,.15);color:#6b7280;background:transparent;transition:all .2s}
 .year-tab.active{background:#c9a84c;color:#0d1117;border-color:#c9a84c}
 .year-tab:hover:not(.active){border-color:rgba(201,168,76,.3);color:#c9a84c}
@@ -1242,10 +1246,10 @@ export default function App() {
                       );
                     })}
                   </div>
-                  <div className="year-tabs">
-                    {YEARS.map(function(y) {
-                      return <button key={y} className={"year-tab" + (selYear === y ? " active" : "")} onClick={function() { setSelYear(y); }}>{y}</button>;
-                    })}
+                  <div className="year-dropdown-wrap">
+                    <select className="year-dropdown" value={selYear} onChange={function(e) { setSelYear(Number(e.target.value)); }}>
+                      {YEARS.map(function(y) { return <option key={y} value={y}>{y}</option>; })}
+                    </select>
                   </div>
                   <div className="card">
                     <div className="card-hdr">
