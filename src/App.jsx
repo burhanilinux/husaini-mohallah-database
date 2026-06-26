@@ -1095,7 +1095,7 @@ export default function App() {
               { id: "mumin", icon: "👤", label: "Mumin Data" },
               { id: "families", icon: "🏠", label: "Families" },
               { id: "reports", icon: "📄", label: "Reports" },
-              isAdmin ? { id: "users", icon: "👥", label: "Users" } : null,
+              null,
             ].filter(Boolean).map(function(n) {
               return (
                 <div key={n.id} className={"nav-item" + (page === n.id ? " active" : "")}
