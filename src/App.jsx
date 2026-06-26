@@ -101,6 +101,23 @@ const UMOOR_TYPES = [
   "Umoor Dakheliyah (I.T)",
   "Umoor Al-Amlaak (Trusts & Properties)",
 ];
+const UMOOR_PREFIX = {
+  "Umoor Talimiyah (Education)": "TAL",
+  "Umoor Mawarid Bashariyah (Human Resources)": "MWB",
+  "Umoor Marafiq Burhaniyah (Upliftment)": "MFB",
+  "Umoor Maliyah (Finance)": "MAL",
+  "Umoor Kharejiyah (Public Relations)": "KHA",
+  "Umoor Iqtesadiyah (Qardan Hasanah)": "IQT",
+  "Umoor Faizul Mawaid Burhaniyah (FMB)": "FMB",
+  "Umoor Deeniyah (Deeni Umoor)": "DEE",
+  "Umoor Al-Sehaat (Medical)": "SEH",
+  "Umoor Al-Qaza (Legal)": "QAZ",
+  "Umoor Dakheliyah (I.T)": "DAK",
+  "Umoor Al-Amlaak (Trusts & Properties)": "AML",
+};
+function getUmoorPrefix(umoorType) {
+  return UMOOR_PREFIX[umoorType] || "GEN";
+}
 const currentYear = new Date().getFullYear();
 const YEARS = Array.from({ length: currentYear - 2022 + 1 }, function(_, i) { return 2022 + i; });
 const MUMIN_COLS = ["its_number","name","age","gender","phone","email","address","status"];
@@ -352,6 +369,11 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280
 .preview-field-label{font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
 .preview-field-val{font-size:13px;color:#e2d9c9}
 .preview-family-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.2);border-radius:8px;padding:8px 14px;font-size:13px;color:#c9a84c;margin-top:4px}
+.quick-contact-btn{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:13px;text-decoration:none;flex-shrink:0;transition:all .2s}
+.quick-call{background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.25)}
+.quick-call:hover{background:rgba(96,165,250,.2)}
+.quick-wa{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25)}
+.quick-wa:hover{background:rgba(52,211,153,.2)}
 /* File viewer */
 .file-preview-box{background:#111820;border:1px solid rgba(184,152,90,.2);border-radius:16px;width:680px;max-height:90vh;overflow-y:auto;box-shadow:0 25px 60px rgba(0,0,0,.5)}
 .file-preview-hdr{padding:22px 28px 18px;border-bottom:1px solid rgba(184,152,90,.1);display:flex;justify-content:space-between;align-items:flex-start}
@@ -733,7 +755,23 @@ var PRINT_CSS = [
   ".print-badge-active{color:#15803d;border-color:#86efac;background:#f0fdf4}",
   ".print-badge-closed{color:#6b7280;border-color:#d1d5db;background:#f9fafb}",
   ".print-badge-pending{color:#92400e;border-color:#fde68a;background:#fffbeb}",
-  ".print-footer{margin-top:36px;padding-top:12px;border-top:1px solid #e5e5e5;font-size:10px;color:#aaa;display:flex;justify-content:space-between}"
+  ".print-footer{margin-top:36px;padding-top:12px;border-top:1px solid #e5e5e5;font-size:10px;color:#aaa;display:flex;justify-content:space-between}",
+  ".idcard-page{display:flex;align-items:center;justify-content:center;min-height:90vh}",
+  ".idcard{width:340px;border-radius:16px;overflow:hidden;border:1px solid #d9c38a;box-shadow:0 8px 30px rgba(0,0,0,.12);font-family:'Roboto',sans-serif}",
+  ".idcard-top{background:linear-gradient(135deg,#1a1f2b,#0d1117);color:#fff;padding:16px 20px;text-align:center}",
+  ".idcard-org{font-size:13px;font-weight:700;letter-spacing:1px;color:#e8c96a}",
+  ".idcard-org-sub{font-size:9px;text-transform:uppercase;letter-spacing:2px;color:#9ca3af;margin-top:2px}",
+  ".idcard-body{background:#fff;padding:24px 20px;text-align:center}",
+  ".idcard-avatar{width:84px;height:84px;border-radius:50%;background:#f0e6cc;border:3px solid #c9a84c;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:700;color:#8a6a1a;margin:-42px auto 12px}",
+  ".idcard-name{font-size:17px;font-weight:700;color:#111;margin-bottom:2px}",
+  ".idcard-its{font-size:12px;color:#8a6a1a;font-family:monospace;letter-spacing:1px;margin-bottom:14px}",
+  ".idcard-divider{height:1px;background:#eee;margin:10px 0}",
+  ".idcard-row{display:flex;justify-content:space-between;font-size:11px;padding:4px 4px;color:#444}",
+  ".idcard-row span:first-child{color:#999;text-transform:uppercase;letter-spacing:.5px;font-size:9px}",
+  ".idcard-row span:last-child{font-weight:600;color:#111}",
+  ".idcard-bottom{background:#0d1117;padding:8px;text-align:center}",
+  ".idcard-bottom span{font-size:8px;color:#6b7280;letter-spacing:1px;text-transform:uppercase}",
+  ".idcard-strip{height:6px;background:linear-gradient(90deg,#c9a84c,#e8c96a,#c9a84c)}"
 ].join("");
 
 function openPrint(title, bodyHtml) {
@@ -772,6 +810,35 @@ function printMumin(m, family) {
   }
   h += "<div class='print-footer'><span>Husaini Mohallah Database</span><span>Printed: " + new Date().toLocaleString() + "</span></div>";
   openPrint("Mumin - " + (m.name || ""), h);
+}
+
+function printIdCard(m, family) {
+  var initial = (m.name || "?").trim().charAt(0).toUpperCase();
+  var h = "";
+  h += "<div class='idcard-page'>";
+  h += "<div class='idcard'>";
+  h += "<div class='idcard-strip'></div>";
+  h += "<div class='idcard-top'>";
+  h += "<div class='idcard-org'>HUSAINI MOHALLAH</div>";
+  h += "<div class='idcard-org-sub'>Mumin Identity Card</div>";
+  h += "</div>";
+  h += "<div class='idcard-body'>";
+  h += "<div class='idcard-avatar'>" + initial + "</div>";
+  h += "<div class='idcard-name'>" + (m.name || "") + "</div>";
+  h += "<div class='idcard-its'>ITS: " + (m.its_number || "—") + "</div>";
+  h += "<div class='idcard-divider'></div>";
+  h += "<div class='idcard-row'><span>Age</span><span>" + (m.age || "—") + "</span></div>";
+  h += "<div class='idcard-row'><span>Gender</span><span>" + (m.gender || "—") + "</span></div>";
+  h += "<div class='idcard-row'><span>Phone</span><span>" + (m.phone || "—") + "</span></div>";
+  if (family && family.fam) {
+    h += "<div class='idcard-row'><span>Family</span><span>" + family.fam.family_name + "</span></div>";
+  }
+  h += "<div class='idcard-row'><span>Status</span><span>" + (m.status || "—") + "</span></div>";
+  h += "</div>";
+  h += "<div class='idcard-bottom'><span>Husaini Mohallah Database</span></div>";
+  h += "</div>";
+  h += "</div>";
+  openPrint("ID Card - " + (m.name || ""), h);
 }
 
 function printFile(f, atts) {
@@ -953,7 +1020,7 @@ export default function App() {
   async function saveFile() {
     setSaving(true);
     try {
-      var fileNo = form.file_no || ("HM-" + form.year + "-" + String(Date.now()).slice(-3));
+      var fileNo = form.file_no || ("HM-" + getUmoorPrefix(form.umoor_type || "") + "-" + form.year + "-" + String(Date.now()).slice(-3));
       var payload = {
         file_no: fileNo,
         umoor_type: form.umoor_type || "",
@@ -1028,7 +1095,7 @@ export default function App() {
       var r = rows[i];
       try {
         await sbInsert("umoor_files", {
-          file_no: r.file_no || ("HM-" + r.year + "-" + String(Date.now()).slice(-3)),
+          file_no: r.file_no || ("HM-" + getUmoorPrefix(r.umoor_type || "") + "-" + r.year + "-" + String(Date.now()).slice(-3)),
           umoor_type: r.umoor_type || "", year: Number(r.year) || 2024,
           title: r.title || "", description: r.description || "",
           status: r.status || "Active", date: r.date || "",
@@ -1701,7 +1768,7 @@ export default function App() {
                     </div>
                     <div className="form-grp">
                       <label>File No. (auto if blank)</label>
-                      <input value={form.file_no || ""} onChange={function(e) { setForm(function(f) { return Object.assign({}, f, { file_no: e.target.value }); }); }} placeholder="Auto-generated" />
+                      <input value={form.file_no || ""} onChange={function(e) { setForm(function(f) { return Object.assign({}, f, { file_no: e.target.value }); }); }} placeholder={"HM-" + getUmoorPrefix(form.umoor_type || "") + "-" + (form.year || currentYear) + "-XXX"} />
                     </div>
                     <div className="form-grp full">
                       <label>Description</label>
@@ -1873,7 +1940,18 @@ export default function App() {
                   <div className="preview-grid">
                     <div className="preview-field"><div className="preview-field-label">Age</div><div className="preview-field-val">{m.age||"—"}</div></div>
                     <div className="preview-field"><div className="preview-field-label">Gender</div><div className="preview-field-val">{m.gender||"—"}</div></div>
-                    <div className="preview-field"><div className="preview-field-label">Phone</div><div className="preview-field-val">{m.phone||"—"}</div></div>
+                    <div className="preview-field">
+                      <div className="preview-field-label">Phone</div>
+                      <div className="preview-field-val" style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:6}}>
+                        <span>{m.phone||"—"}</span>
+                        {m.phone && (
+                          <span style={{display:"flex",gap:6}}>
+                            <a href={"tel:" + m.phone.replace(/[^0-9+]/g,"")} className="quick-contact-btn quick-call" title="Call">📞</a>
+                            <a href={"https://wa.me/" + m.phone.replace(/[^0-9]/g,"")} target="_blank" rel="noopener noreferrer" className="quick-contact-btn quick-wa" title="WhatsApp">💬</a>
+                          </span>
+                        )}
+                      </div>
+                    </div>
                     <div className="preview-field"><div className="preview-field-label">Email</div><div className="preview-field-val" style={{fontSize:12}}>{m.email||"—"}</div></div>
                     <div className="preview-field" style={{gridColumn:"span 2"}}><div className="preview-field-label">Address</div><div className="preview-field-val">{m.address||"—"}</div></div>
                   </div>
@@ -1888,8 +1966,9 @@ export default function App() {
                     {family.fam.address && <div style={{fontSize:12,color:"#6b7280",marginTop:8}}>{family.fam.address}</div>}
                   </div>
                 )}
-                <div style={{display:"flex",gap:10,marginTop:8}}>
+                <div style={{display:"flex",gap:10,marginTop:8,flexWrap:"wrap"}}>
                   {canEdit && <button className="btn btn-primary" style={{flex:1}} onClick={function(){ setMuminPreview(null); openModal("mumin","edit",m); }}>Edit Record</button>}
+                  <button className="btn btn-ghost" onClick={function(){ printIdCard(m, family); }}>🪪 ID Card</button>
                   <button className="btn btn-ghost" onClick={function(){ printMumin(m, family); }}>🖨 Print</button>
                   <button className="btn btn-ghost" onClick={function(){ setMuminPreview(null); }}>Close</button>
                 </div>
