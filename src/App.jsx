@@ -47,6 +47,14 @@ async function sbDelete(table, id) {
   });
   if (!res.ok) throw new Error(await res.text());
 }
+async function logActivity(action, entityType, entityName, userEmail) {
+  try {
+    await sbInsert("activity_log", {
+      action: action, entity_type: entityType, entity_name: entityName || "",
+      user_email: userEmail || "Unknown",
+    });
+  } catch(e) { /* don't block UI on log failure */ }
+}
 async function uploadStorage(file, path) {
   const res2 = await fetch(file.dataUrl);
   const blob = await res2.blob();
@@ -132,6 +140,46 @@ function getMuminAge(m) {
   if (!m) return null;
   var fromDob = calcAge(m.dob);
   return fromDob !== null ? fromDob : (m.age || null);
+}
+function validatePhone(phone) {
+  if (!phone) return true; // optional field
+  var cleaned = phone.replace(/[^0-9+]/g, "");
+  return cleaned.length >= 7 && cleaned.length <= 15;
+}
+function validateEmail(email) {
+  if (!email) return true; // optional field
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+function validateITS(its) {
+  if (!its) return false;
+  var cleaned = its.trim();
+  return /^[0-9]{8}$/.test(cleaned);
+}
+function validateMuminForm(form, existingMumin, editId) {
+  var errors = [];
+  if (!form.name || !form.name.trim()) errors.push("Name is required.");
+  if (!form.its_number || !form.its_number.trim()) {
+    errors.push("ITS Number is required.");
+  } else if (!validateITS(form.its_number)) {
+    errors.push("ITS Number must be exactly 8 digits.");
+  } else {
+    var dup = existingMumin.find(function(m) { return m.its_number === form.its_number.trim() && m.id !== editId && !m.deleted_at; });
+    if (dup) errors.push("ITS Number " + form.its_number + " is already used by " + dup.name + ".");
+  }
+  if (form.phone && !validatePhone(form.phone)) errors.push("Phone number looks invalid.");
+  if (form.email && !validateEmail(form.email)) errors.push("Email address looks invalid.");
+  if (form.dob) {
+    var d = new Date(form.dob);
+    if (isNaN(d.getTime()) || d > new Date()) errors.push("Date of Birth cannot be in the future.");
+  }
+  return errors;
+}
+function validateFileForm(form) {
+  var errors = [];
+  if (!form.title || !form.title.trim()) errors.push("File title is required.");
+  if (!form.umoor_type) errors.push("Please select an Umoor type.");
+  if (!form.year) errors.push("Please select a year.");
+  return errors;
 }
 const currentYear = new Date().getFullYear();
 const YEARS = Array.from({ length: currentYear - 2022 + 1 }, function(_, i) { return 2022 + i; });
@@ -311,6 +359,26 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280
 .act-col{display:flex;gap:8px;align-items:center}
 .sec-div{height:1px;background:rgba(184,152,90,.1);margin:20px 0}
 .sec-lbl{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#c9a84c;margin-bottom:12px;font-weight:600}
+.mumin-avatar-sm{width:30px;height:30px;border-radius:50%;overflow:hidden;background:rgba(184,152,90,.15);border:1px solid rgba(184,152,90,.25);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#c9a84c}
+.mumin-avatar-sm img{width:100%;height:100%;object-fit:cover}
+.mumin-avatar-sm img{width:100%;height:100%;object-fit:cover}
+.form-err-box{margin:0 24px 16px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:8px;padding:10px 14px}
+.form-err-line{font-size:12px;color:#f87171;padding:2px 0}
+.activity-item{display:flex;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.04);align-items:flex-start}
+.activity-item:last-child{border-bottom:none}
+.activity-icon{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.activity-icon-create{background:rgba(52,211,153,.12);color:#34d399}
+.activity-icon-update{background:rgba(96,165,250,.12);color:#60a5fa}
+.activity-icon-delete{background:rgba(248,113,113,.12);color:#f87171}
+.activity-icon-restore{background:rgba(201,168,76,.15);color:#c9a84c}
+.activity-icon-permanent_delete{background:rgba(248,113,113,.18);color:#f87171}
+.activity-text{font-size:13px;color:#e2d9c9}
+.activity-text b{color:#c9a84c}
+.activity-meta{font-size:11px;color:#6b7280;margin-top:2px}
+.trash-item{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.04)}
+.trash-item:last-child{border-bottom:none}
+.trash-info{font-size:13px;color:#e2d9c9}
+.trash-meta{font-size:11px;color:#6b7280;margin-top:2px}
 .attach-chip{display:inline-flex;align-items:center;gap:4px;background:rgba(201,168,76,.1);color:#c9a84c;border-radius:12px;padding:2px 8px;font-size:11px;border:1px solid rgba(201,168,76,.2)}
 .upload-zone{border:2px dashed rgba(184,152,90,.25);border-radius:10px;padding:24px;text-align:center;cursor:pointer;transition:all .2s;background:rgba(184,152,90,.02)}
 .upload-zone:hover{border-color:#c9a84c;background:rgba(201,168,76,.05)}
@@ -963,10 +1031,119 @@ export default function App() {
   const [filePreview, setFilePreview] = useState(null);
   const [ieModal, setIeModal] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [activityLog, setActivityLog] = useState([]);
+  const [trashModal, setTrashModal] = useState(false);
+  const [formErrors, setFormErrors] = useState([]);
+  const [restoring, setRestoring] = useState(false);
+  const [muminPhotoFile, setMuminPhotoFile] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   function showToast(msg, type) {
     setToast({ msg: msg, type: type || "success" });
     setTimeout(function() { setToast(null); }, 3500);
+  }
+
+  function getUserEmail() {
+    return (session && session.user && session.user.email) || "Unknown";
+  }
+
+  const [trashMumin, setTrashMumin] = useState([]);
+  const [trashFiles, setTrashFiles] = useState([]);
+  async function loadTrash() {
+    try {
+      var results = await Promise.all([
+        sbGet("mumin_data", "deleted_at=not.is.null&order=deleted_at.desc"),
+        sbGet("umoor_files", "deleted_at=not.is.null&order=deleted_at.desc"),
+      ]);
+      setTrashMumin(results[0] || []);
+      setTrashFiles(results[1] || []);
+    } catch(e) { showToast("Error loading trash: " + e.message, "error"); }
+  }
+  async function restoreRecord(type, rec) {
+    setRestoring(true);
+    try {
+      await sbUpdate(type === "mumin" ? "mumin_data" : "umoor_files", rec.id, { deleted_at: null });
+      await logActivity("restore", type, rec.name || rec.title || ("#" + rec.id), getUserEmail());
+      showToast("Restored successfully");
+      await loadAll(); await loadTrash();
+    } catch(e) { showToast("Error: " + e.message, "error"); }
+    setRestoring(false);
+  }
+  async function permanentDelete(type, rec) {
+    if (!window.confirm("Permanently delete this record? This cannot be undone.")) return;
+    setRestoring(true);
+    try {
+      await sbDelete(type === "mumin" ? "mumin_data" : "umoor_files", rec.id);
+      await logActivity("permanent_delete", type, rec.name || rec.title || ("#" + rec.id), getUserEmail());
+      showToast("Permanently deleted");
+      await loadTrash();
+    } catch(e) { showToast("Error: " + e.message, "error"); }
+    setRestoring(false);
+  }
+
+  function downloadFullBackup() {
+    var backup = {
+      backup_date: new Date().toISOString(),
+      mumin_data: muminData,
+      umoor_files: filesData,
+      attachments: attsData,
+      families: familiesData,
+      family_members: familyMembers,
+    };
+    var json = JSON.stringify(backup, null, 2);
+    var fname = "husaini-mohallah-backup-" + new Date().toISOString().slice(0,10) + ".json";
+    downloadBlob(json, fname, "application/json");
+    logActivity("backup", "system", "Full data backup", getUserEmail());
+    showToast("Backup downloaded — " + muminData.length + " members, " + filesData.length + " files");
+  }
+
+  async function restoreFromBackup(file) {
+    var reader = new FileReader();
+    reader.onload = async function(e) {
+      try {
+        var backup = JSON.parse(e.target.result);
+        if (!backup.mumin_data && !backup.umoor_files) {
+          showToast("Invalid backup file format", "error"); return;
+        }
+        if (!window.confirm("This will ADD all records from the backup as new entries. Continue?")) return;
+        setRestoring(true);
+        var addedMumin = 0, addedFiles = 0;
+        if (backup.mumin_data) {
+          for (var i = 0; i < backup.mumin_data.length; i++) {
+            var m = backup.mumin_data[i];
+            try {
+              await sbInsert("mumin_data", {
+                its_number: m.its_number || "", name: m.name || "", dob: m.dob || null,
+                age: m.age || null, gender: m.gender || "Male", phone: m.phone || "",
+                email: m.email || "", address: m.address || "", status: m.status || "Active",
+                photo_url: m.photo_url || null,
+              });
+              addedMumin++;
+            } catch(err) {}
+          }
+        }
+        if (backup.umoor_files) {
+          for (var j = 0; j < backup.umoor_files.length; j++) {
+            var f = backup.umoor_files[j];
+            try {
+              await sbInsert("umoor_files", {
+                file_no: f.file_no || "", umoor_type: f.umoor_type || "", year: f.year || currentYear,
+                title: f.title || "", description: f.description || "", status: f.status || "Active",
+                date: f.date || "", due_date: f.due_date || null,
+              });
+              addedFiles++;
+            } catch(err) {}
+          }
+        }
+        await logActivity("restore_backup", "system", addedMumin + " members, " + addedFiles + " files", getUserEmail());
+        showToast("Restored " + addedMumin + " members and " + addedFiles + " files");
+        await loadAll();
+      } catch(err) {
+        showToast("Error reading backup file: " + err.message, "error");
+      }
+      setRestoring(false);
+    };
+    reader.readAsText(file);
   }
 
   async function loadAll() {
@@ -978,12 +1155,14 @@ export default function App() {
         sbGet("attachments", "order=id.asc"),
         sbGet("families", "order=id.asc"),
         sbGet("family_members", "order=id.asc"),
+        sbGet("activity_log", "order=id.desc&limit=200"),
       ]);
-      setMuminData(results[0] || []);
-      setFilesData(results[1] || []);
+      setMuminData((results[0] || []).filter(function(m) { return !m.deleted_at; }));
+      setFilesData((results[1] || []).filter(function(f) { return !f.deleted_at; }));
       setAttsData(results[2] || []);
       setFamiliesData(results[3] || []);
       setFamilyMembers(results[4] || []);
+      setActivityLog(results[5] || []);
     } catch(e) {
       setDbError(e.message);
     }
@@ -1037,16 +1216,28 @@ export default function App() {
   function openModal(type, mode, record) {
     setForm(record ? Object.assign({}, record) : { year: selYear, status: "Active" });
     setFormAtts(type === "file" && record ? getFileAtts(record.id) : []);
+    setMuminPhotoFile(null);
+    setFormErrors([]);
     setModal({ type: type, mode: mode, record: record || null });
   }
-  function closeModal() { setModal(null); setForm({}); setFormAtts([]); }
+  function closeModal() { setModal(null); setForm({}); setFormAtts([]); setMuminPhotoFile(null); setFormErrors([]); }
 
   async function saveMumin() {
+    var errors = validateMuminForm(form, muminData, modal.mode === "edit" ? form.id : null);
+    if (errors.length > 0) { setFormErrors(errors); return; }
+    setFormErrors([]);
     setSaving(true);
     try {
+      var photoUrl = form.photo_url || null;
+      if (muminPhotoFile) {
+        setUploadingPhoto(true);
+        var path = "mumin-photos/" + Date.now() + "-" + muminPhotoFile.name.replace(/[^a-zA-Z0-9.]/g, "_");
+        photoUrl = await uploadStorage(muminPhotoFile, path);
+        setUploadingPhoto(false);
+      }
       var payload = {
-        its_number: form.its_number || "",
-        name: form.name || "",
+        its_number: (form.its_number || "").trim(),
+        name: form.name.trim(),
         dob: form.dob || null,
         age: form.dob ? calcAge(form.dob) : (form.age ? Number(form.age) : null),
         gender: form.gender || "Male",
@@ -1054,16 +1245,21 @@ export default function App() {
         email: form.email || "",
         address: form.address || "",
         status: form.status || "Active",
+        photo_url: photoUrl,
       };
       if (modal.mode === "add") await sbInsert("mumin_data", payload);
       else await sbUpdate("mumin_data", form.id, payload);
+      await logActivity(modal.mode === "add" ? "create" : "update", "mumin", payload.name, getUserEmail());
       showToast(modal.mode === "add" ? "Mumin record saved ☁" : "Record updated");
       await loadAll(); closeModal();
     } catch(e) { showToast("Error: " + e.message, "error"); }
-    setSaving(false);
+    setSaving(false); setUploadingPhoto(false);
   }
 
   async function saveFile() {
+    var errors = validateFileForm(form);
+    if (errors.length > 0) { setFormErrors(errors); return; }
+    setFormErrors([]);
     setSaving(true);
     try {
       var fileNo = form.file_no || ("HM-" + getUmoorPrefix(form.umoor_type || "") + "-" + form.year + "-" + String(Date.now()).slice(-3));
@@ -1071,7 +1267,7 @@ export default function App() {
         file_no: fileNo,
         umoor_type: form.umoor_type || "",
         year: Number(form.year) || 2024,
-        title: form.title || "",
+        title: form.title.trim(),
         description: form.description || "",
         status: form.status || "Active",
         date: form.date || "",
@@ -1102,6 +1298,7 @@ export default function App() {
         }
         setUploading(false);
       }
+      await logActivity(modal.mode === "add" ? "create" : "update", "file", payload.title, getUserEmail());
       showToast(modal.mode === "add" ? "File saved ☁" : "File updated");
       await loadAll(); closeModal();
     } catch(e) { showToast("Error: " + e.message, "error"); setUploading(false); }
@@ -1110,8 +1307,13 @@ export default function App() {
 
   async function deleteRecord(type, id) {
     try {
-      await sbDelete(type === "mumin" ? "mumin_data" : "umoor_files", id);
-      showToast("Deleted"); await loadAll();
+      var table = type === "mumin" ? "mumin_data" : "umoor_files";
+      var list = type === "mumin" ? muminData : filesData;
+      var rec = list.find(function(r) { return r.id === id; });
+      var name = rec ? (rec.name || rec.title || ("#" + id)) : ("#" + id);
+      await sbUpdate(table, id, { deleted_at: new Date().toISOString() });
+      await logActivity("delete", type, name, getUserEmail());
+      showToast("Moved to Trash"); await loadAll();
     } catch(e) { showToast("Error: " + e.message, "error"); }
   }
 
@@ -1208,6 +1410,7 @@ export default function App() {
               { id: "mumin", icon: "👤", label: "Mumin Data" },
               { id: "families", icon: "🏠", label: "Families" },
               { id: "reports", icon: "📄", label: "Reports" },
+              { id: "activity", icon: "🕘", label: "Activity Log" },
               null,
             ].filter(Boolean).map(function(n) {
               return (
@@ -1221,6 +1424,20 @@ export default function App() {
               onClick={function() { setIeModal(true); }}>
               <span>⇅</span> Import / Export
             </div>
+            <div className="nav-item" style={{ color: "#9ca3af", marginTop: 2 }}
+              onClick={function() { setTrashModal(true); loadTrash(); }}>
+              <span>🗑</span> Trash
+            </div>
+            <div className="nav-item" style={{ color: "#9ca3af", marginTop: 2 }}
+              onClick={function() { downloadFullBackup(); }}>
+              <span>💾</span> Backup All Data
+            </div>
+            <div className="nav-item" style={{ color: "#9ca3af", marginTop: 2 }}
+              onClick={function() { document.getElementById("restore-file-input").click(); }}>
+              <span>📤</span> Restore Backup
+            </div>
+            <input id="restore-file-input" type="file" accept=".json" style={{ display: "none" }}
+              onChange={function(e) { if (e.target.files[0]) restoreFromBackup(e.target.files[0]); e.target.value = ""; }} />
             <div style={{ marginTop: 8, position: "relative" }} className="gsearch-wrap">
               <span className="gsearch-icon">🔍</span>
               <input className="gsearch-input" placeholder="Search everything..."
@@ -1519,6 +1736,45 @@ export default function App() {
             </div>
           )}
 
+          {page === "activity" && (
+            <div>
+              <div className="page-hdr" style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between"}}>
+                <div><div className="page-title">Activity Log</div><div className="page-sub">Recent actions across the system</div></div>
+                <button className="btn btn-ghost btn-sm" onClick={loadAll}>↻ Refresh</button>
+              </div>
+              <div className="card">
+                {activityLog.length === 0 ? (
+                  <div className="empty" style={{padding:50}}>
+                    <div className="empty-icon">🕘</div>
+                    <div>No activity recorded yet.</div>
+                  </div>
+                ) : (
+                  <div>
+                    {activityLog.map(function(a) {
+                      var icons = { create:"➕", update:"✏️", delete:"🗑", restore:"↩️", permanent_delete:"❌", backup:"💾", restore_backup:"📤" };
+                      var verbs = { create:"created", update:"updated", delete:"deleted", restore:"restored", permanent_delete:"permanently deleted", backup:"backed up", restore_backup:"restored from backup" };
+                      var icon = icons[a.action] || "•";
+                      var verb = verbs[a.action] || a.action;
+                      var typeLabel = a.entity_type === "mumin" ? "Mumin record" : a.entity_type === "file" ? "Umoor file" : "System";
+                      return (
+                        <div className="activity-item" key={a.id}>
+                          <div className={"activity-icon activity-icon-" + a.action}>{icon}</div>
+                          <div style={{flex:1}}>
+                            <div className="activity-text">
+                              <b>{a.user_email}</b> {verb} {typeLabel.toLowerCase()}{a.entity_name ? " \u2014 " + a.entity_name : ""}
+                            </div>
+                            <div className="activity-meta">{new Date(a.created_at).toLocaleString()}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+
           {page === "users" && (
             <div>
               <div className="page-hdr" style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between"}}>
@@ -1669,7 +1925,7 @@ export default function App() {
                             <td>
                               <div className="act-col" onClick={function(e) { e.stopPropagation(); }}>
                                 {canEdit && <button className="btn btn-ghost btn-sm" onClick={function() { openModal("file", "edit", f); }}>Edit</button>}
-                                {canDelete && <button className="btn btn-danger" onClick={function() { deleteRecord("file", f.id); }}>Del</button>}
+                                {canDelete && <button className="btn btn-danger" onClick={function() { deleteRecord("file", f.id); }}>🗑</button>}
                               </div>
                             </td>
                           </tr>
@@ -1704,12 +1960,17 @@ export default function App() {
                 ) : (
                   <table>
                     <thead>
-                      <tr><th>ITS No.</th><th>Name</th><th>Age</th><th>Gender</th><th>Phone</th><th>Address</th><th>Status</th><th>Actions</th></tr>
+                      <tr><th></th><th>ITS No.</th><th>Name</th><th>Age</th><th>Gender</th><th>Phone</th><th>Address</th><th>Status</th><th>Actions</th></tr>
                     </thead>
                     <tbody>
                       {filteredMumin.map(function(m) {
                         return (
                           <tr key={m.id} className="clickable-row" onClick={function() { setMuminPreview(m); }}>
+                            <td style={{width:38}}>
+                              <div className="mumin-avatar-sm">
+                                {m.photo_url ? <img src={m.photo_url} alt="" /> : (m.name ? m.name.charAt(0).toUpperCase() : "?")}
+                              </div>
+                            </td>
                             <td><span className="file-no">{m.its_number}</span></td>
                             <td style={{ fontWeight: 500 }}>{m.name}</td>
                             <td>{getMuminAge(m)}</td>
@@ -1720,7 +1981,7 @@ export default function App() {
                             <td>
                               <div className="act-col" onClick={function(e) { e.stopPropagation(); }}>
                                 {canEdit && <button className="btn btn-ghost btn-sm" onClick={function() { openModal("mumin", "edit", m); }}>Edit</button>}
-                                {canDelete && <button className="btn btn-danger" onClick={function() { deleteRecord("mumin", m.id); }}>Del</button>}
+                                {canDelete && <button className="btn btn-danger" onClick={function() { deleteRecord("mumin", m.id); }}>🗑</button>}
                               </div>
                             </td>
                           </tr>
@@ -1784,6 +2045,23 @@ export default function App() {
                     <label>Address</label>
                     <input value={form.address || ""} onChange={function(e) { setForm(function(f) { return Object.assign({}, f, { address: e.target.value }); }); }} />
                   </div>
+                  <div className="form-grp full">
+                    <label>Profile Photo</label>
+                    {form.photo_url && !muminPhotoFile && (
+                      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                        <img src={form.photo_url} alt="" style={{width:48,height:48,borderRadius:8,objectFit:"cover",border:"1px solid rgba(184,152,90,.25)"}} />
+                        <button className="btn btn-ghost btn-sm" onClick={function(){ setForm(function(f){ return Object.assign({}, f, { photo_url: null }); }); }}>Remove Photo</button>
+                      </div>
+                    )}
+                    {muminPhotoFile && (
+                      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                        <img src={muminPhotoFile.dataUrl} alt="" style={{width:48,height:48,borderRadius:8,objectFit:"cover",border:"1px solid rgba(184,152,90,.25)"}} />
+                        <span style={{fontSize:11,color:"#9ca3af"}}>{muminPhotoFile.name}</span>
+                        <button className="btn btn-ghost btn-sm" onClick={function(){ setMuminPhotoFile(null); }}>Cancel</button>
+                      </div>
+                    )}
+                    <UploadZone onFiles={function(files) { if (files[0]) setMuminPhotoFile(files[0]); }} uploading={uploadingPhoto} />
+                  </div>
                 </div>
               ) : (
                 <div>
@@ -1833,6 +2111,11 @@ export default function App() {
                 </div>
               )}
             </div>
+            {formErrors.length > 0 && (
+              <div className="form-err-box">
+                {formErrors.map(function(err, i) { return <div key={i} className="form-err-line">⚠ {err}</div>; })}
+              </div>
+            )}
             <div className="modal-ftr">
               <button className="btn btn-ghost" onClick={closeModal} disabled={saving}>Cancel</button>
               <button className="btn btn-primary" disabled={saving}
@@ -1961,6 +2244,56 @@ export default function App() {
         />
       )}
 
+      {trashModal && (
+        <div className="modal-overlay" onClick={function() { setTrashModal(false); }}>
+          <div className="ie-modal" onClick={function(e) { e.stopPropagation(); }}>
+            <div className="modal-hdr">
+              <div className="modal-title">🗑 Trash</div>
+              <button className="modal-close" onClick={function() { setTrashModal(false); }}>×</button>
+            </div>
+            <div style={{ padding: "16px 0", maxHeight: "60vh", overflowY: "auto" }}>
+              <div style={{ padding: "0 24px 8px", fontSize: 11, color: "#6b7280" }}>
+                Deleted records are kept here until permanently removed. Restore or delete them for good.
+              </div>
+              <div className="sec-lbl" style={{ padding: "8px 24px 0" }}>Mumin Records ({trashMumin.length})</div>
+              {trashMumin.length === 0 ? (
+                <div style={{ padding: "12px 24px", fontSize: 12, color: "#4b5563" }}>No deleted Mumin records.</div>
+              ) : trashMumin.map(function(m) {
+                return (
+                  <div className="trash-item" key={m.id} style={{ padding: "10px 24px" }}>
+                    <div>
+                      <div className="trash-info">{m.name} <span style={{color:"#6b7280",fontSize:11}}>({m.its_number})</span></div>
+                      <div className="trash-meta">Deleted: {new Date(m.deleted_at).toLocaleString()}</div>
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button className="btn btn-ghost btn-sm" disabled={restoring} onClick={function() { restoreRecord("mumin", m); }}>Restore</button>
+                      {isAdmin && <button className="btn btn-danger" disabled={restoring} onClick={function() { permanentDelete("mumin", m); }}>Delete Forever</button>}
+                    </div>
+                  </div>
+                );
+              })}
+              <div className="sec-lbl" style={{ padding: "16px 24px 0" }}>Umoor Files ({trashFiles.length})</div>
+              {trashFiles.length === 0 ? (
+                <div style={{ padding: "12px 24px", fontSize: 12, color: "#4b5563" }}>No deleted files.</div>
+              ) : trashFiles.map(function(f) {
+                return (
+                  <div className="trash-item" key={f.id} style={{ padding: "10px 24px" }}>
+                    <div>
+                      <div className="trash-info">{f.title} <span style={{color:"#6b7280",fontSize:11}}>({f.file_no})</span></div>
+                      <div className="trash-meta">Deleted: {new Date(f.deleted_at).toLocaleString()}</div>
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button className="btn btn-ghost btn-sm" disabled={restoring} onClick={function() { restoreRecord("file", f); }}>Restore</button>
+                      {isAdmin && <button className="btn btn-danger" disabled={restoring} onClick={function() { permanentDelete("file", f); }}>Delete Forever</button>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {muminPreview && (function() {
         var m = muminPreview;
@@ -1974,7 +2307,7 @@ export default function App() {
             <div className="preview-box" onClick={function(e) { e.stopPropagation(); }}>
               <div className="preview-hdr">
                 <div style={{ display:"flex", alignItems:"center", gap:16 }}>
-                  <div className="preview-avatar">{m.name ? m.name[0].toUpperCase() : "?"}</div>
+                  <div className="preview-avatar">{m.photo_url ? <img src={m.photo_url} alt="" style={{width:"100%",height:"100%",borderRadius:"50%",objectFit:"cover"}} /> : (m.name ? m.name[0].toUpperCase() : "?")}</div>
                   <div>
                     <div className="preview-name">{m.name}</div>
                     <div className="preview-its">ITS: {m.its_number}</div>
