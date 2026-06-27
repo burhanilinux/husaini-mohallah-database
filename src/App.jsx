@@ -118,9 +118,24 @@ const UMOOR_PREFIX = {
 function getUmoorPrefix(umoorType) {
   return UMOOR_PREFIX[umoorType] || "GEN";
 }
+function calcAge(dob) {
+  if (!dob) return null;
+  var d = new Date(dob);
+  if (isNaN(d.getTime())) return null;
+  var today = new Date();
+  var age = today.getFullYear() - d.getFullYear();
+  var m = today.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < d.getDate())) age--;
+  return age >= 0 ? age : null;
+}
+function getMuminAge(m) {
+  if (!m) return null;
+  var fromDob = calcAge(m.dob);
+  return fromDob !== null ? fromDob : (m.age || null);
+}
 const currentYear = new Date().getFullYear();
 const YEARS = Array.from({ length: currentYear - 2022 + 1 }, function(_, i) { return 2022 + i; });
-const MUMIN_COLS = ["its_number","name","age","gender","phone","email","address","status"];
+const MUMIN_COLS = ["its_number","name","dob","age","gender","phone","email","address","status"];
 const FILE_COLS  = ["file_no","umoor_type","year","title","description","status","date"];
 
 function downloadBlob(content, filename, mime) {
@@ -801,7 +816,7 @@ function printMumin(m, family) {
   h += "<div class='print-subtitle'>ITS: " + (m.its_number || "") + " &nbsp;&nbsp; <span class='print-badge print-badge-" + sc + "'>" + (m.status || "") + "</span></div>";
   h += "<div class='print-section-title'>Personal Details</div>";
   h += "<div class='print-grid'>";
-  h += "<div class='print-field'><div class='print-field-label'>Age</div><div class='print-field-val'>" + (m.age || "—") + "</div></div>";
+  h += "<div class='print-field'><div class='print-field-label'>Age</div><div class='print-field-val'>" + (getMuminAge(m) || "—") + "</div></div>";
   h += "<div class='print-field'><div class='print-field-label'>Gender</div><div class='print-field-val'>" + (m.gender || "—") + "</div></div>";
   h += "<div class='print-field'><div class='print-field-label'>Phone</div><div class='print-field-val'>" + (m.phone || "—") + "</div></div>";
   h += "<div class='print-field'><div class='print-field-label'>Email</div><div class='print-field-val'>" + (m.email || "—") + "</div></div>";
@@ -859,7 +874,7 @@ function printIdCard(m, family) {
   h += "<div class='idcard-info-row'><span class='idcard-info-label'>ITS No.</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + (m.its_number || "—") + "</span></div>";
   h += "<div class='idcard-info-row'><span class='idcard-info-label'>Phone</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + (m.phone || "—") + "</span></div>";
   if (m.email) h += "<div class='idcard-info-row'><span class='idcard-info-label'>E-mail</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + m.email + "</span></div>";
-  h += "<div class='idcard-info-row'><span class='idcard-info-label'>Age/Sex</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + (m.age || "—") + " / " + (m.gender || "—") + "</span></div>";
+  h += "<div class='idcard-info-row'><span class='idcard-info-label'>Age/Sex</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + (getMuminAge(m) || "—") + " / " + (m.gender || "—") + "</span></div>";
   h += "</div>";
   h += "<div class='idcard-barcode-wrap'>";
   h += "<div class='idcard-barcode'>" + makeBarcode(m.its_number) + "</div>";
@@ -1032,7 +1047,8 @@ export default function App() {
       var payload = {
         its_number: form.its_number || "",
         name: form.name || "",
-        age: form.age ? Number(form.age) : null,
+        dob: form.dob || null,
+        age: form.dob ? calcAge(form.dob) : (form.age ? Number(form.age) : null),
         gender: form.gender || "Male",
         phone: form.phone || "",
         email: form.email || "",
@@ -1107,7 +1123,7 @@ export default function App() {
       try {
         await sbInsert("mumin_data", {
           its_number: r.its_number || "", name: r.name || "",
-          age: r.age ? Number(r.age) : null, gender: r.gender || "Male",
+          dob: r.dob || null, age: r.dob ? calcAge(r.dob) : (r.age ? Number(r.age) : null), gender: r.gender || "Male",
           phone: r.phone || "", email: r.email || "",
           address: r.address || "", status: r.status || "Active",
         });
@@ -1458,7 +1474,7 @@ export default function App() {
                 {printTarget && printTarget.id === "mumin" && (
                   <table style={{width:"100%",borderCollapse:"collapse"}}>
                     <thead><tr><th>ITS</th><th>Name</th><th>Age</th><th>Gender</th><th>Phone</th><th>Address</th><th>Status</th></tr></thead>
-                    <tbody>{muminData.map(function(m){return(<tr key={m.id}><td><span className="file-no">{m.its_number}</span></td><td>{m.name}</td><td>{m.age}</td><td>{m.gender}</td><td>{m.phone}</td><td>{m.address}</td><td><span className={"badge badge-"+(m.status||"").toLowerCase()}>{m.status}</span></td></tr>);})}</tbody>
+                    <tbody>{muminData.map(function(m){return(<tr key={m.id}><td><span className="file-no">{m.its_number}</span></td><td>{m.name}</td><td>{getMuminAge(m)}</td><td>{m.gender}</td><td>{m.phone}</td><td>{m.address}</td><td><span className={"badge badge-"+(m.status||"").toLowerCase()}>{m.status}</span></td></tr>);})}</tbody>
                   </table>
                 )}
                 {printTarget && printTarget.id === "files_all" && (
@@ -1479,7 +1495,7 @@ export default function App() {
                     <table style={{width:"100%",borderCollapse:"collapse"}}>
                       <thead><tr><th>Age Group</th><th>Count</th><th>Male</th><th>Female</th><th>% of Total</th></tr></thead>
                       <tbody>{groups.map(function(g){
-                        var mem=muminData.filter(function(m){return m.age>=g.min&&m.age<=g.max;});
+                        var mem=muminData.filter(function(m){var a=getMuminAge(m);return a!==null&&a>=g.min&&a<=g.max;});
                         var male=mem.filter(function(m){return m.gender==="Male";}).length;
                         var pct=muminData.length>0?((mem.length/muminData.length)*100).toFixed(1):0;
                         return(<tr key={g.label}><td>{g.label}</td><td style={{fontWeight:600}}>{mem.length}</td><td>{male}</td><td>{mem.length-male}</td><td>{pct}%</td></tr>);
@@ -1696,7 +1712,7 @@ export default function App() {
                           <tr key={m.id} className="clickable-row" onClick={function() { setMuminPreview(m); }}>
                             <td><span className="file-no">{m.its_number}</span></td>
                             <td style={{ fontWeight: 500 }}>{m.name}</td>
-                            <td>{m.age}</td>
+                            <td>{getMuminAge(m)}</td>
                             <td><span className={"badge badge-" + (m.gender || "").toLowerCase()}>{m.gender}</span></td>
                             <td style={{ fontSize: 12, color: "#9ca3af" }}>{m.phone}</td>
                             <td style={{ fontSize: 12, color: "#6b7280" }}>{m.address}</td>
@@ -1744,8 +1760,11 @@ export default function App() {
                     <input value={form.name || ""} onChange={function(e) { setForm(function(f) { return Object.assign({}, f, { name: e.target.value }); }); }} placeholder="Enter full name" />
                   </div>
                   <div className="form-grp">
-                    <label>Age</label>
-                    <input type="number" value={form.age || ""} onChange={function(e) { setForm(function(f) { return Object.assign({}, f, { age: e.target.value }); }); }} />
+                    <label>Date of Birth</label>
+                    <input type="date" value={form.dob || ""} onChange={function(e) { setForm(function(f) { return Object.assign({}, f, { dob: e.target.value, age: calcAge(e.target.value) }); }); }} />
+                    {form.dob && calcAge(form.dob) !== null && (
+                      <div style={{fontSize:11,color:"#c9a84c",marginTop:4}}>Age: {calcAge(form.dob)} years</div>
+                    )}
                   </div>
                   <div className="form-grp">
                     <label>Gender</label>
@@ -1968,7 +1987,7 @@ export default function App() {
                 <div className="preview-section">
                   <div className="preview-sec-title">Personal Details</div>
                   <div className="preview-grid">
-                    <div className="preview-field"><div className="preview-field-label">Age</div><div className="preview-field-val">{m.age||"—"}</div></div>
+                    <div className="preview-field"><div className="preview-field-label">Age</div><div className="preview-field-val">{getMuminAge(m)||"—"}{m.dob ? " (DOB: " + m.dob + ")" : ""}</div></div>
                     <div className="preview-field"><div className="preview-field-label">Gender</div><div className="preview-field-val">{m.gender||"—"}</div></div>
                     <div className="preview-field">
                       <div className="preview-field-label">Phone</div>
