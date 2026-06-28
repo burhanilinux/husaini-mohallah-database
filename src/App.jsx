@@ -345,6 +345,8 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280
 .year-tab:hover:not(.active){border-color:rgba(201,168,76,.3);color:#c9a84c}
 .umoor-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .umoor-card{background:rgba(255,255,255,.02);border:1px solid rgba(184,152,90,.1);border-radius:10px;padding:16px;cursor:pointer;transition:all .2s}
+.btn-xls-mini{position:absolute;top:10px;right:10px;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);color:#34d399;font-size:10px;font-weight:600;padding:3px 8px;border-radius:6px;cursor:pointer;font-family:'Roboto',sans-serif;transition:all .2s;z-index:2}
+.btn-xls-mini:hover{background:rgba(52,211,153,.2)}
 .umoor-card:hover{border-color:rgba(201,168,76,.3);background:rgba(184,152,90,.05)}
 .umoor-num{font-size:11px;color:#c9a84c;font-weight:600;margin-bottom:4px}
 .umoor-name{font-size:12px;color:#e2d9c9;font-weight:500}
@@ -1050,6 +1052,115 @@ export default function App() {
     return (session && session.user && session.user.email) || "Unknown";
   }
 
+  function getReportRows(reportId, extra) {
+    if (reportId === "mumin") {
+      return {
+        cols: ["its_number","name","age","gender","phone","address","area_sector","status"],
+        rows: muminData.map(function(m) { return {
+          its_number: m.its_number || "", name: m.name || "", age: getMuminAge(m) || "",
+          gender: m.gender || "", phone: m.phone || "", address: m.address || "",
+          area_sector: m.area_sector || "", status: m.status || "",
+        }; }),
+        filename: "mumin_directory",
+      };
+    }
+    if (reportId === "files_all") {
+      return {
+        cols: ["file_no","title","umoor_type","year","status","due_date"],
+        rows: filesData.map(function(f) { return {
+          file_no: f.file_no || "", title: f.title || "", umoor_type: f.umoor_type || "",
+          year: f.year || "", status: f.status || "", due_date: f.due_date || "",
+        }; }),
+        filename: "umoor_files_all",
+      };
+    }
+    if (reportId === "reminders") {
+      var withDue = filesData.filter(function(f) { return f.due_date; })
+        .sort(function(a,b) { return new Date(a.due_date) - new Date(b.due_date); });
+      return {
+        cols: ["file_no","title","umoor_type","status","due_date"],
+        rows: withDue.map(function(f) { return {
+          file_no: f.file_no || "", title: f.title || "", umoor_type: f.umoor_type || "",
+          status: f.status || "", due_date: f.due_date || "",
+        }; }),
+        filename: "reminders_report",
+      };
+    }
+    if (reportId === "families") {
+      return {
+        cols: ["family_name","address","members"],
+        rows: familiesData.map(function(f) {
+          var cnt = familyMembers.filter(function(m) { return m.family_id === f.id; }).length;
+          return { family_name: f.family_name || "", address: f.address || "", members: cnt };
+        }),
+        filename: "family_directory",
+      };
+    }
+    if (reportId === "age_groups") {
+      var groups = [
+        { label: "Children (0-15)", min: 0, max: 15 },
+        { label: "Youth (16-30)", min: 16, max: 30 },
+        { label: "Adults (31-60)", min: 31, max: 60 },
+        { label: "Seniors (61+)", min: 61, max: 999 },
+      ];
+      return {
+        cols: ["age_group","count","male","female","percent"],
+        rows: groups.map(function(g) {
+          var mem = muminData.filter(function(m) { var a = getMuminAge(m); return a !== null && a >= g.min && a <= g.max; });
+          var male = mem.filter(function(m) { return m.gender === "Male"; }).length;
+          var pct = muminData.length > 0 ? ((mem.length / muminData.length) * 100).toFixed(1) : 0;
+          return { age_group: g.label, count: mem.length, male: male, female: mem.length - male, percent: pct + "%" };
+        }),
+        filename: "age_group_summary",
+      };
+    }
+    if (reportId === "sector_summary") {
+      var rows = areaSectors.map(function(s) {
+        var mem = muminData.filter(function(m) { return m.area_sector === s; });
+        var male = mem.filter(function(m) { return m.gender === "Male"; }).length;
+        var pct = muminData.length > 0 ? ((mem.length / muminData.length) * 100).toFixed(1) : 0;
+        return { sector: s, count: mem.length, male: male, female: mem.length - male, percent: pct + "%" };
+      });
+      var noSector = muminData.filter(function(m) { return !m.area_sector || !m.area_sector.trim(); });
+      if (noSector.length > 0) {
+        var maleNS = noSector.filter(function(m) { return m.gender === "Male"; }).length;
+        var pctNS = muminData.length > 0 ? ((noSector.length / muminData.length) * 100).toFixed(1) : 0;
+        rows.push({ sector: "Not Assigned", count: noSector.length, male: maleNS, female: noSector.length - maleNS, percent: pctNS + "%" });
+      }
+      return { cols: ["sector","count","male","female","percent"], rows: rows, filename: "sector_summary" };
+    }
+    if (reportId === "sector") {
+      var sectorMembers = muminData.filter(function(m) { return m.area_sector === extra; });
+      return {
+        cols: ["its_number","name","age","gender","phone","address","status"],
+        rows: sectorMembers.map(function(m) { return {
+          its_number: m.its_number || "", name: m.name || "", age: getMuminAge(m) || "",
+          gender: m.gender || "", phone: m.phone || "", address: m.address || "", status: m.status || "",
+        }; }),
+        filename: "sector_" + (extra || "unknown").replace(/[^a-zA-Z0-9]/g, "_"),
+      };
+    }
+    if (reportId === "umoor") {
+      var umoorFiles = filesData.filter(function(f) { return f.umoor_type === extra; });
+      return {
+        cols: ["file_no","title","year","date","status","due_date"],
+        rows: umoorFiles.map(function(f) { return {
+          file_no: f.file_no || "", title: f.title || "", year: f.year || "",
+          date: f.date || "", status: f.status || "", due_date: f.due_date || "",
+        }; }),
+        filename: "umoor_" + (extra || "unknown").replace(/[^a-zA-Z0-9]/g, "_"),
+      };
+    }
+    return { cols: [], rows: [], filename: "report" };
+  }
+
+  function exportReportXLS(reportId, extra) {
+    var r = getReportRows(reportId, extra);
+    if (r.rows.length === 0) { showToast("No data to export", "error"); return; }
+    toXLS(r.rows, r.cols, r.filename);
+    showToast("Excel file downloaded — " + r.filename + ".xls");
+  }
+
   const [trashMumin, setTrashMumin] = useState([]);
   const [trashFiles, setTrashFiles] = useState([]);
   async function loadTrash() {
@@ -1687,10 +1798,11 @@ export default function App() {
                   {id:"age_groups", icon:"📊", label:"Age Group Summary", desc:"Members broken down by age group", data:muminData.length + " members"},
                   {id:"sector_summary", icon:"📍", label:"Sector Summary", desc:"Member count breakdown by area sector", data:areaSectors.length + " sectors"},
                 ].map(function(r) { return (
-                  <div key={r.id} className="umoor-card" style={{cursor:"pointer"}} onClick={function(){
+                  <div key={r.id} className="umoor-card" style={{cursor:"pointer",position:"relative"}} onClick={function(){
                     setPrintTarget(r);
                     setTimeout(function(){ window.print(); }, 300);
                   }}>
+                    <button className="btn-xls-mini" title="Download as Excel" onClick={function(e){ e.stopPropagation(); exportReportXLS(r.id); }}>📊 XLS</button>
                     <div style={{fontSize:28,marginBottom:8}}>{r.icon}</div>
                     <div className="umoor-name" style={{fontSize:14,marginBottom:4}}>{r.label}</div>
                     <div className="umoor-count">{r.desc}</div>
@@ -1708,10 +1820,11 @@ export default function App() {
                   {UMOOR_TYPES.map(function(u) {
                     var count = filesData.filter(function(f){return f.umoor_type===u;}).length;
                     return (
-                      <div key={u} className="umoor-card" onClick={function(){
+                      <div key={u} className="umoor-card" style={{position:"relative"}} onClick={function(){
                         setPrintTarget({id:"umoor",label:u,umoor:u});
                         setTimeout(function(){ window.print(); }, 300);
                       }}>
+                        <button className="btn-xls-mini" title="Download as Excel" onClick={function(e){ e.stopPropagation(); exportReportXLS("umoor", u); }}>📊 XLS</button>
                         <div className="umoor-name" style={{fontSize:12}}>{u}</div>
                         <div className="umoor-count">{count} files · Click to Print</div>
                       </div>
@@ -1730,10 +1843,11 @@ export default function App() {
                     {areaSectors.map(function(s) {
                       var count = muminData.filter(function(m){return m.area_sector===s;}).length;
                       return (
-                        <div key={s} className="umoor-card" onClick={function(){
+                        <div key={s} className="umoor-card" style={{position:"relative"}} onClick={function(){
                           setPrintTarget({id:"sector",label:s + " — Mumin Directory",sector:s});
                           setTimeout(function(){ window.print(); }, 300);
                         }}>
+                          <button className="btn-xls-mini" title="Download as Excel" onClick={function(e){ e.stopPropagation(); exportReportXLS("sector", s); }}>📊 XLS</button>
                           <div className="umoor-name" style={{fontSize:12}}>{s}</div>
                           <div className="umoor-count">{count} member{count!==1?"s":""} · Click to Print</div>
                         </div>
