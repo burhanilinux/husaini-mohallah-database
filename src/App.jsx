@@ -183,7 +183,7 @@ function validateFileForm(form) {
 }
 const currentYear = new Date().getFullYear();
 const YEARS = Array.from({ length: currentYear - 2022 + 1 }, function(_, i) { return 2022 + i; });
-const MUMIN_COLS = ["its_number","name","dob","age","gender","phone","email","address","status"];
+const MUMIN_COLS = ["its_number","name","dob","age","gender","phone","email","address","area_sector","status"];
 const FILE_COLS  = ["file_no","umoor_type","year","title","description","status","date"];
 
 function downloadBlob(content, filename, mime) {
@@ -889,6 +889,7 @@ function printMumin(m, family) {
   h += "<div class='print-field'><div class='print-field-label'>Phone</div><div class='print-field-val'>" + (m.phone || "—") + "</div></div>";
   h += "<div class='print-field'><div class='print-field-label'>Email</div><div class='print-field-val'>" + (m.email || "—") + "</div></div>";
   h += "<div class='print-field full'><div class='print-field-label'>Address</div><div class='print-field-val'>" + (m.address || "—") + "</div></div>";
+  h += "<div class='print-field full'><div class='print-field-label'>Area Sector</div><div class='print-field-val'>" + (m.area_sector || "—") + "</div></div>";
   h += "</div>";
   if (family && family.fam) {
     h += "<div class='print-section-title'>Family</div>";
@@ -943,6 +944,7 @@ function printIdCard(m, family) {
   h += "<div class='idcard-info-row'><span class='idcard-info-label'>Phone</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + (m.phone || "—") + "</span></div>";
   if (m.email) h += "<div class='idcard-info-row'><span class='idcard-info-label'>E-mail</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + m.email + "</span></div>";
   h += "<div class='idcard-info-row'><span class='idcard-info-label'>Age/Sex</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + (getMuminAge(m) || "—") + " / " + (m.gender || "—") + "</span></div>";
+  if (m.area_sector) h += "<div class='idcard-info-row'><span class='idcard-info-label'>Sector</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + m.area_sector + "</span></div>";
   h += "</div>";
   h += "<div class='idcard-barcode-wrap'>";
   h += "<div class='idcard-barcode'>" + makeBarcode(m.its_number) + "</div>";
@@ -1019,6 +1021,7 @@ export default function App() {
   const [dbError, setDbError] = useState(null);
   const [selYear, setSelYear] = useState(2024);
   const [selUmoor, setSelUmoor] = useState(null);
+  const [selSector, setSelSector] = useState(null);
   const [search, setSearch] = useState("");
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({});
@@ -1244,6 +1247,7 @@ export default function App() {
         phone: form.phone || "",
         email: form.email || "",
         address: form.address || "",
+        area_sector: form.area_sector || "",
         status: form.status || "Active",
         photo_url: photoUrl,
       };
@@ -1327,7 +1331,7 @@ export default function App() {
           its_number: r.its_number || "", name: r.name || "",
           dob: r.dob || null, age: r.dob ? calcAge(r.dob) : (r.age ? Number(r.age) : null), gender: r.gender || "Male",
           phone: r.phone || "", email: r.email || "",
-          address: r.address || "", status: r.status || "Active",
+          address: r.address || "", area_sector: r.area_sector || "", status: r.status || "Active",
         });
         ok++;
       } catch(e) {}
@@ -1355,9 +1359,17 @@ export default function App() {
     showToast("Imported " + ok + " of " + rows.length + " records ☁");
   }
 
+  var areaSectors = (function() {
+    var set = {};
+    muminData.forEach(function(m) { if (m.area_sector && m.area_sector.trim()) set[m.area_sector.trim()] = true; });
+    return Object.keys(set).sort();
+  })();
+
   var filteredMumin = muminData.filter(function(m) {
-    return (m.name || "").toLowerCase().indexOf(search.toLowerCase()) >= 0
+    var matchesSearch = (m.name || "").toLowerCase().indexOf(search.toLowerCase()) >= 0
       || (m.its_number || "").indexOf(search) >= 0;
+    var matchesSector = selSector ? m.area_sector === selSector : true;
+    return matchesSearch && matchesSector;
   });
   var filteredFiles = filesData.filter(function(f) {
     return (selYear ? f.year === selYear : true)
@@ -1448,7 +1460,7 @@ export default function App() {
               />
               {gSearchOpen && (function() {
                 var q = gSearch.toLowerCase();
-                var mRes = muminData.filter(function(m) { return (m.name||"").toLowerCase().includes(q) || (m.its_number||"").includes(q); }).slice(0,5);
+                var mRes = muminData.filter(function(m) { return (m.name||"").toLowerCase().includes(q) || (m.its_number||"").includes(q) || (m.area_sector||"").toLowerCase().includes(q); }).slice(0,5);
                 var fRes = filesData.filter(function(f) { return (f.title||"").toLowerCase().includes(q) || (f.file_no||"").toLowerCase().includes(q); }).slice(0,5);
                 var famRes = familiesData.filter(function(f) { return (f.family_name||"").toLowerCase().includes(q); }).slice(0,3);
                 var total = mRes.length + fRes.length + famRes.length;
@@ -1463,7 +1475,7 @@ export default function App() {
                             <span className="gsearch-item-icon">👤</span>
                             <div className="gsearch-item-main">
                               <div className="gsearch-item-title">{m.name}</div>
-                              <div className="gsearch-item-sub">ITS: {m.its_number} · {m.gender}</div>
+                              <div className="gsearch-item-sub">ITS: {m.its_number} · {m.gender}{m.area_sector ? " · " + m.area_sector : ""}</div>
                             </div>
                           </div>
                         ); })}
@@ -1568,6 +1580,27 @@ export default function App() {
                     </div>
                   </div>
 
+                  {areaSectors.length > 0 && (
+                    <div className="card" style={{marginTop:20}}>
+                      <div className="card-hdr">
+                        <span className="card-title">Members by Area Sector</span>
+                        <span style={{ fontSize: 12, color: "#6b7280" }}>{muminData.length} total</span>
+                      </div>
+                      <div style={{ padding: 20 }}>
+                        <div className="umoor-grid">
+                          {areaSectors.map(function(s) {
+                            var count = muminData.filter(function(m) { return m.area_sector === s; }).length;
+                            return (
+                              <div key={s} className="umoor-card" onClick={function() { setSelSector(s); setPage("mumin"); }}>
+                                <div className="umoor-name">{s}</div>
+                                <div className="umoor-count">{count} member{count !== 1 ? "s" : ""}</div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                 </div>
               )}
@@ -1690,8 +1723,8 @@ export default function App() {
               <div style={{marginTop:24}}>
                 {printTarget && printTarget.id === "mumin" && (
                   <table style={{width:"100%",borderCollapse:"collapse"}}>
-                    <thead><tr><th>ITS</th><th>Name</th><th>Age</th><th>Gender</th><th>Phone</th><th>Address</th><th>Status</th></tr></thead>
-                    <tbody>{muminData.map(function(m){return(<tr key={m.id}><td><span className="file-no">{m.its_number}</span></td><td>{m.name}</td><td>{getMuminAge(m)}</td><td>{m.gender}</td><td>{m.phone}</td><td>{m.address}</td><td><span className={"badge badge-"+(m.status||"").toLowerCase()}>{m.status}</span></td></tr>);})}</tbody>
+                    <thead><tr><th>ITS</th><th>Name</th><th>Age</th><th>Gender</th><th>Phone</th><th>Address</th><th>Sector</th><th>Status</th></tr></thead>
+                    <tbody>{muminData.map(function(m){return(<tr key={m.id}><td><span className="file-no">{m.its_number}</span></td><td>{m.name}</td><td>{getMuminAge(m)}</td><td>{m.gender}</td><td>{m.phone}</td><td>{m.address}</td><td>{m.area_sector||"—"}</td><td><span className={"badge badge-"+(m.status||"").toLowerCase()}>{m.status}</span></td></tr>);})}</tbody>
                   </table>
                 )}
                 {printTarget && printTarget.id === "files_all" && (
@@ -1954,13 +1987,17 @@ export default function App() {
                 </div>
                 <div className="toolbar">
                   <input style={{ width: 260 }} placeholder="Search by name or ITS…" value={search} onChange={function(e) { setSearch(e.target.value); }} />
+                  <select value={selSector || ""} onChange={function(e) { setSelSector(e.target.value || null); }} style={{ width: 200 }}>
+                    <option value="">All Sectors</option>
+                    {areaSectors.map(function(s) { return <option key={s} value={s}>{s}</option>; })}
+                  </select>
                 </div>
                 {loading ? <div className="loading"><Spinner /> Loading…</div> : filteredMumin.length === 0 ? (
                   <div className="empty"><div className="empty-icon">👤</div><div>No records found</div></div>
                 ) : (
                   <table>
                     <thead>
-                      <tr><th></th><th>ITS No.</th><th>Name</th><th>Age</th><th>Gender</th><th>Phone</th><th>Address</th><th>Status</th><th>Actions</th></tr>
+                      <tr><th></th><th>ITS No.</th><th>Name</th><th>Age</th><th>Gender</th><th>Phone</th><th>Address</th><th>Sector</th><th>Status</th><th>Actions</th></tr>
                     </thead>
                     <tbody>
                       {filteredMumin.map(function(m) {
@@ -1977,6 +2014,7 @@ export default function App() {
                             <td><span className={"badge badge-" + (m.gender || "").toLowerCase()}>{m.gender}</span></td>
                             <td style={{ fontSize: 12, color: "#9ca3af" }}>{m.phone}</td>
                             <td style={{ fontSize: 12, color: "#6b7280" }}>{m.address}</td>
+                            <td style={{ fontSize: 12, color: "#c9a84c" }}>{m.area_sector || "—"}</td>
                             <td><span className={"badge badge-" + (m.status || "").toLowerCase()}>{m.status}</span></td>
                             <td>
                               <div className="act-col" onClick={function(e) { e.stopPropagation(); }}>
@@ -2044,6 +2082,13 @@ export default function App() {
                   <div className="form-grp full">
                     <label>Address</label>
                     <input value={form.address || ""} onChange={function(e) { setForm(function(f) { return Object.assign({}, f, { address: e.target.value }); }); }} />
+                  </div>
+                  <div className="form-grp full">
+                    <label>Area Sector</label>
+                    <input list="area-sector-options" value={form.area_sector || ""} onChange={function(e) { setForm(function(f) { return Object.assign({}, f, { area_sector: e.target.value }); }); }} placeholder="e.g. Sector A, Zone 1, etc." />
+                    <datalist id="area-sector-options">
+                      {areaSectors.map(function(s) { return <option key={s} value={s} />; })}
+                    </datalist>
                   </div>
                   <div className="form-grp full">
                     <label>Profile Photo</label>
@@ -2336,6 +2381,7 @@ export default function App() {
                     </div>
                     <div className="preview-field"><div className="preview-field-label">Email</div><div className="preview-field-val" style={{fontSize:12}}>{m.email||"—"}</div></div>
                     <div className="preview-field" style={{gridColumn:"span 2"}}><div className="preview-field-label">Address</div><div className="preview-field-val">{m.address||"—"}</div></div>
+                    <div className="preview-field" style={{gridColumn:"span 2"}}><div className="preview-field-label">Area Sector</div><div className="preview-field-val">{m.area_sector||"—"}</div></div>
                   </div>
                 </div>
                 {family && family.fam && (
