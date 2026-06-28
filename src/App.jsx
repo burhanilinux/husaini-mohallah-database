@@ -1685,6 +1685,7 @@ export default function App() {
                   {id:"reminders", icon:"⏰", label:"Reminders Report", desc:"All files with due dates — overdue and upcoming", data:filesData.filter(function(f){return f.due_date;}).length + " files with dates"},
                   {id:"families", icon:"🏠", label:"Family Directory", desc:"All families and their members", data:familiesData.length + " families"},
                   {id:"age_groups", icon:"📊", label:"Age Group Summary", desc:"Members broken down by age group", data:muminData.length + " members"},
+                  {id:"sector_summary", icon:"📍", label:"Sector Summary", desc:"Member count breakdown by area sector", data:areaSectors.length + " sectors"},
                 ].map(function(r) { return (
                   <div key={r.id} className="umoor-card" style={{cursor:"pointer"}} onClick={function(){
                     setPrintTarget(r);
@@ -1718,6 +1719,29 @@ export default function App() {
                   })}
                 </div>
               </div>
+
+              {/* Per-Sector report cards */}
+              {areaSectors.length > 0 && (
+                <div className="card no-print" style={{marginTop:20}}>
+                  <div className="card-hdr" style={{padding:"16px 24px",borderBottom:"1px solid rgba(184,152,90,.1)"}}>
+                    <span style={{fontSize:14,fontWeight:600,color:"#e2d9c9"}}>Print by Area Sector</span>
+                  </div>
+                  <div style={{padding:16,display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
+                    {areaSectors.map(function(s) {
+                      var count = muminData.filter(function(m){return m.area_sector===s;}).length;
+                      return (
+                        <div key={s} className="umoor-card" onClick={function(){
+                          setPrintTarget({id:"sector",label:s + " — Mumin Directory",sector:s});
+                          setTimeout(function(){ window.print(); }, 300);
+                        }}>
+                          <div className="umoor-name" style={{fontSize:12}}>{s}</div>
+                          <div className="umoor-count">{count} member{count!==1?"s":""} · Click to Print</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Print preview tables (hidden on screen, shown on print) */}
               <div style={{marginTop:24}}>
@@ -1753,10 +1777,37 @@ export default function App() {
                     </table>
                   );
                 })()}
+                {printTarget && printTarget.id === "sector_summary" && (function(){
+                  return (
+                    <table style={{width:"100%",borderCollapse:"collapse"}}>
+                      <thead><tr><th>Area Sector</th><th>Members</th><th>Male</th><th>Female</th><th>% of Total</th></tr></thead>
+                      <tbody>{areaSectors.map(function(s){
+                        var mem=muminData.filter(function(m){return m.area_sector===s;});
+                        var male=mem.filter(function(m){return m.gender==="Male";}).length;
+                        var pct=muminData.length>0?((mem.length/muminData.length)*100).toFixed(1):0;
+                        return(<tr key={s}><td style={{fontWeight:500}}>{s}</td><td style={{fontWeight:600}}>{mem.length}</td><td>{male}</td><td>{mem.length-male}</td><td>{pct}%</td></tr>);
+                      })}
+                      {(function(){
+                        var noSector=muminData.filter(function(m){return !m.area_sector||!m.area_sector.trim();});
+                        if (noSector.length===0) return null;
+                        var male=noSector.filter(function(m){return m.gender==="Male";}).length;
+                        var pct=muminData.length>0?((noSector.length/muminData.length)*100).toFixed(1):0;
+                        return <tr key="none"><td style={{fontStyle:"italic",color:"#888"}}>Not Assigned</td><td style={{fontWeight:600}}>{noSector.length}</td><td>{male}</td><td>{noSector.length-male}</td><td>{pct}%</td></tr>;
+                      })()}
+                      </tbody>
+                    </table>
+                  );
+                })()}
                 {printTarget && printTarget.id === "families" && (
                   <table style={{width:"100%",borderCollapse:"collapse"}}>
                     <thead><tr><th>Family Name</th><th>Address</th><th>Members</th></tr></thead>
                     <tbody>{familiesData.map(function(f){var cnt=familyMembers.filter(function(m){return m.family_id===f.id;}).length;return(<tr key={f.id}><td style={{fontWeight:500}}>{f.family_name}</td><td>{f.address||"—"}</td><td>{cnt}</td></tr>);})}</tbody>
+                  </table>
+                )}
+                {printTarget && printTarget.id === "sector" && (
+                  <table style={{width:"100%",borderCollapse:"collapse"}}>
+                    <thead><tr><th>ITS</th><th>Name</th><th>Age</th><th>Gender</th><th>Phone</th><th>Address</th><th>Status</th></tr></thead>
+                    <tbody>{muminData.filter(function(m){return m.area_sector===printTarget.sector;}).map(function(m){return(<tr key={m.id}><td><span className="file-no">{m.its_number}</span></td><td>{m.name}</td><td>{getMuminAge(m)}</td><td>{m.gender}</td><td>{m.phone}</td><td>{m.address}</td><td><span className={"badge badge-"+(m.status||"").toLowerCase()}>{m.status}</span></td></tr>);})}</tbody>
                   </table>
                 )}
                 {printTarget && printTarget.id === "umoor" && (
