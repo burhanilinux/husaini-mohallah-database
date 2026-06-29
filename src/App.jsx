@@ -886,7 +886,7 @@ function openPrint(title, bodyHtml) {
   setTimeout(function() { URL.revokeObjectURL(url); }, 15000);
 }
 
-function printMumin(m, family) {
+function printMumin(m, family, sectorInfo) {
   var sc = (m.status || "active").toLowerCase();
   var today = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
   var h = "";
@@ -905,6 +905,17 @@ function printMumin(m, family) {
   h += "<div class='print-field full'><div class='print-field-label'>Address</div><div class='print-field-val'>" + (m.address || "—") + "</div></div>";
   h += "<div class='print-field full'><div class='print-field-label'>Area Sector</div><div class='print-field-val'>" + (m.area_sector || "—") + "</div></div>";
   h += "</div>";
+  if (sectorInfo && (sectorInfo.sectorName || sectorInfo.subSectorName)) {
+    h += "<div class='print-section-title'>Sector &amp; Leadership</div>";
+    h += "<div class='print-grid'>";
+    h += "<div class='print-field'><div class='print-field-label'>Sector</div><div class='print-field-val'>" + (sectorInfo.sectorName || "—") + "</div></div>";
+    h += "<div class='print-field'><div class='print-field-label'>Masool</div><div class='print-field-val'>" + (sectorInfo.masoolName || "—") + "</div></div>";
+    if (sectorInfo.subSectorName) {
+      h += "<div class='print-field'><div class='print-field-label'>Sub-Sector</div><div class='print-field-val'>" + sectorInfo.subSectorName + "</div></div>";
+      h += "<div class='print-field'><div class='print-field-label'>Musaid</div><div class='print-field-val'>" + (sectorInfo.musaidName || "—") + "</div></div>";
+    }
+    h += "</div>";
+  }
   if (family && family.fam) {
     h += "<div class='print-section-title'>Family</div>";
     h += "<div class='print-family-box'>";
@@ -933,7 +944,7 @@ function makeBarcode(value) {
   return bars;
 }
 
-function printIdCard(m, family) {
+function printIdCard(m, family, sectorInfo) {
   var initial = (m.name || "?").trim().charAt(0).toUpperCase();
   var photoHtml = m.photo_url
     ? "<img src='" + m.photo_url + "' alt='' />"
@@ -959,6 +970,9 @@ function printIdCard(m, family) {
   if (m.email) h += "<div class='idcard-info-row'><span class='idcard-info-label'>E-mail</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + m.email + "</span></div>";
   h += "<div class='idcard-info-row'><span class='idcard-info-label'>Age/Sex</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + (getMuminAge(m) || "—") + " / " + (m.gender || "—") + "</span></div>";
   if (m.area_sector) h += "<div class='idcard-info-row'><span class='idcard-info-label'>Sector</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + m.area_sector + "</span></div>";
+  if (sectorInfo && sectorInfo.masoolName) h += "<div class='idcard-info-row'><span class='idcard-info-label'>Masool</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + sectorInfo.masoolName + "</span></div>";
+  if (sectorInfo && sectorInfo.subSectorName) h += "<div class='idcard-info-row'><span class='idcard-info-label'>Sub-Sector</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + sectorInfo.subSectorName + "</span></div>";
+  if (sectorInfo && sectorInfo.musaidName) h += "<div class='idcard-info-row'><span class='idcard-info-label'>Musaid</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + sectorInfo.musaidName + "</span></div>";
   h += "</div>";
   h += "<div class='idcard-barcode-wrap'>";
   h += "<div class='idcard-barcode'>" + makeBarcode(m.its_number) + "</div>";
@@ -1074,12 +1088,17 @@ export default function App() {
   function getReportRows(reportId, extra) {
     if (reportId === "mumin") {
       return {
-        cols: ["its_number","name","age","gender","phone","address","area_sector","status"],
-        rows: muminData.map(function(m) { return {
-          its_number: m.its_number || "", name: m.name || "", age: getMuminAge(m) || "",
-          gender: m.gender || "", phone: m.phone || "", address: m.address || "",
-          area_sector: m.area_sector || "", status: m.status || "",
-        }; }),
+        cols: ["its_number","name","age","gender","phone","address","area_sector","masool","sub_sector","musaid","status"],
+        rows: muminData.map(function(m) {
+          var si = getSectorInfo(m);
+          return {
+            its_number: m.its_number || "", name: m.name || "", age: getMuminAge(m) || "",
+            gender: m.gender || "", phone: m.phone || "", address: m.address || "",
+            area_sector: m.area_sector || "", masool: si.masoolName || "",
+            sub_sector: si.subSectorName || "", musaid: si.musaidName || "",
+            status: m.status || "",
+          };
+        }),
         filename: "mumin_directory",
       };
     }
@@ -1138,24 +1157,30 @@ export default function App() {
         var mem = muminData.filter(function(m) { return m.area_sector === s; });
         var male = mem.filter(function(m) { return m.gender === "Male"; }).length;
         var pct = muminData.length > 0 ? ((mem.length / muminData.length) * 100).toFixed(1) : 0;
-        return { sector: s, count: mem.length, male: male, female: mem.length - male, percent: pct + "%" };
+        var secObj = sectorsData.find(function(x) { return x.name === s; });
+        var masoolLbl = secObj ? (secObj.masool_its ? (getMuminByIts(secObj.masool_its) ? getMuminByIts(secObj.masool_its).name : secObj.masool_its) : (secObj.masool_name || "")) : "";
+        return { sector: s, masool: masoolLbl, count: mem.length, male: male, female: mem.length - male, percent: pct + "%" };
       });
       var noSector = muminData.filter(function(m) { return !m.area_sector || !m.area_sector.trim(); });
       if (noSector.length > 0) {
         var maleNS = noSector.filter(function(m) { return m.gender === "Male"; }).length;
         var pctNS = muminData.length > 0 ? ((noSector.length / muminData.length) * 100).toFixed(1) : 0;
-        rows.push({ sector: "Not Assigned", count: noSector.length, male: maleNS, female: noSector.length - maleNS, percent: pctNS + "%" });
+        rows.push({ sector: "Not Assigned", masool: "", count: noSector.length, male: maleNS, female: noSector.length - maleNS, percent: pctNS + "%" });
       }
-      return { cols: ["sector","count","male","female","percent"], rows: rows, filename: "sector_summary" };
+      return { cols: ["sector","masool","count","male","female","percent"], rows: rows, filename: "sector_summary" };
     }
     if (reportId === "sector") {
       var sectorMembers = muminData.filter(function(m) { return m.area_sector === extra; });
       return {
-        cols: ["its_number","name","age","gender","phone","address","status"],
-        rows: sectorMembers.map(function(m) { return {
-          its_number: m.its_number || "", name: m.name || "", age: getMuminAge(m) || "",
-          gender: m.gender || "", phone: m.phone || "", address: m.address || "", status: m.status || "",
-        }; }),
+        cols: ["its_number","name","age","gender","phone","address","sub_sector","musaid","status"],
+        rows: sectorMembers.map(function(m) {
+          var si = getSectorInfo(m);
+          return {
+            its_number: m.its_number || "", name: m.name || "", age: getMuminAge(m) || "",
+            gender: m.gender || "", phone: m.phone || "", address: m.address || "",
+            sub_sector: si.subSectorName || "", musaid: si.musaidName || "", status: m.status || "",
+          };
+        }),
         filename: "sector_" + (extra || "unknown").replace(/[^a-zA-Z0-9]/g, "_"),
       };
     }
@@ -1185,6 +1210,19 @@ export default function App() {
   }
   function getMuminByIts(its) {
     return muminData.find(function(m) { return m.its_number === its; });
+  }
+  function getSectorInfo(m) {
+    if (!m) return null;
+    var sector = sectorsData.find(function(s) { return s.name === m.area_sector; });
+    var subSector = m.sub_sector_id ? subSectorsData.find(function(s) { return s.id === m.sub_sector_id; }) : null;
+    var masoolLabel = sector ? (sector.masool_its ? (getMuminByIts(sector.masool_its) ? getMuminByIts(sector.masool_its).name : sector.masool_its) : (sector.masool_name || "")) : "";
+    var musaidLabel = subSector ? (subSector.musaid_its ? (getMuminByIts(subSector.musaid_its) ? getMuminByIts(subSector.musaid_its).name : subSector.musaid_its) : (subSector.musaid_name || "")) : "";
+    return {
+      sectorName: m.area_sector || "",
+      masoolName: masoolLabel,
+      subSectorName: subSector ? subSector.name : "",
+      musaidName: musaidLabel,
+    };
   }
   function getMuminCountForSector(sectorName) {
     return muminData.filter(function(m) { return m.area_sector === sectorName; }).length;
@@ -2067,8 +2105,8 @@ export default function App() {
               <div style={{marginTop:24}}>
                 {printTarget && printTarget.id === "mumin" && (
                   <table style={{width:"100%",borderCollapse:"collapse"}}>
-                    <thead><tr><th>ITS</th><th>Name</th><th>Age</th><th>Gender</th><th>Phone</th><th>Address</th><th>Sector</th><th>Status</th></tr></thead>
-                    <tbody>{muminData.map(function(m){return(<tr key={m.id}><td><span className="file-no">{m.its_number}</span></td><td>{m.name}</td><td>{getMuminAge(m)}</td><td>{m.gender}</td><td>{m.phone}</td><td>{m.address}</td><td>{m.area_sector||"—"}</td><td><span className={"badge badge-"+(m.status||"").toLowerCase()}>{m.status}</span></td></tr>);})}</tbody>
+                    <thead><tr><th>ITS</th><th>Name</th><th>Age</th><th>Gender</th><th>Phone</th><th>Address</th><th>Sector</th><th>Masool</th><th>Status</th></tr></thead>
+                    <tbody>{muminData.map(function(m){var si=getSectorInfo(m);return(<tr key={m.id}><td><span className="file-no">{m.its_number}</span></td><td>{m.name}</td><td>{getMuminAge(m)}</td><td>{m.gender}</td><td>{m.phone}</td><td>{m.address}</td><td>{m.area_sector||"—"}</td><td style={{fontSize:11}}>{si.masoolName||"—"}</td><td><span className={"badge badge-"+(m.status||"").toLowerCase()}>{m.status}</span></td></tr>);})}</tbody>
                   </table>
                 )}
                 {printTarget && printTarget.id === "files_all" && (
@@ -2100,19 +2138,21 @@ export default function App() {
                 {printTarget && printTarget.id === "sector_summary" && (function(){
                   return (
                     <table style={{width:"100%",borderCollapse:"collapse"}}>
-                      <thead><tr><th>Area Sector</th><th>Members</th><th>Male</th><th>Female</th><th>% of Total</th></tr></thead>
+                      <thead><tr><th>Area Sector</th><th>Masool</th><th>Members</th><th>Male</th><th>Female</th><th>% of Total</th></tr></thead>
                       <tbody>{areaSectors.map(function(s){
                         var mem=muminData.filter(function(m){return m.area_sector===s;});
                         var male=mem.filter(function(m){return m.gender==="Male";}).length;
                         var pct=muminData.length>0?((mem.length/muminData.length)*100).toFixed(1):0;
-                        return(<tr key={s}><td style={{fontWeight:500}}>{s}</td><td style={{fontWeight:600}}>{mem.length}</td><td>{male}</td><td>{mem.length-male}</td><td>{pct}%</td></tr>);
+                        var secObj=sectorsData.find(function(x){return x.name===s;});
+                        var masoolLbl=secObj?(secObj.masool_its?(getMuminByIts(secObj.masool_its)?getMuminByIts(secObj.masool_its).name:secObj.masool_its):(secObj.masool_name||"—")):"—";
+                        return(<tr key={s}><td style={{fontWeight:500}}>{s}</td><td style={{fontSize:11}}>{masoolLbl}</td><td style={{fontWeight:600}}>{mem.length}</td><td>{male}</td><td>{mem.length-male}</td><td>{pct}%</td></tr>);
                       })}
                       {(function(){
                         var noSector=muminData.filter(function(m){return !m.area_sector||!m.area_sector.trim();});
                         if (noSector.length===0) return null;
                         var male=noSector.filter(function(m){return m.gender==="Male";}).length;
                         var pct=muminData.length>0?((noSector.length/muminData.length)*100).toFixed(1):0;
-                        return <tr key="none"><td style={{fontStyle:"italic",color:"#888"}}>Not Assigned</td><td style={{fontWeight:600}}>{noSector.length}</td><td>{male}</td><td>{noSector.length-male}</td><td>{pct}%</td></tr>;
+                        return <tr key="none"><td style={{fontStyle:"italic",color:"#888"}}>Not Assigned</td><td>—</td><td style={{fontWeight:600}}>{noSector.length}</td><td>{male}</td><td>{noSector.length-male}</td><td>{pct}%</td></tr>;
                       })()}
                       </tbody>
                     </table>
@@ -2124,12 +2164,25 @@ export default function App() {
                     <tbody>{familiesData.map(function(f){var cnt=familyMembers.filter(function(m){return m.family_id===f.id;}).length;return(<tr key={f.id}><td style={{fontWeight:500}}>{f.family_name}</td><td>{f.address||"—"}</td><td>{cnt}</td></tr>);})}</tbody>
                   </table>
                 )}
-                {printTarget && printTarget.id === "sector" && (
-                  <table style={{width:"100%",borderCollapse:"collapse"}}>
-                    <thead><tr><th>ITS</th><th>Name</th><th>Age</th><th>Gender</th><th>Phone</th><th>Address</th><th>Status</th></tr></thead>
-                    <tbody>{muminData.filter(function(m){return m.area_sector===printTarget.sector;}).map(function(m){return(<tr key={m.id}><td><span className="file-no">{m.its_number}</span></td><td>{m.name}</td><td>{getMuminAge(m)}</td><td>{m.gender}</td><td>{m.phone}</td><td>{m.address}</td><td><span className={"badge badge-"+(m.status||"").toLowerCase()}>{m.status}</span></td></tr>);})}</tbody>
-                  </table>
-                )}
+                {printTarget && printTarget.id === "sector" && (function(){
+                  var secObj = sectorsData.find(function(x){ return x.name === printTarget.sector; });
+                  var masoolLbl = secObj ? (secObj.masool_its ? (getMuminByIts(secObj.masool_its) ? getMuminByIts(secObj.masool_its).name : secObj.masool_its) : (secObj.masool_name || "—")) : "—";
+                  return (
+                    <div>
+                      <div style={{border:"1px solid #f0e6cc",background:"#fffdf7",borderRadius:8,padding:"10px 16px",marginBottom:16,fontSize:13,color:"#333"}}>
+                        <strong style={{color:"#8a6a1a"}}>Masool of {printTarget.sector}:</strong> {masoolLbl}
+                        {secObj && secObj.masool_phone && <span style={{marginLeft:10,color:"#666"}}>· {secObj.masool_phone}</span>}
+                      </div>
+                      <table style={{width:"100%",borderCollapse:"collapse"}}>
+                        <thead><tr><th>ITS</th><th>Name</th><th>Age</th><th>Gender</th><th>Phone</th><th>Address</th><th>Sub-Sector</th><th>Musaid</th><th>Status</th></tr></thead>
+                        <tbody>{muminData.filter(function(m){return m.area_sector===printTarget.sector;}).map(function(m){
+                          var si = getSectorInfo(m);
+                          return(<tr key={m.id}><td><span className="file-no">{m.its_number}</span></td><td>{m.name}</td><td>{getMuminAge(m)}</td><td>{m.gender}</td><td>{m.phone}</td><td>{m.address}</td><td style={{fontSize:11}}>{si.subSectorName||"—"}</td><td style={{fontSize:11}}>{si.musaidName||"—"}</td><td><span className={"badge badge-"+(m.status||"").toLowerCase()}>{m.status}</span></td></tr>);
+                        })}</tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
                 {printTarget && printTarget.id === "umoor" && (
                   <table style={{width:"100%",borderCollapse:"collapse"}}>
                     <thead><tr><th>File No.</th><th>Title</th><th>Year</th><th>Date</th><th>Status</th><th>Due Date</th></tr></thead>
@@ -2867,8 +2920,8 @@ export default function App() {
                 )}
                 <div style={{display:"flex",gap:10,marginTop:8,flexWrap:"wrap"}}>
                   {canEdit && <button className="btn btn-primary" style={{flex:1}} onClick={function(){ setMuminPreview(null); openModal("mumin","edit",m); }}>Edit Record</button>}
-                  <button className="btn btn-ghost" onClick={function(){ printIdCard(m, family); }}>🪪 ID Card</button>
-                  <button className="btn btn-ghost" onClick={function(){ printMumin(m, family); }}>🖨 Print</button>
+                  <button className="btn btn-ghost" onClick={function(){ printIdCard(m, family, getSectorInfo(m)); }}>🪪 ID Card</button>
+                  <button className="btn btn-ghost" onClick={function(){ printMumin(m, family, getSectorInfo(m)); }}>🖨 Print</button>
                   <button className="btn btn-ghost" onClick={function(){ setMuminPreview(null); }}>Close</button>
                 </div>
               </div>
