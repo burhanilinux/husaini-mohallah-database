@@ -459,6 +459,18 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280
 .quick-call:hover{background:rgba(96,165,250,.2)}
 .quick-wa{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25)}
 .quick-wa:hover{background:rgba(52,211,153,.2)}
+/* Masool page */
+.masool-sector-hdr{display:flex;align-items:center;gap:14px;padding:18px 22px;flex-wrap:wrap}
+.masool-expand-icon{color:#c9a84c;font-size:14px;width:14px;flex-shrink:0}
+.masool-sector-name{font-size:15px;font-weight:600;color:#e2d9c9}
+.masool-sector-meta{font-size:11px;color:#6b7280;margin-top:2px}
+.masool-badge{display:flex;align-items:center;gap:8px;background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.18);border-radius:10px;padding:8px 14px}
+.masool-badge-label{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#8a6a1a;background:rgba(201,168,76,.15);padding:2px 8px;border-radius:10px;font-weight:700}
+.masool-badge-name{font-size:13px;color:#e2d9c9;font-weight:500}
+.masool-subsectors{border-top:1px solid rgba(184,152,90,.1);background:rgba(0,0,0,.15)}
+.masool-subsector-row{display:flex;align-items:center;gap:14px;padding:14px 22px 14px 50px;border-bottom:1px solid rgba(255,255,255,.03);flex-wrap:wrap}
+.masool-subsector-row:last-child{border-bottom:none}
+.masool-subsector-name{font-size:13px;font-weight:600;color:#d1c9bb}
 /* File viewer */
 .file-preview-box{background:#111820;border:1px solid rgba(184,152,90,.2);border-radius:16px;width:680px;max-height:90vh;overflow-y:auto;box-shadow:0 25px 60px rgba(0,0,0,.5)}
 .file-preview-hdr{padding:22px 28px 18px;border-bottom:1px solid rgba(184,152,90,.1);display:flex;justify-content:space-between;align-items:flex-start}
@@ -1006,6 +1018,13 @@ export default function App() {
   const [attsData, setAttsData] = useState([]);
   const [familiesData, setFamiliesData] = useState([]);
   const [familyMembers, setFamilyMembers] = useState([]);
+  const [sectorsData, setSectorsData] = useState([]);
+  const [subSectorsData, setSubSectorsData] = useState([]);
+  const [sectorModal, setSectorModal] = useState(null);
+  const [sectorForm, setSectorForm] = useState({});
+  const [subSectorModal, setSubSectorModal] = useState(null);
+  const [subSectorForm, setSubSectorForm] = useState({});
+  const [expandedSector, setExpandedSector] = useState(null);
   const [famModal, setFamModal] = useState(null);
   const [famForm, setFamForm] = useState({});
   const [famMemberForm, setFamMemberForm] = useState({ its_number: "", role: "Head" });
@@ -1161,6 +1180,92 @@ export default function App() {
     showToast("Excel file downloaded — " + r.filename + ".xls");
   }
 
+  function getSubSectorsFor(sectorId) {
+    return subSectorsData.filter(function(s) { return s.sector_id === sectorId; });
+  }
+  function getMuminByIts(its) {
+    return muminData.find(function(m) { return m.its_number === its; });
+  }
+  function getMuminCountForSector(sectorName) {
+    return muminData.filter(function(m) { return m.area_sector === sectorName; }).length;
+  }
+  function getMuminCountForSubSector(subSectorId) {
+    return muminData.filter(function(m) { return m.sub_sector_id === subSectorId; }).length;
+  }
+
+  function openSectorModal(mode, record) {
+    setSectorForm(record ? Object.assign({}, record) : { name: "" });
+    setSectorModal({ mode: mode, record: record || null });
+  }
+  function closeSectorModal() { setSectorModal(null); setSectorForm({}); }
+
+  async function saveSector() {
+    if (!sectorForm.name || !sectorForm.name.trim()) { showToast("Sector name is required", "error"); return; }
+    setSaving(true);
+    try {
+      var payload = {
+        name: sectorForm.name.trim(),
+        masool_its: sectorForm.masool_its || null,
+        masool_name: sectorForm.masool_name || "",
+        masool_phone: sectorForm.masool_phone || "",
+      };
+      if (sectorModal.mode === "add") await sbInsert("sectors", payload);
+      else await sbUpdate("sectors", sectorForm.id, payload);
+      await logActivity(sectorModal.mode === "add" ? "create" : "update", "sector", payload.name, getUserEmail());
+      showToast(sectorModal.mode === "add" ? "Sector created" : "Sector updated");
+      await loadAll(); closeSectorModal();
+    } catch(e) { showToast("Error: " + e.message, "error"); }
+    setSaving(false);
+  }
+
+  async function deleteSector(sec) {
+    if (!window.confirm("Delete sector \"" + sec.name + "\"? This will also delete its sub-sectors. Mumin records keep their sector name as text.")) return;
+    try {
+      var subs = getSubSectorsFor(sec.id);
+      for (var i = 0; i < subs.length; i++) await sbDelete("sub_sectors", subs[i].id);
+      await sbDelete("sectors", sec.id);
+      await logActivity("delete", "sector", sec.name, getUserEmail());
+      showToast("Sector deleted");
+      await loadAll();
+    } catch(e) { showToast("Error: " + e.message, "error"); }
+  }
+
+  function openSubSectorModal(mode, sectorId, record) {
+    setSubSectorForm(record ? Object.assign({}, record) : { sector_id: sectorId, name: "" });
+    setSubSectorModal({ mode: mode, sectorId: sectorId, record: record || null });
+  }
+  function closeSubSectorModal() { setSubSectorModal(null); setSubSectorForm({}); }
+
+  async function saveSubSector() {
+    if (!subSectorForm.name || !subSectorForm.name.trim()) { showToast("Sub-Sector name is required", "error"); return; }
+    setSaving(true);
+    try {
+      var payload = {
+        sector_id: subSectorForm.sector_id,
+        name: subSectorForm.name.trim(),
+        musaid_its: subSectorForm.musaid_its || null,
+        musaid_name: subSectorForm.musaid_name || "",
+        musaid_phone: subSectorForm.musaid_phone || "",
+      };
+      if (subSectorModal.mode === "add") await sbInsert("sub_sectors", payload);
+      else await sbUpdate("sub_sectors", subSectorForm.id, payload);
+      await logActivity(subSectorModal.mode === "add" ? "create" : "update", "sub_sector", payload.name, getUserEmail());
+      showToast(subSectorModal.mode === "add" ? "Sub-Sector created" : "Sub-Sector updated");
+      await loadAll(); closeSubSectorModal();
+    } catch(e) { showToast("Error: " + e.message, "error"); }
+    setSaving(false);
+  }
+
+  async function deleteSubSector(sub) {
+    if (!window.confirm("Delete sub-sector \"" + sub.name + "\"?")) return;
+    try {
+      await sbDelete("sub_sectors", sub.id);
+      await logActivity("delete", "sub_sector", sub.name, getUserEmail());
+      showToast("Sub-Sector deleted");
+      await loadAll();
+    } catch(e) { showToast("Error: " + e.message, "error"); }
+  }
+
   const [trashMumin, setTrashMumin] = useState([]);
   const [trashFiles, setTrashFiles] = useState([]);
   async function loadTrash() {
@@ -1270,6 +1375,8 @@ export default function App() {
         sbGet("families", "order=id.asc"),
         sbGet("family_members", "order=id.asc"),
         sbGet("activity_log", "order=id.desc&limit=200"),
+        sbGet("sectors", "order=name.asc"),
+        sbGet("sub_sectors", "order=name.asc"),
       ]);
       setMuminData((results[0] || []).filter(function(m) { return !m.deleted_at; }));
       setFilesData((results[1] || []).filter(function(f) { return !f.deleted_at; }));
@@ -1277,6 +1384,8 @@ export default function App() {
       setFamiliesData(results[3] || []);
       setFamilyMembers(results[4] || []);
       setActivityLog(results[5] || []);
+      setSectorsData(results[6] || []);
+      setSubSectorsData(results[7] || []);
     } catch(e) {
       setDbError(e.message);
     }
@@ -1359,6 +1468,7 @@ export default function App() {
         email: form.email || "",
         address: form.address || "",
         area_sector: form.area_sector || "",
+        sub_sector_id: form.sub_sector_id || null,
         status: form.status || "Active",
         photo_url: photoUrl,
       };
@@ -1532,6 +1642,7 @@ export default function App() {
               { id: "files", icon: "🗂", label: "Umoor Files" },
               { id: "mumin", icon: "👤", label: "Mumin Data" },
               { id: "families", icon: "🏠", label: "Families" },
+              { id: "masool", icon: "🧭", label: "Masool" },
               { id: "reports", icon: "📄", label: "Reports" },
               { id: "activity", icon: "🕘", label: "Activity Log" },
               null,
@@ -1779,6 +1890,101 @@ export default function App() {
             </div>
           )}
 
+          {page === "masool" && (
+            <div>
+              <div className="page-hdr" style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between"}}>
+                <div><div className="page-title">Masool</div><div className="page-sub">Sectors, their Masool, sub-sectors and Musaid</div></div>
+                {canEdit && <button className="btn btn-primary" onClick={function() { openSectorModal("add"); }}>+ New Sector</button>}
+              </div>
+
+              {loading ? <div className="loading"><Spinner /> Loading…</div> : sectorsData.length === 0 ? (
+                <div className="card">
+                  <div className="empty" style={{padding:60}}>
+                    <div className="empty-icon">🧭</div>
+                    <div>No sectors yet. Create a sector and assign its Masool.</div>
+                  </div>
+                </div>
+              ) : (
+                <div style={{display:"flex",flexDirection:"column",gap:14}}>
+                  {sectorsData.map(function(sec) {
+                    var subs = getSubSectorsFor(sec.id);
+                    var memberCount = getMuminCountForSector(sec.name);
+                    var masoolLabel = sec.masool_its ? (getMuminByIts(sec.masool_its) ? getMuminByIts(sec.masool_its).name : sec.masool_its) : (sec.masool_name || "Not assigned");
+                    var expanded = expandedSector === sec.id;
+                    return (
+                      <div className="card" key={sec.id}>
+                        <div className="masool-sector-hdr" onClick={function() { setExpandedSector(expanded ? null : sec.id); }}>
+                          <div style={{display:"flex",alignItems:"center",gap:12,flex:1,cursor:"pointer"}}>
+                            <span className="masool-expand-icon">{expanded ? "▾" : "▸"}</span>
+                            <div>
+                              <div className="masool-sector-name">{sec.name}</div>
+                              <div className="masool-sector-meta">{memberCount} member{memberCount!==1?"s":""} · {subs.length} sub-sector{subs.length!==1?"s":""}</div>
+                            </div>
+                          </div>
+                          <div className="masool-badge">
+                            <span className="masool-badge-label">Masool</span>
+                            <span className="masool-badge-name">{masoolLabel}</span>
+                            {sec.masool_phone && (
+                              <span style={{display:"flex",gap:4,marginLeft:6}}>
+                                <a href={"tel:" + sec.masool_phone.replace(/[^0-9+]/g,"")} className="quick-contact-btn quick-call" title="Call" onClick={function(e){e.stopPropagation();}}>📞</a>
+                                <a href={"https://wa.me/" + sec.masool_phone.replace(/[^0-9]/g,"")} target="_blank" rel="noopener noreferrer" className="quick-contact-btn quick-wa" title="WhatsApp" onClick={function(e){e.stopPropagation();}}>💬</a>
+                              </span>
+                            )}
+                          </div>
+                          {canEdit && (
+                            <div style={{display:"flex",gap:6}} onClick={function(e){e.stopPropagation();}}>
+                              <button className="btn btn-ghost btn-sm" onClick={function() { openSectorModal("edit", sec); }}>Edit</button>
+                              {canDelete && <button className="btn btn-danger" onClick={function() { deleteSector(sec); }}>🗑</button>}
+                            </div>
+                          )}
+                        </div>
+
+                        {expanded && (
+                          <div className="masool-subsectors">
+                            {subs.length === 0 ? (
+                              <div style={{padding:"14px 20px",fontSize:12,color:"#6b7280"}}>No sub-sectors yet under this Masool.</div>
+                            ) : subs.map(function(sub) {
+                              var subMemberCount = getMuminCountForSubSector(sub.id);
+                              var musaidLabel = sub.musaid_its ? (getMuminByIts(sub.musaid_its) ? getMuminByIts(sub.musaid_its).name : sub.musaid_its) : (sub.musaid_name || "Not assigned");
+                              return (
+                                <div className="masool-subsector-row" key={sub.id}>
+                                  <div>
+                                    <div className="masool-subsector-name">{sub.name}</div>
+                                    <div className="masool-sector-meta">{subMemberCount} member{subMemberCount!==1?"s":""}</div>
+                                  </div>
+                                  <div className="masool-badge">
+                                    <span className="masool-badge-label">Musaid</span>
+                                    <span className="masool-badge-name">{musaidLabel}</span>
+                                    {sub.musaid_phone && (
+                                      <span style={{display:"flex",gap:4,marginLeft:6}}>
+                                        <a href={"tel:" + sub.musaid_phone.replace(/[^0-9+]/g,"")} className="quick-contact-btn quick-call" title="Call">📞</a>
+                                        <a href={"https://wa.me/" + sub.musaid_phone.replace(/[^0-9]/g,"")} target="_blank" rel="noopener noreferrer" className="quick-contact-btn quick-wa" title="WhatsApp">💬</a>
+                                      </span>
+                                    )}
+                                  </div>
+                                  {canEdit && (
+                                    <div style={{display:"flex",gap:6}}>
+                                      <button className="btn btn-ghost btn-sm" onClick={function() { openSubSectorModal("edit", sec.id, sub); }}>Edit</button>
+                                      {canDelete && <button className="btn btn-danger" onClick={function() { deleteSubSector(sub); }}>🗑</button>}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                            {canEdit && (
+                              <div style={{padding:"12px 20px"}}>
+                                <button className="btn btn-ghost btn-sm" onClick={function() { openSubSectorModal("add", sec.id); }}>+ Add Sub-Sector</button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
           {page === "reports" && (
             <div>
@@ -2250,11 +2456,25 @@ export default function App() {
                   </div>
                   <div className="form-grp full">
                     <label>Area Sector</label>
-                    <input list="area-sector-options" value={form.area_sector || ""} onChange={function(e) { setForm(function(f) { return Object.assign({}, f, { area_sector: e.target.value }); }); }} placeholder="e.g. Sector A, Zone 1, etc." />
+                    <input list="area-sector-options" value={form.area_sector || ""} onChange={function(e) { setForm(function(f) { return Object.assign({}, f, { area_sector: e.target.value, sub_sector_id: "" }); }); }} placeholder="e.g. Sector A, Zone 1, etc." />
                     <datalist id="area-sector-options">
                       {areaSectors.map(function(s) { return <option key={s} value={s} />; })}
                     </datalist>
                   </div>
+                  {(function() {
+                    var matchedSector = sectorsData.find(function(s) { return s.name === form.area_sector; });
+                    var subs = matchedSector ? getSubSectorsFor(matchedSector.id) : [];
+                    if (!matchedSector || subs.length === 0) return null;
+                    return (
+                      <div className="form-grp full">
+                        <label>Sub-Sector (under {matchedSector.name})</label>
+                        <select value={form.sub_sector_id || ""} onChange={function(e) { setForm(function(f) { return Object.assign({}, f, { sub_sector_id: e.target.value || null }); }); }}>
+                          <option value="">— None —</option>
+                          {subs.map(function(s) { return <option key={s.id} value={s.id}>{s.name}</option>; })}
+                        </select>
+                      </div>
+                    );
+                  })()}
                   <div className="form-grp full">
                     <label>Profile Photo</label>
                     {form.photo_url && !muminPhotoFile && (
@@ -2452,6 +2672,92 @@ export default function App() {
           onImportFiles={handleImportFiles}
           importing={importing}
         />
+      )}
+
+      {sectorModal && (
+        <div className="modal-overlay" onClick={closeSectorModal}>
+          <div className="modal" onClick={function(e) { e.stopPropagation(); }}>
+            <div className="modal-hdr">
+              <div className="modal-title">{sectorModal.mode === "add" ? "New Sector" : "Edit Sector"}</div>
+              <button className="modal-close" onClick={closeSectorModal}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="form-grid">
+                <div className="form-grp full">
+                  <label>Sector Name</label>
+                  <input value={sectorForm.name || ""} onChange={function(e) { setSectorForm(function(f) { return Object.assign({}, f, { name: e.target.value }); }); }} placeholder="e.g. Sector A" />
+                </div>
+                <div className="form-grp full">
+                  <div className="sec-lbl" style={{marginBottom:8}}>Masool (Sector Head)</div>
+                </div>
+                <div className="form-grp full">
+                  <label>Select Existing Mumin (optional)</label>
+                  <select value={sectorForm.masool_its || ""} onChange={function(e) { setSectorForm(function(f) { return Object.assign({}, f, { masool_its: e.target.value, masool_name: "", masool_phone: e.target.value ? (getMuminByIts(e.target.value) ? getMuminByIts(e.target.value).phone : "") : f.masool_phone }); }); }}>
+                    <option value="">— Type name manually instead —</option>
+                    {muminData.map(function(m) { return <option key={m.id} value={m.its_number}>{m.name} ({m.its_number})</option>; })}
+                  </select>
+                </div>
+                {!sectorForm.masool_its && (
+                  <div className="form-grp full">
+                    <label>Or Type Masool Name</label>
+                    <input value={sectorForm.masool_name || ""} onChange={function(e) { setSectorForm(function(f) { return Object.assign({}, f, { masool_name: e.target.value }); }); }} placeholder="Masool full name" />
+                  </div>
+                )}
+                <div className="form-grp full">
+                  <label>Masool Phone</label>
+                  <input value={sectorForm.masool_phone || ""} onChange={function(e) { setSectorForm(function(f) { return Object.assign({}, f, { masool_phone: e.target.value }); }); }} placeholder="Phone number" />
+                </div>
+              </div>
+            </div>
+            <div className="modal-ftr">
+              <button className="btn btn-ghost" onClick={closeSectorModal} disabled={saving}>Cancel</button>
+              <button className="btn btn-primary" disabled={saving} onClick={saveSector}>{saving ? <span><Spinner /> Saving…</span> : "Save Sector ☁"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {subSectorModal && (
+        <div className="modal-overlay" onClick={closeSubSectorModal}>
+          <div className="modal" onClick={function(e) { e.stopPropagation(); }}>
+            <div className="modal-hdr">
+              <div className="modal-title">{subSectorModal.mode === "add" ? "New Sub-Sector" : "Edit Sub-Sector"}</div>
+              <button className="modal-close" onClick={closeSubSectorModal}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="form-grid">
+                <div className="form-grp full">
+                  <label>Sub-Sector Name</label>
+                  <input value={subSectorForm.name || ""} onChange={function(e) { setSubSectorForm(function(f) { return Object.assign({}, f, { name: e.target.value }); }); }} placeholder="e.g. Sub-Sector A1" />
+                </div>
+                <div className="form-grp full">
+                  <div className="sec-lbl" style={{marginBottom:8}}>Musaid (Sub-Sector Assistant)</div>
+                </div>
+                <div className="form-grp full">
+                  <label>Select Existing Mumin (optional)</label>
+                  <select value={subSectorForm.musaid_its || ""} onChange={function(e) { setSubSectorForm(function(f) { return Object.assign({}, f, { musaid_its: e.target.value, musaid_name: "", musaid_phone: e.target.value ? (getMuminByIts(e.target.value) ? getMuminByIts(e.target.value).phone : "") : f.musaid_phone }); }); }}>
+                    <option value="">— Type name manually instead —</option>
+                    {muminData.map(function(m) { return <option key={m.id} value={m.its_number}>{m.name} ({m.its_number})</option>; })}
+                  </select>
+                </div>
+                {!subSectorForm.musaid_its && (
+                  <div className="form-grp full">
+                    <label>Or Type Musaid Name</label>
+                    <input value={subSectorForm.musaid_name || ""} onChange={function(e) { setSubSectorForm(function(f) { return Object.assign({}, f, { musaid_name: e.target.value }); }); }} placeholder="Musaid full name" />
+                  </div>
+                )}
+                <div className="form-grp full">
+                  <label>Musaid Phone</label>
+                  <input value={subSectorForm.musaid_phone || ""} onChange={function(e) { setSubSectorForm(function(f) { return Object.assign({}, f, { musaid_phone: e.target.value }); }); }} placeholder="Phone number" />
+                </div>
+              </div>
+            </div>
+            <div className="modal-ftr">
+              <button className="btn btn-ghost" onClick={closeSubSectorModal} disabled={saving}>Cancel</button>
+              <button className="btn btn-primary" disabled={saving} onClick={saveSubSector}>{saving ? <span><Spinner /> Saving…</span> : "Save Sub-Sector ☁"}</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {trashModal && (
