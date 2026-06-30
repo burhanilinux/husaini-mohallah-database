@@ -1,7 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 
-const SUPABASE_URL = "https://fluflwpnbqfqcvcjkgjn.supabase.co";
-const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZsdWZsd3BuYnFmcWN2Y2prZ2puIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5OTgwNTQsImV4cCI6MjA5NjU3NDA1NH0.LT7b18SGQXeth32XhOtVd-CJ2t3WiREf8daze_VwDdo";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_ANON) {
+  console.error("Missing Supabase environment variables. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env file or Vercel project settings.");
+}
 
 function getToken() {
   try {
