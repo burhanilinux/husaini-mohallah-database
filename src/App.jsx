@@ -183,7 +183,7 @@ function validateFileForm(form) {
 }
 const currentYear = new Date().getFullYear();
 const YEARS = Array.from({ length: currentYear - 2022 + 1 }, function(_, i) { return 2022 + i; });
-const MUMIN_COLS = ["its_number","name","dob","age","gender","phone","email","address","area_sector","status"];
+const MUMIN_COLS = ["its_number","name","dob","age","gender","phone","email","address","area_sector","sabil_no","status"];
 const FILE_COLS  = ["file_no","umoor_type","year","title","description","status","date"];
 
 function downloadBlob(content, filename, mime) {
@@ -886,7 +886,7 @@ function openPrint(title, bodyHtml) {
   setTimeout(function() { URL.revokeObjectURL(url); }, 15000);
 }
 
-function printMumin(m, family, sectorInfo) {
+function printMumin(m, sabilFamily, sectorInfo) {
   var sc = (m.status || "active").toLowerCase();
   var today = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
   var h = "";
@@ -904,6 +904,7 @@ function printMumin(m, family, sectorInfo) {
   h += "<div class='print-field'><div class='print-field-label'>Email</div><div class='print-field-val'>" + (m.email || "—") + "</div></div>";
   h += "<div class='print-field full'><div class='print-field-label'>Address</div><div class='print-field-val'>" + (m.address || "—") + "</div></div>";
   h += "<div class='print-field full'><div class='print-field-label'>Area Sector</div><div class='print-field-val'>" + (m.area_sector || "—") + "</div></div>";
+  h += "<div class='print-field full'><div class='print-field-label'>Sabil No.</div><div class='print-field-val'>" + (m.sabil_no || "—") + "</div></div>";
   h += "</div>";
   if (sectorInfo && (sectorInfo.sectorName || sectorInfo.subSectorName)) {
     h += "<div class='print-section-title'>Sector &amp; Leadership</div>";
@@ -916,11 +917,12 @@ function printMumin(m, family, sectorInfo) {
     }
     h += "</div>";
   }
-  if (family && family.fam) {
-    h += "<div class='print-section-title'>Family</div>";
+  if (m.sabil_no && sabilFamily && sabilFamily.length > 0) {
+    h += "<div class='print-section-title'>Family — Sabil No. " + m.sabil_no + "</div>";
     h += "<div class='print-family-box'>";
-    h += "<div class='print-family-name'>" + family.fam.family_name + "<span class='print-family-role'>(" + (family.role || "") + ")</span></div>";
-    if (family.fam.address) h += "<div style='font-size:12px;color:#666;margin-top:4px'>" + family.fam.address + "</div>";
+    sabilFamily.forEach(function(o) {
+      h += "<div class='print-family-name' style='margin-bottom:4px'>" + o.name + " <span class='print-family-role'>(" + (o.its_number || "") + ")</span></div>";
+    });
     h += "</div>";
   }
   h += "<div class='print-footer'><span>Husaini Mohallah Database</span><span>Printed: " + new Date().toLocaleString() + "</span></div>";
@@ -944,7 +946,7 @@ function makeBarcode(value) {
   return bars;
 }
 
-function printIdCard(m, family, sectorInfo) {
+function printIdCard(m, sabilFamily, sectorInfo) {
   var initial = (m.name || "?").trim().charAt(0).toUpperCase();
   var photoHtml = m.photo_url
     ? "<img src='" + m.photo_url + "' alt='' />"
@@ -963,13 +965,14 @@ function printIdCard(m, family, sectorInfo) {
   h += "</div>";
   h += "<div class='idcard-body'>";
   h += "<div class='idcard-name'>" + (m.name || "") + "</div>";
-  h += "<div class='idcard-role'>" + (family && family.fam ? family.fam.family_name : (m.status || "Mumin")) + "</div>";
+  h += "<div class='idcard-role'>" + (m.status || "Mumin") + "</div>";
   h += "<div class='idcard-info'>";
   h += "<div class='idcard-info-row'><span class='idcard-info-label'>ITS No.</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + (m.its_number || "—") + "</span></div>";
   h += "<div class='idcard-info-row'><span class='idcard-info-label'>Phone</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + (m.phone || "—") + "</span></div>";
   if (m.email) h += "<div class='idcard-info-row'><span class='idcard-info-label'>E-mail</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + m.email + "</span></div>";
   h += "<div class='idcard-info-row'><span class='idcard-info-label'>Age/Sex</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + (getMuminAge(m) || "—") + " / " + (m.gender || "—") + "</span></div>";
   if (m.area_sector) h += "<div class='idcard-info-row'><span class='idcard-info-label'>Sector</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + m.area_sector + "</span></div>";
+  if (m.sabil_no) h += "<div class='idcard-info-row'><span class='idcard-info-label'>Sabil No.</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + m.sabil_no + "</span></div>";
   if (sectorInfo && sectorInfo.masoolName) h += "<div class='idcard-info-row'><span class='idcard-info-label'>Masool</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + sectorInfo.masoolName + "</span></div>";
   if (sectorInfo && sectorInfo.subSectorName) h += "<div class='idcard-info-row'><span class='idcard-info-label'>Sub-Sector</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + sectorInfo.subSectorName + "</span></div>";
   if (sectorInfo && sectorInfo.musaidName) h += "<div class='idcard-info-row'><span class='idcard-info-label'>Musaid</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + sectorInfo.musaidName + "</span></div>";
@@ -1030,8 +1033,6 @@ export default function App() {
   const [muminData, setMuminData] = useState([]);
   const [filesData, setFilesData] = useState([]);
   const [attsData, setAttsData] = useState([]);
-  const [familiesData, setFamiliesData] = useState([]);
-  const [familyMembers, setFamilyMembers] = useState([]);
   const [sectorsData, setSectorsData] = useState([]);
   const [subSectorsData, setSubSectorsData] = useState([]);
   const [sectorModal, setSectorModal] = useState(null);
@@ -1039,9 +1040,7 @@ export default function App() {
   const [subSectorModal, setSubSectorModal] = useState(null);
   const [subSectorForm, setSubSectorForm] = useState({});
   const [expandedSector, setExpandedSector] = useState(null);
-  const [famModal, setFamModal] = useState(null);
-  const [famForm, setFamForm] = useState({});
-  const [famMemberForm, setFamMemberForm] = useState({ its_number: "", role: "Head" });
+  const [sabilPreview, setSabilPreview] = useState(null);
   const [gSearch, setGSearch] = useState("");
   const [gSearchOpen, setGSearchOpen] = useState(false);
   const [userRole, setUserRole] = useState("admin"); // admin|editor|viewer
@@ -1125,13 +1124,22 @@ export default function App() {
       };
     }
     if (reportId === "families") {
+      var sabilGroups = {};
+      muminData.forEach(function(m) {
+        if (m.sabil_no && String(m.sabil_no).trim()) {
+          var key = String(m.sabil_no).trim();
+          if (!sabilGroups[key]) sabilGroups[key] = [];
+          sabilGroups[key].push(m);
+        }
+      });
+      var sabilKeys = Object.keys(sabilGroups).sort();
       return {
-        cols: ["family_name","address","members"],
-        rows: familiesData.map(function(f) {
-          var cnt = familyMembers.filter(function(m) { return m.family_id === f.id; }).length;
-          return { family_name: f.family_name || "", address: f.address || "", members: cnt };
+        cols: ["sabil_no","members","names"],
+        rows: sabilKeys.map(function(k) {
+          var grp = sabilGroups[k];
+          return { sabil_no: k, members: grp.length, names: grp.map(function(m) { return m.name; }).join(", ") };
         }),
-        filename: "family_directory",
+        filename: "family_directory_by_sabil",
       };
     }
     if (reportId === "age_groups") {
@@ -1226,6 +1234,10 @@ export default function App() {
   }
   function getMuminCountForSector(sectorName) {
     return muminData.filter(function(m) { return m.area_sector === sectorName; }).length;
+  }
+  function getFamilyBySabil(sabilNo) {
+    if (!sabilNo || !String(sabilNo).trim()) return [];
+    return muminData.filter(function(m) { return m.sabil_no && String(m.sabil_no).trim() === String(sabilNo).trim(); });
   }
   function getMuminCountForSubSector(subSectorId) {
     return muminData.filter(function(m) { return m.sub_sector_id === subSectorId; }).length;
@@ -1344,8 +1356,8 @@ export default function App() {
       mumin_data: muminData,
       umoor_files: filesData,
       attachments: attsData,
-      families: familiesData,
-      family_members: familyMembers,
+      sectors: sectorsData,
+      sub_sectors: subSectorsData,
     };
     var json = JSON.stringify(backup, null, 2);
     var fname = "husaini-mohallah-backup-" + new Date().toISOString().slice(0,10) + ".json";
@@ -1410,8 +1422,6 @@ export default function App() {
         sbGet("mumin_data", "order=id.asc"),
         sbGet("umoor_files", "order=id.desc"),
         sbGet("attachments", "order=id.asc"),
-        sbGet("families", "order=id.asc"),
-        sbGet("family_members", "order=id.asc"),
         sbGet("activity_log", "order=id.desc&limit=200"),
         sbGet("sectors", "order=name.asc"),
         sbGet("sub_sectors", "order=name.asc"),
@@ -1419,11 +1429,9 @@ export default function App() {
       setMuminData((results[0] || []).filter(function(m) { return !m.deleted_at; }));
       setFilesData((results[1] || []).filter(function(f) { return !f.deleted_at; }));
       setAttsData(results[2] || []);
-      setFamiliesData(results[3] || []);
-      setFamilyMembers(results[4] || []);
-      setActivityLog(results[5] || []);
-      setSectorsData(results[6] || []);
-      setSubSectorsData(results[7] || []);
+      setActivityLog(results[3] || []);
+      setSectorsData(results[4] || []);
+      setSubSectorsData(results[5] || []);
     } catch(e) {
       setDbError(e.message);
     }
@@ -1506,6 +1514,7 @@ export default function App() {
         email: form.email || "",
         address: form.address || "",
         area_sector: form.area_sector || "",
+        sabil_no: form.sabil_no || "",
         sub_sector_id: form.sub_sector_id || null,
         status: form.status || "Active",
         photo_url: photoUrl,
@@ -1590,7 +1599,7 @@ export default function App() {
           its_number: r.its_number || "", name: r.name || "",
           dob: r.dob || null, age: r.dob ? calcAge(r.dob) : (r.age ? Number(r.age) : null), gender: r.gender || "Male",
           phone: r.phone || "", email: r.email || "",
-          address: r.address || "", area_sector: r.area_sector || "", status: r.status || "Active",
+          address: r.address || "", area_sector: r.area_sector || "", sabil_no: r.sabil_no || "", status: r.status || "Active",
         });
         ok++;
       } catch(e) {}
@@ -1623,6 +1632,16 @@ export default function App() {
     muminData.forEach(function(m) { if (m.area_sector && m.area_sector.trim()) set[m.area_sector.trim()] = true; });
     return Object.keys(set).sort();
   })();
+
+  var sabilNos = (function() {
+    var set = {};
+    muminData.forEach(function(m) { if (m.sabil_no && String(m.sabil_no).trim()) set[String(m.sabil_no).trim()] = true; });
+    return Object.keys(set).sort();
+  })();
+
+  function getSabilMembers(sabilNo) {
+    return muminData.filter(function(m) { return m.sabil_no && String(m.sabil_no).trim() === String(sabilNo).trim(); });
+  }
 
   var filteredMumin = muminData.filter(function(m) {
     var matchesSearch = (m.name || "").toLowerCase().indexOf(search.toLowerCase()) >= 0
@@ -1679,7 +1698,7 @@ export default function App() {
               { id: "dashboard", icon: "◈", label: "Dashboard" },
               { id: "files", icon: "🗂", label: "Umoor Files" },
               { id: "mumin", icon: "👤", label: "Mumin Data" },
-              { id: "families", icon: "🏠", label: "Families" },
+              { id: "sabil", icon: "🏠", label: "Sabil Groups" },
               { id: "masool", icon: "🧭", label: "Masool" },
               { id: "reports", icon: "📄", label: "Reports" },
               { id: "activity", icon: "🕘", label: "Activity Log" },
@@ -1722,7 +1741,7 @@ export default function App() {
                 var q = gSearch.toLowerCase();
                 var mRes = muminData.filter(function(m) { return (m.name||"").toLowerCase().includes(q) || (m.its_number||"").includes(q) || (m.area_sector||"").toLowerCase().includes(q); }).slice(0,5);
                 var fRes = filesData.filter(function(f) { return (f.title||"").toLowerCase().includes(q) || (f.file_no||"").toLowerCase().includes(q); }).slice(0,5);
-                var famRes = familiesData.filter(function(f) { return (f.family_name||"").toLowerCase().includes(q); }).slice(0,3);
+                var famRes = muminData.filter(function(m) { return m.sabil_no && String(m.sabil_no).toLowerCase().includes(q); }).slice(0,5);
                 var total = mRes.length + fRes.length + famRes.length;
                 return (
                   <div className="gsearch-results">
@@ -1759,13 +1778,13 @@ export default function App() {
                     {famRes.length > 0 && (fRes.length > 0 || mRes.length > 0) && <div className="gsearch-divider" />}
                     {famRes.length > 0 && (
                       <div className="gsearch-section">
-                        <div className="gsearch-sec-title">Families</div>
-                        {famRes.map(function(f) { return (
-                          <div className="gsearch-item" key={f.id} onClick={function() { setPage("families"); setGSearch(""); setGSearchOpen(false); }}>
+                        <div className="gsearch-sec-title">Sabil No.</div>
+                        {famRes.map(function(m) { return (
+                          <div className="gsearch-item" key={"sabil-"+m.id} onClick={function() { setMuminPreview(m); setGSearch(""); setGSearchOpen(false); }}>
                             <span className="gsearch-item-icon">🏠</span>
                             <div className="gsearch-item-main">
-                              <div className="gsearch-item-title">{f.family_name}</div>
-                              <div className="gsearch-item-sub">{f.address||"No address"}</div>
+                              <div className="gsearch-item-title">Sabil No. {m.sabil_no}</div>
+                              <div className="gsearch-item-sub">{m.name}</div>
                             </div>
                           </div>
                         ); })}
@@ -1867,56 +1886,49 @@ export default function App() {
             </div>
           )}
 
-          {page === "families" && (
+          {page === "sabil" && (
             <div>
               <div className="page-hdr" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
                 <div>
-                  <div className="page-title">Families</div>
-                  <div className="page-sub">Household groups linking Mumin members together</div>
+                  <div className="page-title">Sabil Groups</div>
+                  <div className="page-sub">Members grouped by shared Sabil No.</div>
                 </div>
-                <button className="btn btn-primary" onClick={function() { setFamForm({}); setFamModal({ mode: "add" }); }}>+ New Family</button>
               </div>
               {loading ? <div className="loading"><Spinner /> Loading…</div> : (
                 <div>
-                  {familiesData.length === 0 ? (
+                  {sabilNos.length === 0 ? (
                     <div className="card">
                       <div className="empty" style={{ padding: 60 }}>
                         <div className="empty-icon">🏠</div>
-                        <div>No families yet. Create one and link Mumin members to it.</div>
+                        <div>No Sabil No. assigned yet. Set a Sabil No. on a Mumin record to group them here.</div>
                       </div>
                     </div>
                   ) : (
                     <div className="fam-grid">
-                      {familiesData.map(function(fam) {
-                        var members = familyMembers.filter(function(m) { return m.family_id === fam.id; });
-                        var getMumin = function(its) { return muminData.find(function(m) { return m.its_number === its; }); };
+                      {sabilNos.map(function(sn) {
+                        var members = getSabilMembers(sn);
                         return (
-                          <div className="fam-card" key={fam.id}>
+                          <div className="fam-card" key={sn}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                               <div>
-                                <div className="fam-name">{fam.family_name}</div>
-                                <div className="fam-meta">{members.length} member{members.length !== 1 ? "s" : ""} · {fam.address || "No address"}</div>
-                              </div>
-                              <div style={{ display: "flex", gap: 6 }}>
-                                <button className="btn btn-ghost btn-sm" onClick={function(e) { e.stopPropagation(); setFamForm(fam); setFamModal({ mode: "edit", record: fam }); }}>Edit</button>
-                                <button className="btn btn-danger" onClick={function(e) { e.stopPropagation(); sbDelete("families", fam.id).then(loadAll); }}>Del</button>
+                                <div className="fam-name">Sabil No. {sn}</div>
+                                <div className="fam-meta">{members.length} member{members.length !== 1 ? "s" : ""}</div>
                               </div>
                             </div>
                             <div className="fam-members">
                               {members.slice(0, 4).map(function(mem) {
-                                var mumin = getMumin(mem.its_number);
                                 return (
                                   <div className="fam-member-row" key={mem.id}>
-                                    <span className="fam-member-name">{mumin ? mumin.name : mem.its_number}</span>
-                                    <span className={"fam-member-role role-" + mem.role.toLowerCase()}>{mem.role}</span>
+                                    <span className="fam-member-name">{mem.name}</span>
+                                    <span style={{fontSize:11,color:"#6b7280"}}>{mem.its_number}</span>
                                   </div>
                                 );
                               })}
                               {members.length > 4 && <div style={{ fontSize: 11, color: "#4b5563", paddingTop: 4 }}>+{members.length - 4} more…</div>}
                             </div>
                             <button className="btn btn-ghost btn-sm" style={{ marginTop: 10, width: "100%" }}
-                              onClick={function() { setFamModal({ mode: "view", record: fam }); }}>
-                              Manage Members
+                              onClick={function() { setSabilPreview(sn); }}>
+                              View All Members
                             </button>
                           </div>
                         );
@@ -2038,7 +2050,7 @@ export default function App() {
                   {id:"mumin", icon:"👤", label:"Mumin Directory", desc:"Full list of all registered members", data:muminData.length + " members"},
                   {id:"files_all", icon:"🗂", label:"All Umoor Files", desc:"Complete file list across all departments", data:filesData.length + " files"},
                   {id:"reminders", icon:"⏰", label:"Reminders Report", desc:"All files with due dates — overdue and upcoming", data:filesData.filter(function(f){return f.due_date;}).length + " files with dates"},
-                  {id:"families", icon:"🏠", label:"Family Directory", desc:"All families and their members", data:familiesData.length + " families"},
+                  {id:"families", icon:"🏠", label:"Family Directory", desc:"Members grouped by Sabil No.", data:(function(){var s={};muminData.forEach(function(m){if(m.sabil_no&&String(m.sabil_no).trim())s[String(m.sabil_no).trim()]=1;});return Object.keys(s).length + " sabil groups";})()},
                   {id:"age_groups", icon:"📊", label:"Age Group Summary", desc:"Members broken down by age group", data:muminData.length + " members"},
                   {id:"sector_summary", icon:"📍", label:"Sector Summary", desc:"Member count breakdown by area sector", data:areaSectors.length + " sectors"},
                 ].map(function(r) { return (
@@ -2158,12 +2170,23 @@ export default function App() {
                     </table>
                   );
                 })()}
-                {printTarget && printTarget.id === "families" && (
-                  <table style={{width:"100%",borderCollapse:"collapse"}}>
-                    <thead><tr><th>Family Name</th><th>Address</th><th>Members</th></tr></thead>
-                    <tbody>{familiesData.map(function(f){var cnt=familyMembers.filter(function(m){return m.family_id===f.id;}).length;return(<tr key={f.id}><td style={{fontWeight:500}}>{f.family_name}</td><td>{f.address||"—"}</td><td>{cnt}</td></tr>);})}</tbody>
-                  </table>
-                )}
+                {printTarget && printTarget.id === "families" && (function(){
+                  var groups = {};
+                  muminData.forEach(function(m) {
+                    if (m.sabil_no && String(m.sabil_no).trim()) {
+                      var key = String(m.sabil_no).trim();
+                      if (!groups[key]) groups[key] = [];
+                      groups[key].push(m);
+                    }
+                  });
+                  var keys = Object.keys(groups).sort();
+                  return (
+                    <table style={{width:"100%",borderCollapse:"collapse"}}>
+                      <thead><tr><th>Sabil No.</th><th>Members</th><th>Names</th></tr></thead>
+                      <tbody>{keys.map(function(k){return(<tr key={k}><td style={{fontWeight:600,color:"#8a6a1a"}}>{k}</td><td>{groups[k].length}</td><td style={{fontSize:12}}>{groups[k].map(function(m){return m.name;}).join(", ")}</td></tr>);})}</tbody>
+                    </table>
+                  );
+                })()}
                 {printTarget && printTarget.id === "sector" && (function(){
                   var secObj = sectorsData.find(function(x){ return x.name === printTarget.sector; });
                   var masoolLbl = secObj ? (secObj.masool_its ? (getMuminByIts(secObj.masool_its) ? getMuminByIts(secObj.masool_its).name : secObj.masool_its) : (secObj.masool_name || "—")) : "—";
@@ -2507,6 +2530,10 @@ export default function App() {
                     <label>Address</label>
                     <input value={form.address || ""} onChange={function(e) { setForm(function(f) { return Object.assign({}, f, { address: e.target.value }); }); }} />
                   </div>
+                  <div className="form-grp">
+                    <label>Sabil No.</label>
+                    <input value={form.sabil_no || ""} onChange={function(e) { setForm(function(f) { return Object.assign({}, f, { sabil_no: e.target.value }); }); }} placeholder="e.g. 1024" />
+                  </div>
                   <div className="form-grp full">
                     <label>Area Sector</label>
                     <input list="area-sector-options" value={form.area_sector || ""} onChange={function(e) { setForm(function(f) { return Object.assign({}, f, { area_sector: e.target.value, sub_sector_id: "" }); }); }} placeholder="e.g. Sector A, Zone 1, etc." />
@@ -2528,6 +2555,13 @@ export default function App() {
                       </div>
                     );
                   })()}
+                  <div className="form-grp full">
+                    <label>Sabil No.</label>
+                    <input list="sabil-no-options" value={form.sabil_no || ""} onChange={function(e) { setForm(function(f) { return Object.assign({}, f, { sabil_no: e.target.value }); }); }} placeholder="e.g. 1024 — same number groups family members" />
+                    <datalist id="sabil-no-options">
+                      {sabilNos.map(function(s) { return <option key={s} value={s} />; })}
+                    </datalist>
+                  </div>
                   <div className="form-grp full">
                     <label>Profile Photo</label>
                     {form.photo_url && !muminPhotoFile && (
@@ -2609,112 +2643,6 @@ export default function App() {
           </div>
         </div>
       )}
-
-      {famModal && (function() {
-        var fam = famModal.record;
-        var members = fam ? familyMembers.filter(function(m) { return m.family_id === fam.id; }) : [];
-        var getMumin = function(its) { return muminData.find(function(m) { return m.its_number === its; }); };
-        var saveFam = function() {
-          if (!famForm.family_name || famForm.family_name.trim() === "") {
-            showToast("Please enter a family name", "error"); return;
-          }
-          var payload = { family_name: famForm.family_name.trim(), address: famForm.address || "", notes: famForm.notes || "" };
-          var p = famModal.mode === "add" ? sbInsert("families", payload) : sbUpdate("families", fam.id, payload);
-          p.then(function(r) {
-            loadAll();
-            setFamModal(null);
-            showToast(famModal.mode === "add" ? "Family created ☁" : "Family updated ☁");
-          }).catch(function(e) {
-            showToast("Error: " + e.message, "error");
-          });
-        };
-        var addMember = function() {
-          if (!famMemberForm.its_number) return;
-          sbInsert("family_members", { family_id: fam.id, its_number: famMemberForm.its_number, role: famMemberForm.role || "Head" })
-            .then(function() { loadAll(); setFamMemberForm({ its_number: "", role: "Head" }); showToast("Member added"); })
-            .catch(function(e) { showToast("Error: " + e.message, "error"); });
-        };
-        var removeMember = function(id) {
-          sbDelete("family_members", id).then(loadAll).catch(function(e) { showToast("Error: " + e.message, "error"); });
-        };
-        return (
-          <div className="modal-overlay" onClick={function() { setFamModal(null); }}>
-            <div className="modal" onClick={function(e) { e.stopPropagation(); }}>
-              <div className="modal-hdr">
-                <div className="modal-title">{famModal.mode === "add" ? "New Family" : famModal.mode === "edit" ? "Edit Family" : (fam ? fam.family_name : "")}</div>
-                <button className="modal-close" onClick={function() { setFamModal(null); }}>x</button>
-              </div>
-              <div className="modal-body">
-                {(famModal.mode === "add" || famModal.mode === "edit") && (
-                  <div className="form-grid">
-                    <div className="form-grp full"><label>Family Name</label>
-                      <input value={famForm.family_name || ""} onChange={function(e) { setFamForm(function(f) { return Object.assign({},f,{family_name:e.target.value}); }); }} placeholder="e.g. Al-Hussaini Family" />
-                    </div>
-                    <div className="form-grp full"><label>Address</label>
-                      <input value={famForm.address || ""} onChange={function(e) { setFamForm(function(f) { return Object.assign({},f,{address:e.target.value}); }); }} placeholder="Block / Street / Area" />
-                    </div>
-                    <div className="form-grp full"><label>Notes</label>
-                      <textarea value={famForm.notes || ""} onChange={function(e) { setFamForm(function(f) { return Object.assign({},f,{notes:e.target.value}); }); }} placeholder="Any notes" />
-                    </div>
-                  </div>
-                )}
-                {famModal.mode === "view" && fam && (
-                  <div>
-                    {fam.address && <div style={{fontSize:12,color:"#6b7280",marginBottom:4}}>{fam.address}</div>}
-                    {fam.notes && <div style={{fontSize:12,color:"#9ca3af",marginBottom:16}}>{fam.notes}</div>}
-                    <div className="sec-label">Members ({members.length})</div>
-                    <div className="fam-modal-members">
-                      {members.map(function(mem) {
-                        var mumin = getMumin(mem.its_number);
-                        return (
-                          <div className="fam-member-item" key={mem.id}>
-                            <div className="fam-member-info">
-                              <div className="fam-member-its">{mem.its_number}</div>
-                              <div style={{fontSize:13,color:"#e2d9c9"}}>{mumin ? mumin.name : "Unknown ITS"}</div>
-                              {mumin && <div style={{fontSize:11,color:"#6b7280"}}>{mumin.gender}{mumin.age ? ", age "+mumin.age : ""}</div>}
-                            </div>
-                            <div style={{display:"flex",alignItems:"center",gap:8}}>
-                              <span className={"fam-member-role role-"+(mem.role||"").toLowerCase()}>{mem.role}</span>
-                              <button className="btn btn-danger" style={{padding:"3px 8px"}} onClick={function(){removeMember(mem.id);}}>x</button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                      {members.length === 0 && <div style={{color:"#4b5563",fontSize:13,padding:"12px 0"}}>No members yet.</div>}
-                    </div>
-                    <div className="sec-divider" />
-                    <div className="sec-label">Add Member</div>
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 130px 80px",gap:10,alignItems:"end"}}>
-                      <div className="form-grp"><label>Select Mumin</label>
-                        <select value={famMemberForm.its_number} onChange={function(e){setFamMemberForm(function(f){return Object.assign({},f,{its_number:e.target.value});});}}>
-                          <option value="">Choose member...</option>
-                          {muminData.filter(function(m){return !members.find(function(mem){return mem.its_number===m.its_number;});}).map(function(m){
-                            return <option key={m.id} value={m.its_number}>{m.name} ({m.its_number})</option>;
-                          })}
-                        </select>
-                      </div>
-                      <div className="form-grp"><label>Role</label>
-                        <select value={famMemberForm.role} onChange={function(e){setFamMemberForm(function(f){return Object.assign({},f,{role:e.target.value});});}}>
-                          <option>Head</option><option>Spouse</option><option>Child</option><option>Other</option>
-                        </select>
-                      </div>
-                      <div className="form-grp"><label style={{opacity:0}}>x</label>
-                        <button className="btn btn-primary" onClick={addMember}>Add</button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-              {(famModal.mode === "add" || famModal.mode === "edit") && (
-                <div className="modal-ftr">
-                  <button className="btn btn-ghost" onClick={function(){setFamModal(null);}}>Cancel</button>
-                  <button className="btn btn-primary" onClick={saveFam}>Save Family</button>
-                </div>
-              )}
-            </div>
-          </div>
-        );
-      })()}
 
       {ieModal && (
         <IEModal
@@ -2866,11 +2794,7 @@ export default function App() {
 
       {muminPreview && (function() {
         var m = muminPreview;
-        var family = (function() {
-          var mem = familyMembers.find(function(fm) { return fm.its_number === m.its_number; });
-          if (!mem) return null;
-          return { fam: familiesData.find(function(f) { return f.id === mem.family_id; }), role: mem.role };
-        })();
+        var sabilFamily = m.sabil_no ? getFamilyBySabil(m.sabil_no).filter(function(o) { return o.id !== m.id; }) : [];
         return (
           <div className="preview-overlay" onClick={function() { setMuminPreview(null); }}>
             <div className="preview-box" onClick={function(e) { e.stopPropagation(); }}>
@@ -2906,22 +2830,26 @@ export default function App() {
                     <div className="preview-field"><div className="preview-field-label">Email</div><div className="preview-field-val" style={{fontSize:12}}>{m.email||"—"}</div></div>
                     <div className="preview-field" style={{gridColumn:"span 2"}}><div className="preview-field-label">Address</div><div className="preview-field-val">{m.address||"—"}</div></div>
                     <div className="preview-field" style={{gridColumn:"span 2"}}><div className="preview-field-label">Area Sector</div><div className="preview-field-val">{m.area_sector||"—"}</div></div>
+                    <div className="preview-field" style={{gridColumn:"span 2"}}><div className="preview-field-label">Sabil No.</div><div className="preview-field-val">{m.sabil_no||"—"}</div></div>
                   </div>
                 </div>
-                {family && family.fam && (
+                {m.sabil_no && sabilFamily.length > 0 && (
                   <div className="preview-section">
-                    <div className="preview-sec-title">Family</div>
-                    <div className="preview-family-chip">
-                      {"\uD83C\uDFE0"} {family.fam.family_name}
-                      <span className={"fam-member-role role-"+(family.role||"").toLowerCase()} style={{marginLeft:4}}>{family.role}</span>
-                    </div>
-                    {family.fam.address && <div style={{fontSize:12,color:"#6b7280",marginTop:8}}>{family.fam.address}</div>}
+                    <div className="preview-sec-title">Family — Sabil No. {m.sabil_no}</div>
+                    {sabilFamily.map(function(o) {
+                      return (
+                        <div className="preview-family-chip" key={o.id} style={{display:"flex",justifyContent:"space-between",marginBottom:6,cursor:"pointer"}} onClick={function(){ setMuminPreview(o); }}>
+                          <span>{"\uD83C\uDFE0"} {o.name}</span>
+                          <span style={{color:"#6b7280",fontSize:11}}>{o.its_number}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
                 <div style={{display:"flex",gap:10,marginTop:8,flexWrap:"wrap"}}>
                   {canEdit && <button className="btn btn-primary" style={{flex:1}} onClick={function(){ setMuminPreview(null); openModal("mumin","edit",m); }}>Edit Record</button>}
-                  <button className="btn btn-ghost" onClick={function(){ printIdCard(m, family, getSectorInfo(m)); }}>🪪 ID Card</button>
-                  <button className="btn btn-ghost" onClick={function(){ printMumin(m, family, getSectorInfo(m)); }}>🖨 Print</button>
+                  <button className="btn btn-ghost" onClick={function(){ printIdCard(m, sabilFamily, getSectorInfo(m)); }}>🪪 ID Card</button>
+                  <button className="btn btn-ghost" onClick={function(){ printMumin(m, sabilFamily, getSectorInfo(m)); }}>🖨 Print</button>
                   <button className="btn btn-ghost" onClick={function(){ setMuminPreview(null); }}>Close</button>
                 </div>
               </div>
