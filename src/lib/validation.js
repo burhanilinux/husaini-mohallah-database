@@ -15,6 +15,49 @@ export function validateITS(its) {
   return /^[0-9]{8}$/.test(its.trim());
 }
 
+// ── Duplicate warning detectors (non-blocking) ────────────────────
+/**
+ * Checks for likely-duplicate records beyond the ITS number (which is
+ * already hard-blocked in validateMuminForm). These are surfaced as
+ * warnings, not errors, since a shared phone (e.g. spouse/family) or a
+ * name+DOB coincidence can be legitimate.
+ * @param {object} form
+ * @param {Array}  existingMumin
+ * @param {number|null} editId
+ * @returns {string[]} warning messages (empty = no duplicates found)
+ */
+export function getMuminDuplicateWarnings(form, existingMumin, editId) {
+  var warnings = [];
+  var list = (existingMumin || []).filter(function (m) {
+    return m.id !== editId && !m.deleted_at;
+  });
+
+  if (form.phone && form.phone.trim()) {
+    var cleanedPhone = form.phone.replace(/[^0-9]/g, "");
+    if (cleanedPhone.length >= 7) {
+      var phoneDupes = list.filter(function (m) {
+        return m.phone && m.phone.replace(/[^0-9]/g, "") === cleanedPhone;
+      });
+      if (phoneDupes.length > 0) {
+        var names = phoneDupes.map(function (m) { return m.name; }).join(", ");
+        warnings.push("This phone number is already used by: " + names + ". This may be intentional (e.g. a shared family number).");
+      }
+    }
+  }
+
+  if (form.name && form.name.trim() && form.dob) {
+    var nameNorm = form.name.trim().toLowerCase();
+    var nameDobDupe = list.find(function (m) {
+      return m.name && m.name.trim().toLowerCase() === nameNorm && m.dob === form.dob;
+    });
+    if (nameDobDupe) {
+      warnings.push("A record with the same name and date of birth already exists (ITS: " + nameDobDupe.its_number + "). Please confirm this isn't a duplicate entry.");
+    }
+  }
+
+  return warnings;
+}
+
 // ── Form-level validators ─────────────────────────────────────────
 /**
  * Validates the Mumin add/edit form.

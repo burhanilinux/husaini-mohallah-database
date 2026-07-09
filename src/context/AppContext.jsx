@@ -5,7 +5,7 @@ import {
 } from "../lib/supabase.js";
 import { UMOOR_TYPES, currentYear } from "../lib/constants.js";
 import { getUmoorPrefix, calcAge, downloadBlob, toXLS } from "../lib/utils.js";
-import { validateMuminForm, validateFileForm } from "../lib/validation.js";
+import { validateMuminForm, validateFileForm, getMuminDuplicateWarnings } from "../lib/validation.js";
 
 const AppContext = createContext(null);
 
@@ -54,6 +54,7 @@ export function AppProvider({ children }) {
   const [form, setForm] = useState({});
   const [formAtts, setFormAtts] = useState([]);
   const [formErrors, setFormErrors] = useState([]);
+  const [formWarnings, setFormWarnings] = useState([]);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [muminPhotoFile, setMuminPhotoFile] = useState(null);
@@ -512,17 +513,25 @@ export function AppProvider({ children }) {
     setFormAtts(type === "file" && record ? getFileAtts(record.id) : []);
     setMuminPhotoFile(null);
     setFormErrors([]);
+    setFormWarnings([]);
     setModal({ type: type, mode: mode, record: record || null });
   }
   function closeModal() {
     setModal(null); setForm({}); setFormAtts([]);
-    setMuminPhotoFile(null); setFormErrors([]);
+    setMuminPhotoFile(null); setFormErrors([]); setFormWarnings([]);
   }
 
-  async function saveMumin() {
+  async function saveMumin(confirmed) {
     var errors = validateMuminForm(form, muminData, modal.mode === "edit" ? form.id : null);
-    if (errors.length > 0) { setFormErrors(errors); return; }
+    if (errors.length > 0) { setFormErrors(errors); setFormWarnings([]); return; }
     setFormErrors([]);
+
+    if (!confirmed) {
+      var warnings = getMuminDuplicateWarnings(form, muminData, modal.mode === "edit" ? form.id : null);
+      if (warnings.length > 0) { setFormWarnings(warnings); return; }
+    }
+    setFormWarnings([]);
+
     setSaving(true);
     try {
       var photoUrl = form.photo_url || null;
@@ -713,6 +722,7 @@ export function AppProvider({ children }) {
     sabilPreview, setSabilPreview, gSearch, setGSearch, gSearchOpen, setGSearchOpen,
     // mumin/file modal
     modal, setModal, form, setForm, formAtts, setFormAtts, formErrors, setFormErrors,
+    formWarnings, setFormWarnings,
     saving, uploading, muminPhotoFile, setMuminPhotoFile, uploadingPhoto,
     openModal, closeModal, saveMumin, saveFile, deleteRecord, getFileAtts,
     // sector/subsector (masool)

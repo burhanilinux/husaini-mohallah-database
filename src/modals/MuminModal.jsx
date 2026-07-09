@@ -6,6 +6,7 @@ export function MuminModal() {
   var ctx = useAppContext();
   var modal = ctx.modal, closeModal = ctx.closeModal, saving = ctx.saving;
   var form = ctx.form, setForm = ctx.setForm, formErrors = ctx.formErrors;
+  var formWarnings = ctx.formWarnings;
   var areaSectors = ctx.areaSectors, sabilNos = ctx.sabilNos;
   var sectorsData = ctx.sectorsData, getSubSectorsFor = ctx.getSubSectorsFor;
   var muminPhotoFile = ctx.muminPhotoFile, setMuminPhotoFile = ctx.setMuminPhotoFile;
@@ -111,11 +112,22 @@ export function MuminModal() {
             {formErrors.map(function (err, i) { return <div key={i} className="form-err-line">⚠ {err}</div>; })}
           </div>
         )}
+        {formErrors.length === 0 && formWarnings.length > 0 && (
+          <div className="form-err-box" style={{ background: "rgba(251,191,36,.08)", borderColor: "rgba(251,191,36,.3)" }}>
+            {formWarnings.map(function (w, i) { return <div key={i} className="form-err-line" style={{ color: "#fbbf24" }}>⚠ {w}</div>; })}
+          </div>
+        )}
         <div className="modal-ftr">
           <button className="btn btn-ghost" onClick={closeModal} disabled={saving}>Cancel</button>
-          <button className="btn btn-primary" disabled={saving} onClick={saveMumin}>
-            {saving ? <span><Spinner /> Saving…</span> : "Save to Cloud ☁"}
-          </button>
+          {formWarnings.length > 0 && formErrors.length === 0 ? (
+            <button className="btn btn-primary" disabled={saving} onClick={function () { saveMumin(true); }}>
+              {saving ? <span><Spinner /> Saving…</span> : "Save Anyway ☁"}
+            </button>
+          ) : (
+            <button className="btn btn-primary" disabled={saving} onClick={function () { saveMumin(); }}>
+              {saving ? <span><Spinner /> Saving…</span> : "Save to Cloud ☁"}
+            </button>
+          )}
         </div>
       </div>
     </div>
