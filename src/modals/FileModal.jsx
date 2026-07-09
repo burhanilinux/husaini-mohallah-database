@@ -24,7 +24,7 @@ export function FileModal() {
           <div className="form-grid">
             <div className="form-grp">
               <label>Year</label>
-              <select value={form.year || 2024} onChange={function (e) { setForm(function (f) { return Object.assign({}, f, { year: Number(e.target.value) }); }); }}>
+              <select value={form.year || 2026} onChange={function (e) { setForm(function (f) { return Object.assign({}, f, { year: Number(e.target.value) }); }); }}>
                 {YEARS.map(function (y) { return <option key={y}>{y}</option>; })}
               </select>
             </div>

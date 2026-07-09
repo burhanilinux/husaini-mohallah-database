@@ -40,7 +40,7 @@ export function AppProvider({ children }) {
   const [dbError, setDbError] = useState(null);
 
   // ── Filters / selections ─────────────────────────────────────
-  const [selYear, setSelYear] = useState(2024);
+  const [selYear, setSelYear] = useState(2026);
   const [selUmoor, setSelUmoor] = useState(null);
   const [selSector, setSelSector] = useState(null);
   const [search, setSearch] = useState("");
@@ -566,7 +566,7 @@ export function AppProvider({ children }) {
       var payload = {
         file_no: fileNo,
         umoor_type: form.umoor_type || "",
-        year: Number(form.year) || 2024,
+        year: Number(form.year) || 2026,
         title: form.title.trim(),
         description: form.description || "",
         status: form.status || "Active",
@@ -645,7 +645,7 @@ export function AppProvider({ children }) {
       try {
         await sbInsert("umoor_files", {
           file_no: r.file_no || ("HM-" + getUmoorPrefix(r.umoor_type || "") + "-" + r.year + "-" + String(Date.now()).slice(-3)),
-          umoor_type: r.umoor_type || "", year: Number(r.year) || 2024,
+          umoor_type: r.umoor_type || "", year: Number(r.year) || 2026,
           title: r.title || "", description: r.description || "",
           status: r.status || "Active", date: r.date || "",
         });
