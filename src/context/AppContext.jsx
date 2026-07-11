@@ -252,14 +252,11 @@ export function AppProvider({ children }) {
   function getMuminCountForSector(sectorName) {
     return muminData.filter(function (m) { return m.area_sector === sectorName; }).length;
   }
-  function getFamilyBySabil(sabilNo) {
-    if (!sabilNo || !String(sabilNo).trim()) return [];
-    return muminData.filter(function (m) { return m.sabil_no && String(m.sabil_no).trim() === String(sabilNo).trim(); });
-  }
   function getMuminCountForSubSector(subSectorId) {
     return muminData.filter(function (m) { return m.sub_sector_id === subSectorId; }).length;
   }
   function getSabilMembers(sabilNo) {
+    if (!sabilNo || !String(sabilNo).trim()) return [];
     return muminData.filter(function (m) { return m.sabil_no && String(m.sabil_no).trim() === String(sabilNo).trim(); });
   }
 
@@ -730,7 +727,7 @@ export function AppProvider({ children }) {
     openSectorModal, closeSectorModal, saveSector, deleteSector,
     openSubSectorModal, closeSubSectorModal, saveSubSector, deleteSubSector,
     getSubSectorsFor, getMuminByIts, getSectorInfo,
-    getMuminCountForSector, getMuminCountForSubSector, getFamilyBySabil, getSabilMembers,
+    getMuminCountForSector, getMuminCountForSubSector, getSabilMembers,
     // ui
     toast, showToast, lightbox, setLightbox,
     muminPreview, setMuminPreview, filePreview, setFilePreview,

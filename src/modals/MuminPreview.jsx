@@ -6,12 +6,12 @@ export function MuminPreview() {
   var ctx = useAppContext();
   var muminPreview = ctx.muminPreview, setMuminPreview = ctx.setMuminPreview;
   var canEdit = ctx.canEdit, openModal = ctx.openModal;
-  var getFamilyBySabil = ctx.getFamilyBySabil, getSectorInfo = ctx.getSectorInfo;
+  var getSabilMembers = ctx.getSabilMembers, getSectorInfo = ctx.getSectorInfo;
 
   if (!muminPreview) return null;
 
   var m = muminPreview;
-  var sabilFamily = m.sabil_no ? getFamilyBySabil(m.sabil_no).filter(function (o) { return o.id !== m.id; }) : [];
+  var sabilFamily = m.sabil_no ? getSabilMembers(m.sabil_no).filter(function (o) { return o.id !== m.id; }) : [];
 
   return (
     <div className="preview-overlay" onClick={function () { setMuminPreview(null); }}>
