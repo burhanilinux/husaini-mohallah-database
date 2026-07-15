@@ -24,7 +24,7 @@ export function Dashboard() {
       ) : (
         <div className="flex flex-col gap-8">
           {/* Responsive Metrics Grid Matrix */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 mb-8 sm:grid-cols-2 lg:grid-cols-4">
             {[
               { label: "Total Mumineen", value: muminData.length, desc: "Registered members" },
               { label: "Total Files", value: filesData.length, desc: "All years combined" },
@@ -32,10 +32,13 @@ export function Dashboard() {
               { label: "Attachments", value: attsData.length, desc: "Scans and photos" },
             ].map(function (s) {
               return (
-                <div className="relative overflow-hidden rounded-xl border border-brand-gold/12 bg-white/[0.02] p-5 before:absolute before:top-0 before:left-0 before:right-0 before:h-[2px] before:bg-gradient-to-r before:from-brand-gold before:to-transparent" key={s.label}>
-                  <div className="text-[11px] uppercase tracking-[2px] text-brand-muted">{s.label}</div>
-                  <div className="mt-1.5 text-3xl font-semibold text-brand-text leading-none">{s.value}</div>
-                  <div className="mt-1 text-xs text-gray-600">{s.desc}</div>
+                <div 
+                  key={s.label} 
+                  className="relative overflow-hidden rounded-xl border border-brand-gold/12 bg-white/[0.02] p-5 pt-6 before:absolute before:top-0 before:left-0 before:right-0 before:h-[2px] before:bg-gradient-to-r before:from-brand-gold before:to-transparent"
+                >
+                  <div className="text-[11px] uppercase tracking-[2px] text-brand-muted font-medium block mb-1">{s.label}</div>
+                  <div className="text-3xl font-semibold text-brand-text mt-1">{s.value}</div>
+                  <div className="mt-1.5 text-xs text-gray-600">{s.desc}</div>
                 </div>
               );
             })}
