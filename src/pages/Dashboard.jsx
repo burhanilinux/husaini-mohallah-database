@@ -15,21 +15,9 @@ export function Dashboard() {
         <div className="page-title">Dashboard</div>
         <div className="page-sub">Live data from Supabase</div>
       </div>
-<<<<<<< HEAD
-
-      {loading ? (
-        <div className="flex items-center justify-center p-16 gap-3 text-sm text-brand-muted">
-          <Spinner /> Loading
-        </div>
-      ) : (
-        <div className="flex flex-col gap-8">
-          {/* Responsive Metrics Grid Matrix */}
-          <div className="grid grid-cols-1 gap-4 mb-8 sm:grid-cols-2 lg:grid-cols-4">
-=======
       {loading ? <div className="loading"><Spinner /> Loading…</div> : (
         <div>
           <div className="stats-grid">
->>>>>>> parent of 96dd4d4 (Transition to Tailwind CSS)
             {[
               { label: "Total Mumineen", value: muminData.length, desc: "Registered members" },
               { label: "Total Files", value: filesData.length, desc: "All years combined" },
@@ -37,20 +25,10 @@ export function Dashboard() {
               { label: "Attachments", value: attsData.length, desc: "Scans and photos" },
             ].map(function (s) {
               return (
-<<<<<<< HEAD
-                <div 
-                  key={s.label} 
-                  className="relative overflow-hidden rounded-xl border border-brand-gold/12 bg-white/[0.02] p-5 pt-6 before:absolute before:top-0 before:left-0 before:right-0 before:h-[2px] before:bg-gradient-to-r before:from-brand-gold before:to-transparent"
-                >
-                  <div className="text-[11px] uppercase tracking-[2px] text-brand-muted font-medium block mb-1">{s.label}</div>
-                  <div className="text-3xl font-semibold text-brand-text mt-1">{s.value}</div>
-                  <div className="mt-1.5 text-xs text-gray-600">{s.desc}</div>
-=======
                 <div className="stat-card" key={s.label}>
                   <div className="stat-lbl">{s.label}</div>
                   <div className="stat-val">{s.value}</div>
                   <div className="stat-desc">{s.desc}</div>
->>>>>>> parent of 96dd4d4 (Transition to Tailwind CSS)
                 </div>
               );
             })}
