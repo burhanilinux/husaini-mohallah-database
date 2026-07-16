@@ -1,4 +1,6 @@
 
+@import url('https://fonts.cdnfonts.com/css/al-kanz');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -18,8 +20,6 @@
   --font-sans:   'Roboto', sans-serif;
 }
 
-@import url('https://fonts.cdnfonts.com/css/al-kanz');
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{background:#0d1117;color:#e2d9c9;font-family:'Roboto',sans-serif}
 .layout{display:flex;min-height:100vh}
