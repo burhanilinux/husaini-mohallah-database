@@ -4,7 +4,6 @@ import { Spinner } from "./components/Shared.jsx";
 import { LoginPage } from "./components/LoginPage.jsx";
 import { Sidebar } from "./components/Sidebar.jsx";
 import { IEModal } from "./components/IEModal.jsx";
-
 import { Dashboard } from "./pages/Dashboard.jsx";
 import { FilesPage } from "./pages/FilesPage.jsx";
 import { MuminPage } from "./pages/MuminPage.jsx";
@@ -13,7 +12,6 @@ import { MasoolPage } from "./pages/MasoolPage.jsx";
 import { ReportsPage } from "./pages/ReportsPage.jsx";
 import { ActivityPage } from "./pages/ActivityPage.jsx";
 import { UsersPage } from "./pages/UsersPage.jsx";
-
 import { MuminModal } from "./modals/MuminModal.jsx";
 import { FileModal } from "./modals/FileModal.jsx";
 import { SectorModal } from "./modals/SectorModal.jsx";
@@ -40,42 +38,37 @@ function ActivePage() {
 
 function AppShell() {
   var ctx = useAppContext();
-
   if (ctx.authLoading) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0d1117", color: "#6b7280", gap: 12, fontSize: 14 }}>
-        <Spinner /> Loading…
+      <div className="min-h-screen flex items-center justify-center bg-brand-bg text-brand-muted gap-3 text-sm">
+        <Spinner /> Loading
       </div>
     );
   }
-
   if (!ctx.session) {
     return <LoginPage onLogin={ctx.handleLogin} />;
   }
-
   return (
-    <div className="layout">
+    <div className="flex min-h-screen flex-col md:flex-row bg-brand-bg text-brand-text">
       <Sidebar />
-
-      <main className="main">
+      <main className="flex-1 w-full p-4 md:p-0">
         {ctx.dbError && (
-          <div className="err-banner">
-            ⚠ {ctx.dbError}
-            <button className="btn btn-ghost btn-sm" onClick={ctx.loadAll} style={{ marginLeft: 8 }}>Retry</button>
+          <div className="mx-6 mt-6 bg-brand-danger/8 border border-brand-danger/20 rounded-xl p-4 text-brand-danger text-sm flex items-center justify-between">
+            <span>⚠️ {ctx.dbError}</span>
+            <button className="btn-ghost text-xs px-2.5 py-1 rounded-md cursor-pointer" onClick={ctx.loadAll}>Retry</button>
           </div>
         )}
         <ActivePage />
       </main>
 
-      {/* Add / Edit modals */}
+      {/* Forms and Action Modals Layer */}
       <MuminModal />
       <FileModal />
-
-      {/* Masool (Sector / Sub-Sector) modals */}
       <SectorModal />
       <SubSectorModal />
+      <TrashModal />
 
-      {/* Import / Export & Trash */}
+      {/* Import / Export Panel Overlay */}
       {ctx.ieModal && (
         <IEModal
           onClose={function () { ctx.setIeModal(false); }}
@@ -86,17 +79,17 @@ function AppShell() {
           importing={ctx.importing}
         />
       )}
-      <TrashModal />
 
-      {/* Detail previews */}
+      {/* Previews and Miscellaneous Overlays */}
       <MuminPreview />
       <FilePreview />
       <Lightbox />
 
-      {/* Toast */}
+      {/* Global Application Toast Notification System */}
       {ctx.toast && (
-        <div className={"toast toast-" + ctx.toast.type}>
-          {ctx.toast.type === "success" ? "✓" : "⚠"} {ctx.toast.msg}
+        <div className={"fixed bottom-6 right-6安全 z-50 rounded-xl px-5 py-3.5 text-sm shadow-2xl flex items-center gap-2.5 animate-in slide-in-from-right duration-300 " + 
+          (ctx.toast.type === "success" ? "bg-brand-panel border border-brand-success/30 text-brand-success" : "bg-brand-panel border border-brand-danger/30 text-brand-danger")}>
+          <span>{ctx.toast.type === "success" ? "✅" : "❌"}</span> {ctx.toast.msg}
         </div>
       )}
     </div>
