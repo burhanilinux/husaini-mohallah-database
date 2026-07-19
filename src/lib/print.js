@@ -2,6 +2,7 @@ import { getMuminAge } from "./utils.js";
 
 // ── Shared print stylesheet (used by every print popup) ───────────
 var PRINT_CSS = [
+  "*{-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact}",
   "body{margin:40px;font-family:'Roboto',sans-serif;background:#fff;color:#111}",
   ".print-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #c9a84c;padding-bottom:16px;margin-bottom:20px}",
   ".print-logo{font-size:20px;font-weight:700;color:#8a6a1a}",
