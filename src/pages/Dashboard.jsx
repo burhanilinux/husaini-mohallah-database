@@ -1,6 +1,7 @@
 import { useAppContext } from "../context/AppContext.jsx";
 import { Spinner } from "../components/Shared.jsx";
 import { YEARS } from "../lib/constants.js";
+import { DashboardSearch } from "../components/DashboardSearch.jsx";
 
 export function Dashboard() {
   var ctx = useAppContext();
@@ -15,6 +16,8 @@ export function Dashboard() {
         <div className="page-title">Dashboard</div>
         <div className="page-sub">Live data from Supabase</div>
       </div>
+
+      <DashboardSearch />
       {loading ? <div className="loading"><Spinner /> Loading…</div> : (
         <div>
           <div className="stats-grid">
