@@ -631,6 +631,13 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280
   .form-grp.full{grid-column:span 1 !important}
   .modal{width:95vw !important;max-width:95vw !important;margin:0 10px}
   .ie-modal{width:95vw !important}
+  .preview-box{width:95vw !important;max-width:95vw !important;margin:0 10px}
+  .file-preview-box{width:95vw !important;max-width:95vw !important;margin:0 10px}
+  .preview-grid{grid-template-columns:1fr !important}
+  .file-meta-grid{grid-template-columns:1fr !important}
+  .masool-sector-hdr{padding-left:14px !important;padding-right:14px !important}
+  .masool-subsector-row{padding-left:24px !important;padding-right:14px !important}
+  .masool-badge{width:100%}
   .card-hdr{flex-wrap:wrap;gap:8px}
   table{display:block;overflow-x:auto;white-space:nowrap}
   .toolbar{flex-direction:column;align-items:stretch}
@@ -642,10 +649,14 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280
   .page-title{font-size:22px}
   .year-tabs{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px}
   .year-tab{flex-shrink:0}
+  .dash-search-input{font-size:16px !important}
+  /* Prevent iOS Safari auto-zoom-on-focus for any text input on mobile */
+  input,select,textarea{font-size:16px !important}
 }
 @media (max-width: 480px) {
   .stats-grid{grid-template-columns:1fr !important}
   .umoor-grid{grid-template-columns:1fr !important}
   .stat-val{font-size:24px}
   .nav-item{min-width:60px;font-size:10px;padding:6px 4px}
+  .att-viewer-grid{grid-template-columns:repeat(2,1fr) !important}
 }
