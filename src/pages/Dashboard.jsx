@@ -53,7 +53,7 @@ export function Dashboard() {
                 {umoorStats.map(function (u) {
                   return (
                     <div key={u.name} className="umoor-card" onClick={function () { setSelUmoor(u.name); setPage("files"); }}>
-                      <div className="umoor-num">File {String(u.num).padStart(2, "0")}</div>
+                      <div className="umoor-num">{String(u.num).padStart(2, "0")}</div>
                       <div className="umoor-name">{u.name}</div>
                       <div className="umoor-count">{u.count} file{u.count !== 1 ? "s" : ""}</div>
                     </div>
