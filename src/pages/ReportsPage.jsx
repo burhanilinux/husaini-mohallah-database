@@ -6,8 +6,10 @@ export function ReportsPage() {
   var ctx = useAppContext();
   var muminData = ctx.muminData, filesData = ctx.filesData, areaSectors = ctx.areaSectors;
   var sectorsData = ctx.sectorsData;
+  var activityLog = ctx.activityLog;
   var printTarget = ctx.printTarget, setPrintTarget = ctx.setPrintTarget;
   var exportReportXLS = ctx.exportReportXLS, getSectorInfo = ctx.getSectorInfo, getMuminByIts = ctx.getMuminByIts;
+  var getSubSectorsFor = ctx.getSubSectorsFor;
 
   return (
     <div>
@@ -27,6 +29,8 @@ export function ReportsPage() {
           { id: "families", icon: "🏠", label: "Family Directory", desc: "Members grouped by Sabil No.", data: (function () { var s = {}; muminData.forEach(function (m) { if (m.sabil_no && String(m.sabil_no).trim()) s[String(m.sabil_no).trim()] = 1; }); return Object.keys(s).length + " sabil groups"; })() },
           { id: "age_groups", icon: "📊", label: "Age Group Summary", desc: "Members broken down by age group", data: muminData.length + " members" },
           { id: "sector_summary", icon: "📍", label: "Sector Summary", desc: "Member count breakdown by area sector", data: areaSectors.length + " sectors" },
+          { id: "masool_directory", icon: "🧭", label: "Masool Directory", desc: "Sectors, Sub-Sectors, Masool & Musaid with contacts", data: sectorsData.length + " sectors" },
+          { id: "activity_log", icon: "🕘", label: "Activity Log", desc: "Full history of actions across the system", data: activityLog.length + " entries" },
         ].map(function (r) {
           return (
             <div
@@ -186,6 +190,33 @@ export function ReportsPage() {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead><tr><th>File No.</th><th>Title</th><th>Year</th><th>Date</th><th>Status</th><th>Due Date</th></tr></thead>
             <tbody>{filesData.filter(function (f) { return f.umoor_type === printTarget.umoor; }).map(function (f) { return (<tr key={f.id}><td><span className="file-no">{f.file_no}</span></td><td>{f.title}</td><td>{f.year}</td><td>{f.date || "—"}</td><td><span className={"badge badge-" + (f.status || "").toLowerCase()}>{f.status}</span></td><td>{f.due_date || "—"}</td></tr>); })}</tbody>
+          </table>
+        )}
+        {printTarget && printTarget.id === "masool_directory" && (function () {
+          var rows = [];
+          sectorsData.forEach(function (sec) {
+            var secMasoolName = sec.masool_its ? (getMuminByIts(sec.masool_its) ? getMuminByIts(sec.masool_its).name : sec.masool_its) : (sec.masool_name || "—");
+            var subs = getSubSectorsFor(sec.id);
+            if (subs.length === 0) {
+              rows.push({ key: sec.id + "-none", sector: sec.name, masool: secMasoolName, masoolPhone: sec.masool_phone || "—", sub: "—", musaid: "—", musaidPhone: "—" });
+            } else {
+              subs.forEach(function (sub) {
+                var subMusaidName = sub.musaid_its ? (getMuminByIts(sub.musaid_its) ? getMuminByIts(sub.musaid_its).name : sub.musaid_its) : (sub.musaid_name || "—");
+                rows.push({ key: sub.id, sector: sec.name, masool: secMasoolName, masoolPhone: sec.masool_phone || "—", sub: sub.name, musaid: subMusaidName, musaidPhone: sub.musaid_phone || "—" });
+              });
+            }
+          });
+          return (
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead><tr><th>Sector</th><th>Masool</th><th>Masool Phone</th><th>Sub-Sector</th><th>Musaid</th><th>Musaid Phone</th></tr></thead>
+              <tbody>{rows.map(function (r) { return (<tr key={r.key}><td style={{ fontWeight: 500 }}>{r.sector}</td><td>{r.masool}</td><td style={{ fontSize: 11 }}>{r.masoolPhone}</td><td>{r.sub}</td><td>{r.musaid}</td><td style={{ fontSize: 11 }}>{r.musaidPhone}</td></tr>); })}</tbody>
+            </table>
+          );
+        })()}
+        {printTarget && printTarget.id === "activity_log" && (
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead><tr><th>Date & Time</th><th>User</th><th>Action</th><th>Type</th><th>Entity</th></tr></thead>
+            <tbody>{activityLog.map(function (a) { return (<tr key={a.id}><td style={{ fontSize: 11 }}>{a.created_at ? new Date(a.created_at).toLocaleString() : "—"}</td><td>{a.user_email || "—"}</td><td>{a.action || "—"}</td><td>{a.entity_type || "—"}</td><td>{a.entity_name || "—"}</td></tr>); })}</tbody>
           </table>
         )}
       </div>

@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import {
-  sbGet, sbInsert, sbUpdate, sbDelete, logActivity, uploadStorage,
+  sbGet, sbInsert, sbUpdate, sbDelete, sbUpdateWhere, logActivity, uploadStorage,
   sbSignIn, sbSignOut, sbGetUser,
 } from "../lib/supabase.js";
 import { UMOOR_TYPES, currentYear } from "../lib/constants.js";
@@ -219,6 +219,49 @@ export function AppProvider({ children }) {
         filename: "umoor_" + (extra || "unknown").replace(/[^a-zA-Z0-9]/g, "_"),
       };
     }
+    if (reportId === "masool_directory") {
+      var msRows = [];
+      sectorsData.forEach(function (sec) {
+        var secMasoolName = sec.masool_its
+          ? (getMuminByIts(sec.masool_its) ? getMuminByIts(sec.masool_its).name : sec.masool_its)
+          : (sec.masool_name || "");
+        var subs = getSubSectorsFor(sec.id);
+        if (subs.length === 0) {
+          msRows.push({
+            sector: sec.name, masool: secMasoolName, masool_phone: sec.masool_phone || "",
+            sub_sector: "", musaid: "", musaid_phone: "",
+          });
+        } else {
+          subs.forEach(function (sub) {
+            var subMusaidName = sub.musaid_its
+              ? (getMuminByIts(sub.musaid_its) ? getMuminByIts(sub.musaid_its).name : sub.musaid_its)
+              : (sub.musaid_name || "");
+            msRows.push({
+              sector: sec.name, masool: secMasoolName, masool_phone: sec.masool_phone || "",
+              sub_sector: sub.name, musaid: subMusaidName, musaid_phone: sub.musaid_phone || "",
+            });
+          });
+        }
+      });
+      return {
+        cols: ["sector","masool","masool_phone","sub_sector","musaid","musaid_phone"],
+        rows: msRows,
+        filename: "masool_directory",
+      };
+    }
+    if (reportId === "activity_log") {
+      return {
+        cols: ["created_at","user_email","action","entity_type","entity_name"],
+        rows: activityLog.map(function (a) {
+          return {
+            created_at: a.created_at ? new Date(a.created_at).toLocaleString() : "",
+            user_email: a.user_email || "", action: a.action || "",
+            entity_type: a.entity_type || "", entity_name: a.entity_name || "",
+          };
+        }),
+        filename: "activity_log",
+      };
+    }
     return { cols: [], rows: [], filename: "report" };
   }
 
@@ -290,13 +333,27 @@ export function AppProvider({ children }) {
   }
 
   async function deleteSector(sec) {
-    if (!window.confirm("Delete sector \"" + sec.name + "\"? This will also delete its sub-sectors. Mumin records keep their sector name as text.")) return;
+    var subs = getSubSectorsFor(sec.id);
+    var subIds = subs.map(function (s) { return s.id; });
+    var affectedCount = muminData.filter(function (m) {
+      return m.sub_sector_id && subIds.indexOf(m.sub_sector_id) >= 0;
+    }).length;
+
+    var msg = "Delete sector \"" + sec.name + "\"? This will also delete its " + subs.length + " sub-sector(s). Mumin records keep their sector name as text.";
+    if (affectedCount > 0) {
+      msg += "\n\n⚠ " + affectedCount + " member(s) are currently assigned to a sub-sector under this sector — their sub-sector assignment will be cleared.";
+    }
+    if (!window.confirm(msg)) return;
+
     try {
-      var subs = getSubSectorsFor(sec.id);
+      if (affectedCount > 0 && subIds.length > 0) {
+        var filter = "sub_sector_id=in.(" + subIds.join(",") + ")";
+        await sbUpdateWhere("mumin_data", filter, { sub_sector_id: null });
+      }
       for (var i = 0; i < subs.length; i++) await sbDelete("sub_sectors", subs[i].id);
       await sbDelete("sectors", sec.id);
       await logActivity("delete", "sector", sec.name, getUserEmail());
-      showToast("Sector deleted");
+      showToast(affectedCount > 0 ? "Sector deleted, " + affectedCount + " member assignment(s) cleared" : "Sector deleted");
       await loadAll();
     } catch (e) { showToast("Error: " + e.message, "error"); }
   }
@@ -329,11 +386,20 @@ export function AppProvider({ children }) {
   }
 
   async function deleteSubSector(sub) {
-    if (!window.confirm("Delete sub-sector \"" + sub.name + "\"?")) return;
+    var affectedCount = getMuminCountForSubSector(sub.id);
+    var msg = "Delete sub-sector \"" + sub.name + "\"?";
+    if (affectedCount > 0) {
+      msg += "\n\n⚠ " + affectedCount + " member(s) are currently assigned to this sub-sector — their sub-sector assignment will be cleared.";
+    }
+    if (!window.confirm(msg)) return;
+
     try {
+      if (affectedCount > 0) {
+        await sbUpdateWhere("mumin_data", "sub_sector_id=eq." + sub.id, { sub_sector_id: null });
+      }
       await sbDelete("sub_sectors", sub.id);
       await logActivity("delete", "sub_sector", sub.name, getUserEmail());
-      showToast("Sub-Sector deleted");
+      showToast(affectedCount > 0 ? "Sub-Sector deleted, " + affectedCount + " member assignment(s) cleared" : "Sub-Sector deleted");
       await loadAll();
     } catch (e) { showToast("Error: " + e.message, "error"); }
   }
