@@ -59,6 +59,17 @@ export async function sbDelete(table, id) {
   if (!res.ok) throw new Error(await res.text());
 }
 
+// Bulk update matching a raw PostgREST filter (e.g. "sub_sector_id=eq.5"
+// or "sub_sector_id=in.(5,6,7)") — used to clean up dependent records
+// (like clearing an FK-style reference) when a parent row is deleted.
+export async function sbUpdateWhere(table, filterQuery, body) {
+  var res = await fetch(SUPABASE_URL + "/rest/v1/" + table + "?" + filterQuery, {
+    method: "PATCH", headers: getHeaders(), body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
 export async function logActivity(action, entityType, entityName, userEmail) {
   try {
     await sbInsert("activity_log", {
