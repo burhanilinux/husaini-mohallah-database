@@ -1,3 +1,8 @@
+// Legacy compatibility exports retained only so older backup/context code can load safely.
+// Umoor features and records are no longer part of the application UI.
+export const UMOOR_TYPES = [];
+export const UMOOR_PREFIX = {};
+
 export const currentYear = new Date().getFullYear();
 export const YEARS = Array.from(
   { length: currentYear - 2022 + 1 },
