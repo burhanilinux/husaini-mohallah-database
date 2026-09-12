@@ -9,6 +9,7 @@ import { Dashboard } from "./pages/Dashboard.jsx";
 import { MuminPage } from "./pages/MuminPage.jsx";
 import { FamilyPage } from "./pages/FamilyPage.jsx";
 import { DataQualityPage } from "./pages/DataQualityPage.jsx";
+import { AdvancedSearchPage } from "./pages/AdvancedSearchPage.jsx";
 import { SabilPage } from "./pages/SabilPage.jsx";
 import { MasoolPage } from "./pages/MasoolPage.jsx";
 import { ReportsPage } from "./pages/ReportsPage.jsx";
@@ -29,6 +30,7 @@ function ActivePage() {
     case "mumin": return <MuminPage />;
     case "families": return <FamilyPage />;
     case "data-quality": return <DataQualityPage />;
+    case "advanced-search": return <AdvancedSearchPage />;
     case "sabil": return <SabilPage />;
     case "masool": return <MasoolPage />;
     case "reports": return <ReportsPage />;
