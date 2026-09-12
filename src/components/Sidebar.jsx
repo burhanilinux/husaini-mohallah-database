@@ -12,6 +12,8 @@ export function Sidebar() {
   var navItems = [
     { id: "dashboard", icon: "◈", label: "Dashboard" },
     { id: "mumin", icon: "👤", label: "Mumin Data" },
+    { id: "families", icon: "👨‍👩‍👧‍👦", label: "Families & HOF" },
+    { id: "data-quality", icon: "✓", label: "Data Quality" },
     { id: "sabil", icon: "🏠", label: "Sabil Groups" },
     { id: "masool", icon: "🧭", label: "Masool" },
     { id: "reports", icon: "📄", label: "Reports" },
@@ -31,10 +33,10 @@ export function Sidebar() {
           return <div key={n.id} className={"nav-item" + (page === n.id ? " active" : "")} onClick={function () { setPage(n.id); setSearch(""); }}><span>{n.icon}</span> {n.label}</div>;
         })}
         <div className="nav-item" style={{ color: "#c9a84c", borderColor: "rgba(201,168,76,.15)", marginTop: 4 }} onClick={function () { setIeModal(true); }}><span>⇅</span> Import / Export</div>
+        <input id="restore-file-input" type="file" accept=".json" style={{ display: "none" }} onChange={function (e) { if (e.target.files[0]) restoreFromBackup(e.target.files[0]); e.target.value = ""; }} />
         <div className="nav-item" style={{ color: "#9ca3af", marginTop: 2 }} onClick={function () { setTrashModal(true); loadTrash(); }}><span>🗑</span> Trash</div>
         <div className="nav-item" style={{ color: "#9ca3af", marginTop: 2 }} onClick={function () { downloadFullBackup(); }}><span>💾</span> Backup All Data</div>
         <div className="nav-item" style={{ color: "#9ca3af", marginTop: 2 }} onClick={function () { document.getElementById("restore-file-input").click(); }}><span>📤</span> Restore Backup</div>
-        <input id="restore-file-input" type="file" accept=".json" style={{ display: "none" }} onChange={function (e) { if (e.target.files[0]) restoreFromBackup(e.target.files[0]); e.target.value = ""; }} />
         <GlobalSearch />
       </nav>
       <div className="user-box">
