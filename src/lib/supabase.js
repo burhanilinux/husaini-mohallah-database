@@ -9,7 +9,6 @@ if (!SUPABASE_URL || !SUPABASE_ANON) {
   );
 }
 
-// ── Token helper (reads from localStorage on every call) ─────────
 export function getToken() {
   try {
     var s = localStorage.getItem("hm_session");
@@ -27,7 +26,6 @@ function getHeaders() {
   };
 }
 
-// ── CRUD helpers ──────────────────────────────────────────────────
 export async function sbGet(table, params) {
   var url = SUPABASE_URL + "/rest/v1/" + table + "?" + (params || "");
   var res = await fetch(url, { headers: getHeaders() });
@@ -38,6 +36,20 @@ export async function sbGet(table, params) {
 export async function sbInsert(table, body) {
   var res = await fetch(SUPABASE_URL + "/rest/v1/" + table, {
     method: "POST", headers: getHeaders(), body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+// Upsert using a named unique constraint/column conflict target.
+// PostgREST accepts resolution=merge-duplicates for safe re-imports.
+export async function sbUpsert(table, body, onConflict) {
+  var h = Object.assign({}, getHeaders(), {
+    "Prefer": "return=representation,resolution=merge-duplicates",
+  });
+  var target = onConflict ? "?on_conflict=" + encodeURIComponent(onConflict) : "";
+  var res = await fetch(SUPABASE_URL + "/rest/v1/" + table + target, {
+    method: "POST", headers: h, body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
@@ -59,9 +71,6 @@ export async function sbDelete(table, id) {
   if (!res.ok) throw new Error(await res.text());
 }
 
-// Bulk update matching a raw PostgREST filter (e.g. "sub_sector_id=eq.5"
-// or "sub_sector_id=in.(5,6,7)") — used to clean up dependent records
-// (like clearing an FK-style reference) when a parent row is deleted.
 export async function sbUpdateWhere(table, filterQuery, body) {
   var res = await fetch(SUPABASE_URL + "/rest/v1/" + table + "?" + filterQuery, {
     method: "PATCH", headers: getHeaders(), body: JSON.stringify(body),
@@ -77,7 +86,7 @@ export async function logActivity(action, entityType, entityName, userEmail) {
       entity_name: entityName || "",
       user_email: userEmail || "Unknown",
     });
-  } catch (_e) { /* never block the UI on a log failure */ }
+  } catch (_e) {}
 }
 
 export async function uploadStorage(file, path) {
@@ -96,7 +105,6 @@ export async function uploadStorage(file, path) {
   return SUPABASE_URL + "/storage/v1/object/public/uploads/" + path;
 }
 
-// ── Auth helpers ──────────────────────────────────────────────────
 export async function sbSignIn(email, password) {
   var res  = await fetch(SUPABASE_URL + "/auth/v1/token?grant_type=password", {
     method: "POST",
