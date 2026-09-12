@@ -1,14 +1,13 @@
 import { useAppContext } from "../context/AppContext.jsx";
 import { Spinner } from "../components/Shared.jsx";
-import { YEARS } from "../lib/constants.js";
 import { DashboardSearch } from "../components/DashboardSearch.jsx";
 
 export function Dashboard() {
   var ctx = useAppContext();
   var muminData = ctx.muminData, filesData = ctx.filesData, attsData = ctx.attsData;
-  var loading = ctx.loading, selYear = ctx.selYear, setSelYear = ctx.setSelYear;
-  var setSelUmoor = ctx.setSelUmoor, setSelSector = ctx.setSelSector, setPage = ctx.setPage;
-  var umoorStats = ctx.umoorStats, areaSectors = ctx.areaSectors;
+  var loading = ctx.loading;
+  var setSelSector = ctx.setSelSector, setPage = ctx.setPage;
+  var areaSectors = ctx.areaSectors;
 
   return (
     <div>
@@ -35,32 +34,6 @@ export function Dashboard() {
                 </div>
               );
             })}
-          </div>
-
-          <div className="year-dropdown-wrap">
-            <select className="year-dropdown" value={selYear} onChange={function (e) { setSelYear(Number(e.target.value)); }}>
-              {YEARS.map(function (y) { return <option key={y} value={y}>{y}</option>; })}
-            </select>
-          </div>
-
-          <div className="card">
-            <div className="card-hdr">
-              <span className="card-title">12 Umoor — {selYear}</span>
-              <span style={{ fontSize: 12, color: "#6b7280" }}>{filesData.filter(function (f) { return f.year === selYear; }).length} files</span>
-            </div>
-            <div style={{ padding: 20 }}>
-              <div className="umoor-grid">
-                {umoorStats.map(function (u) {
-                  return (
-                    <div key={u.name} className="umoor-card" onClick={function () { setSelUmoor(u.name); setPage("files"); }}>
-                      <div className="umoor-num">{String(u.num).padStart(2, "0")}</div>
-                      <div className="umoor-name">{u.name}</div>
-                      <div className="umoor-count">{u.count} file{u.count !== 1 ? "s" : ""}</div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
           </div>
 
           {areaSectors.length > 0 && (
