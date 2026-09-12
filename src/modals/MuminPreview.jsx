@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAppContext } from "../context/AppContext.jsx";
 import { sbGet } from "../lib/supabase.js";
 import { getMuminAge } from "../lib/utils.js";
+import { getExtendedProfile } from "../lib/muminProfile.js";
 import { printMumin, printIdCard } from "../lib/print.js";
 import { printMuminA4 } from "../lib/muminA4Print.js";
 
@@ -12,6 +13,7 @@ export function MuminPreview() {
   var setPage = ctx.setPage;
   var getFamilyBySabil = ctx.getFamilyBySabil, getSectorInfo = ctx.getSectorInfo;
   var [familyRecord, setFamilyRecord] = useState(null);
+  var [showFullProfile, setShowFullProfile] = useState(false);
 
   useEffect(function () {
     var cancelled = false;
@@ -22,6 +24,8 @@ export function MuminPreview() {
       .catch(function () { if (!cancelled) setFamilyRecord(null); });
     return function () { cancelled = true; };
   }, [muminPreview]);
+
+  useEffect(function () { setShowFullProfile(false); }, [muminPreview && muminPreview.id]);
 
   if (!muminPreview) return null;
 
@@ -38,6 +42,7 @@ export function MuminPreview() {
     : null;
   var age = getMuminAge(m);
   var initials = (m.name || "?").trim().charAt(0).toUpperCase();
+  var ext = getExtendedProfile(m);
 
   var warnings = [];
   if (!m.its_number) warnings.push("Missing ITS number");
@@ -67,6 +72,8 @@ export function MuminPreview() {
                 <span className={"badge badge-" + (m.status || "").toLowerCase()}>{m.status || "Status not set"}</span>
                 {m.gender && <span className="badge">{m.gender}</span>}
                 {age !== null && age !== undefined && <span className="badge">Age {age}</span>}
+                {ext.dataVerificationStatus && <span className="badge" style={{ color: ext.isDataVerified ? "#34d399" : "#fbbf24" }}>Data: {ext.dataVerificationStatus}</span>}
+                {ext.photoVerificationStatus && <span className="badge" style={{ color: ext.isPhotoVerified ? "#34d399" : "#fbbf24" }}>Photo: {ext.photoVerificationStatus}</span>}
               </div>
             </div>
           </div>
@@ -82,7 +89,7 @@ export function MuminPreview() {
               <div className="preview-field"><div className="preview-field-label">Gender</div><div className="preview-field-val">{m.gender || "—"}</div></div>
               <div className="preview-field"><div className="preview-field-label">Phone</div><div className="preview-field-val" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}><span>{m.phone || "—"}</span>{m.phone && <span style={{ display: "flex", gap: 6 }}><a href={"tel:" + m.phone.replace(/[^0-9+]/g, "")} className="quick-contact-btn quick-call" title="Call">📞</a><a href={"https://wa.me/" + m.phone.replace(/[^0-9]/g, "")} target="_blank" rel="noopener noreferrer" className="quick-contact-btn quick-wa" title="WhatsApp">💬</a></span>}</div></div>
               <div className="preview-field"><div className="preview-field-label">Email</div><div className="preview-field-val" style={{ fontSize: 12 }}>{m.email || "—"}</div></div>
-              <div className="preview-field" style={{ gridColumn: "span 2" }}><div className="preview-field-label">Address</div><div className="preview-field-val">{m.address || "—"}</div></div>
+              <div className="preview-field" style={{ gridColumn: "span 2" }}><div className="preview-field-label">Address</div><div className="preview-field-val">{m.address || "—"}{ext.city ? " • " + ext.city : ""}</div></div>
             </div></div>
             <div className="preview-section" style={{ margin: 0 }}><div className="preview-sec-title">Community Assignment</div><div className="preview-grid" style={{ gridTemplateColumns: "1fr" }}>
               <div className="preview-field"><div className="preview-field-label">Area Sector</div><div className="preview-field-val">{sectorInfo.sectorName || m.area_sector || "—"}</div></div>
@@ -101,6 +108,36 @@ export function MuminPreview() {
             </div>
             {sabilFamily.length > 0 ? <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(210px,1fr))", gap: 7 }}>{sabilFamily.map(function (o) { var isHof = familyRecord && familyRecord.hof_its_id && (String(o.its_id) === String(familyRecord.hof_its_id) || String(o.its_number) === String(familyRecord.hof_its_id)); return <div className="preview-family-chip" key={o.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }} onClick={function () { openSibling(o); }}><span>{isHof ? "👑 " : "🏠 "}{o.name}</span><span style={{ color: "#6b7280", fontSize: 11 }}>{o.its_number || "—"}</span></div>; })}</div> : <div style={{ color: "#777", fontSize: 12 }}>No other family members found.</div>}
           </div>
+
+          {ext.hasSourceData && (
+            <div className="preview-section">
+              <div className="preview-sec-title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }} onClick={function () { setShowFullProfile(!showFullProfile); }}>
+                <span>Full Profile {showFullProfile ? "▾" : "▸"}</span>
+                {!showFullProfile && <span style={{ fontSize: 10, color: "#c9a84c", textTransform: "none", letterSpacing: 0 }}>Occupation, qualification, ziyarat, organisations & more</span>}
+              </div>
+              {showFullProfile && (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                  {[
+                    ["Occupation", ext.occupation], ["Sub-Occupation", ext.subOccupation], ["Qualification", ext.qualification],
+                    ["Languages", ext.languages], ["Hunars", ext.hunars], ["Marital Status", ext.maritalStatus],
+                    ["Blood Group", ext.bloodGroup], ["Misaq", ext.misaq], ["Vatan", ext.vatan],
+                    ["Nationality", ext.nationality], ["WhatsApp", ext.whatsapp], ["Housing", ext.housing],
+                    ["Type of House", ext.typeOfHouse], ["Quran Sanad", ext.quranSanad], ["Qadambosi Sharaf", ext.qadambosiSharaf],
+                    ["Raudat Tahera Ziyarat", ext.raudatTaheraZiyarat], ["Karbala Ziyarat", ext.karbalaZiyarat], ["Ashara Mubaraka (times)", ext.asharaMubaraka],
+                    ["Warakatul Tarkhis", ext.warakatulTarkhis], ["Organisation", ext.organisation], ["Last Scanned Event", ext.lastScannedEvent],
+                    ["Last Scanned Place", ext.lastScannedPlace],
+                  ].map(function (pair) {
+                    return (
+                      <div className="preview-field" key={pair[0]}>
+                        <div className="preview-field-label">{pair[0]}</div>
+                        <div className="preview-field-val" style={{ fontSize: 12 }}>{pair[1] || "—"}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
           <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
             {canEdit && <button className="btn btn-primary" onClick={function () { setMuminPreview(null); openModal("mumin", "edit", m); }}>✎ Edit Record</button>}
