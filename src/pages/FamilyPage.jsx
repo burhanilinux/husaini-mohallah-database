@@ -29,8 +29,6 @@ export function FamilyPage() {
     setNotice(message); setAction(null); setSelected(null);
     setTimeout(function () { setNotice(null); }, 3500);
     loadFamilies();
-    // AppContext owns the main Mumin cache. Reloading after a family mutation
-    // guarantees every screen sees the same family assignments.
     setTimeout(function () { window.location.reload(); }, 250);
   }
 
@@ -80,29 +78,43 @@ export function FamilyPage() {
         </tr>; })}
       </tbody></table>}
     </div>
-
-    {selected && <FamilyModal row={selected} families={families} canEdit={canEdit} busy={busy} onClose={function () { setSelected(null); }} onAction={function (type) { setAction({ type: type, row: selected }); setSelected(null); }} />}
-    {action && <ActionModal action={action} families={families} muminData={muminData} busy={busy} onClose={function () { setAction(null); }} onRun={run} />}
+    {selected && <FamilyModal row={selected} canEdit={canEdit} busy={busy} onClose={function () { setSelected(null); }} onAction={function (config) { setAction(Object.assign({ row: selected }, config)); setSelected(null); }} />}
+    {action && <ActionModal action={action} families={families} busy={busy} onClose={function () { setAction(null); }} onRun={run} />}
   </div>;
 }
 
-function FamilyModal({ row, families, canEdit, busy, onClose, onAction }) {
+function FamilyModal({ row, canEdit, busy, onClose, onAction }) {
   var [hof, setHof] = useState(row.family.hof_its_id || "");
   var [sabil, setSabil] = useState(row.family.sabil_no || "");
   return <div className="modal-overlay" onClick={onClose}><div className="modal" onClick={function (e) { e.stopPropagation(); }} style={{ maxWidth: 900, width: "calc(100% - 32px)" }}>
     <div className="modal-hdr"><div className="modal-title">Family {row.family.family_id}</div><button className="modal-close" onClick={onClose}>×</button></div>
     <div style={{ padding: 20 }}>
-      <div className="form-grid" style={{ marginBottom: 18 }}>
-        <label>Sabil No<input value={sabil} disabled={!canEdit} onChange={function (e) { setSabil(e.target.value); }} /></label>
-        <label>Head of Family ITS<input value={hof} disabled={!canEdit} placeholder="ITS number" onChange={function (e) { setHof(e.target.value); }} /></label>
-      </div>
-      {canEdit && <div style={{ display: "flex", gap: 8, marginBottom: 18 }}><button className="btn btn-primary btn-sm" disabled={busy} onClick={function () { onAction({ type: "save", row: row, hof: hof, sabil: sabil }); }}>Save Family</button><button className="btn btn-ghost btn-sm" onClick={function () { onAction({ type: "move", row: row }); }}>Move Member</button><button className="btn btn-ghost btn-sm" onClick={function () { onAction({ type: "split", row: row }); }}>Split Family</button><button className="btn btn-ghost btn-sm" onClick={function () { onAction({ type: "merge", row: row }); }}>Merge Family</button></div>}
+      <div className="form-grid" style={{ marginBottom: 18 }}><label>Sabil No<input value={sabil} disabled={!canEdit} onChange={function (e) { setSabil(e.target.value); }} /></label><label>Head of Family ITS<input value={hof} disabled={!canEdit} placeholder="ITS number" onChange={function (e) { setHof(e.target.value); }} /></label></div>
+      {canEdit && <div style={{ display: "flex", gap: 8, marginBottom: 18, flexWrap: "wrap" }}><button className="btn btn-primary btn-sm" disabled={busy} onClick={function () { onAction({ type: "save", hof: hof, sabil: sabil }); }}>Save Family</button><button className="btn btn-ghost btn-sm" onClick={function () { onAction({ type: "move" }); }}>Move Member</button><button className="btn btn-ghost btn-sm" onClick={function () { onAction({ type: "split" }); }}>Split Family</button><button className="btn btn-ghost btn-sm" onClick={function () { onAction({ type: "merge" }); }}>Merge Family</button><button className="btn btn-ghost btn-sm" onClick={function () { printFamily(row); }}>Print</button><button className="btn btn-ghost btn-sm" onClick={function () { exportFamily(row); }}>Export CSV</button></div>}
+      {!canEdit && <div style={{ marginBottom: 14 }}><button className="btn btn-ghost btn-sm" onClick={function () { printFamily(row); }}>Print Family</button><button className="btn btn-ghost btn-sm" style={{ marginLeft: 8 }} onClick={function () { exportFamily(row); }}>Export CSV</button></div>}
       <table><thead><tr><th>ITS</th><th>Name</th><th>Relation</th><th>Age</th><th>Gender</th><th>Sector</th></tr></thead><tbody>{row.members.map(function (m) { return <tr key={m.id}><td>{m.its_number}</td><td style={{ fontWeight: String(m.its_id) === String(row.family.hof_its_id) ? 600 : 400 }}>{m.name}{String(m.its_id) === String(row.family.hof_its_id) ? " ★ HOF" : ""}</td><td>{m.spouse_its_id ? "Spouse linked" : "—"}</td><td>{m.age || "—"}</td><td>{m.gender || "—"}</td><td>{m.area_sector || "—"}</td></tr>; })}</tbody></table>
     </div>
   </div></div>;
 }
 
-function ActionModal({ action, families, muminData, busy, onClose, onRun }) {
+function printFamily(row) {
+  var w = window.open("", "_blank", "width=900,height=700");
+  if (!w) return;
+  var body = row.members.map(function (m) { return "<tr><td>" + esc(m.its_number || m.its_id) + "</td><td>" + esc(m.name) + (String(m.its_id) === String(row.family.hof_its_id) ? " ★ HOF" : "") + "</td><td>" + esc(m.age || "—") + "</td><td>" + esc(m.gender || "—") + "</td><td>" + esc(m.area_sector || "—") + "</td></tr>"; }).join("");
+  w.document.write("<!doctype html><html><head><title>Family " + esc(row.family.family_id) + "</title><style>body{font-family:Arial,sans-serif;padding:28px;color:#222}h1{margin-bottom:4px}p{color:#666}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #ccc;padding:8px;text-align:left}th{background:#f3f3f3}@media print{button{display:none}}</style></head><body><h1>Family " + esc(row.family.family_id) + "</h1><p>HOF: " + esc(row.hof ? row.hof.name : "Not assigned") + " &nbsp; | &nbsp; Sabil: " + esc(row.family.sabil_no || "—") + " &nbsp; | &nbsp; Members: " + row.members.length + "</p><table><thead><tr><th>ITS</th><th>Name</th><th>Age</th><th>Gender</th><th>Sector</th></tr></thead><tbody>" + body + "</tbody></table><script>window.onload=function(){window.print();}</script></body></html>");
+  w.document.close();
+}
+
+function exportFamily(row) {
+  var lines = [["Family ID", "HOF", "Sabil No", "ITS", "Name", "Age", "Gender", "Sector"]];
+  row.members.forEach(function (m) { lines.push([row.family.family_id, row.hof ? row.hof.name : "", row.family.sabil_no || "", m.its_number || m.its_id, m.name || "", m.age || "", m.gender || "", m.area_sector || ""]); });
+  var csv = lines.map(function (r) { return r.map(function (v) { return '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"'; }).join(","); }).join("\n");
+  var blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+  var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "family_" + row.family.family_id + ".csv"; a.click(); URL.revokeObjectURL(a.href);
+}
+function esc(v) { return String(v == null ? "" : v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+
+function ActionModal({ action, families, busy, onClose, onRun }) {
   var row = action.row;
   var [familyId, setFamilyId] = useState("");
   var [sabil, setSabil] = useState(row && row.family ? (row.family.sabil_no || "") : "");
@@ -114,16 +126,14 @@ function ActionModal({ action, families, muminData, busy, onClose, onRun }) {
   var [newHof, setNewHof] = useState("");
   var members = row ? row.members : [];
   var title = action.type === "create" ? "Create Family" : action.type === "save" ? "Edit Family" : action.type === "move" ? "Move Member" : action.type === "split" ? "Split Family" : "Merge Families";
-
   function toggle(id) { setSelectedIds(function (old) { return old.indexOf(id) === -1 ? old.concat([id]) : old.filter(function (x) { return x !== id; }); }); }
   function submit() {
     if (action.type === "create") return onRun(function () { return createFamily(familyId, sabil, hof); }, function () { return "Family " + familyId + " created."; });
     if (action.type === "save") return onRun(function () { return updateFamily(row.family.family_id, { sabil_no: sabil, hof_its_id: hof }); }, function () { return "Family " + row.family.family_id + " updated."; });
-    if (action.type === "move") return onRun(function () { return moveMember(familyId, target); }, function () { return "Member moved successfully."; });
+    if (action.type === "move") return onRun(function () { return moveMember(target, familyId); }, function () { return "Member moved successfully."; });
     if (action.type === "merge") return onRun(function () { return mergeFamilies(target, row.family.family_id); }, function (r) { return "Families merged. " + r.moved + " member(s) moved."; });
     return onRun(function () { return splitFamily(row.family.family_id, selectedIds, newFamilyId, newSabil, newHof); }, function (r) { return "Family split. " + r.moved + " member(s) moved to Family " + r.newFamilyId + "."; });
   }
-
   return <div className="modal-overlay" onClick={onClose}><div className="modal" onClick={function (e) { e.stopPropagation(); }} style={{ maxWidth: 720, width: "calc(100% - 32px)" }}>
     <div className="modal-hdr"><div className="modal-title">{title}</div><button className="modal-close" onClick={onClose}>×</button></div><div style={{ padding: 20 }}>
       {action.type === "create" && <><p style={{ color: "#9ca3af" }}>Create a family group and optionally assign an existing Mumin as HOF.</p><div className="form-grid"><label>Family ID<input value={familyId} onChange={function (e) { setFamilyId(e.target.value); }} /></label><label>Sabil No<input value={sabil} onChange={function (e) { setSabil(e.target.value); }} /></label><label>HOF ITS<input value={hof} onChange={function (e) { setHof(e.target.value); }} /></label></div></>}
