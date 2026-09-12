@@ -12,6 +12,7 @@ export function Sidebar() {
   var navItems = [
     { id: "dashboard", icon: "◈", label: "Dashboard" },
     { id: "mumin", icon: "👤", label: "Mumin Data" },
+    { id: "advanced-search", icon: "🔎", label: "Advanced Search" },
     { id: "families", icon: "👨‍👩‍👧‍👦", label: "Families & HOF" },
     { id: "data-quality", icon: "✓", label: "Data Quality" },
     { id: "sabil", icon: "🏠", label: "Sabil Groups" },
