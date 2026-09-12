@@ -60,6 +60,33 @@ function buildPayload(row, subSectorIdByKey) {
     address: text(row.Address), area_sector: sector, sub_sector_id: subSectorIdByKey[subKey] || null,
     sabil_no: null, status: text(row.Inactive_Status) ? "Inactive" : "Active", family_id: intOrNull(row.Family_ID),
     spouse_its_id: intOrNull(row.Spouse_ITS_ID), source_data: row,
+    // Extended fields — written to the dedicated columns added by the
+    // schema-extension migration, so they're directly queryable via SQL
+    // and PostgREST instead of trapped inside source_data JSON.
+    occupation: text(row.Occupation) || null,
+    sub_occupation: text(row.Sub_Occupation) || null,
+    qualification: text(row.Qualification) || null,
+    languages: text(row.Languages) || null,
+    hunars: text(row.Hunars) || null,
+    marital_status: text(row.Marital_Status) || null,
+    blood_group: text(row.Blood_Group) || null,
+    misaq: text(row.Misaq) || null,
+    city: text(row.City) || null,
+    vatan: text(row.Vatan) || null,
+    nationality: text(row.Nationality) || null,
+    whatsapp_no: text(row.WhatsApp_No) || null,
+    housing: text(row.Housing) || null,
+    type_of_house: text(row.Type_of_House) || null,
+    data_verification_status: text(row.Data_Verifcation_Status) || null,
+    photo_verification_status: text(row.Photo_Verifcation_Status) || null,
+    quran_sanad: text(row.Quran_Sanad) || null,
+    qadambosi_sharaf: text(row.Qadambosi_Sharaf) || null,
+    raudat_tahera_ziyarat: text(row.Raudat_Tahera_Ziyarat) || null,
+    karbala_ziyarat: text(row.Karbala_Ziyarat) || null,
+    ashara_mubaraka: text(row.Ashara_Mubaraka) || null,
+    warakatul_tarkhis: text(row.Warakatul_Tarkhis) || null,
+    last_scanned_event: text(row.Last_Scanned_Event) || null,
+    last_scanned_place: text(row.Last_Scanned_Place) || null,
   };
 }
 
