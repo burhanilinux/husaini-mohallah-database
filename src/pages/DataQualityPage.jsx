@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useAppContext } from "../context/AppContext.jsx";
+import { getExtendedProfile } from "../lib/muminProfile.js";
 
 export function DataQualityPage() {
   var ctx = useAppContext();
@@ -18,6 +19,11 @@ export function DataQualityPage() {
       if (!m.area_sector) out.push({ type: "no_sector", label: "No sector", m: m, detail: "Member is not assigned to an area sector." });
       if (!m.dob && (m.age === null || m.age === undefined || m.age === "")) out.push({ type: "missing_age", label: "Missing age/DOB", m: m, detail: "Neither DOB nor age is available." });
       if (!m.phone) out.push({ type: "missing_phone", label: "Missing phone", m: m, detail: "No phone number is recorded." });
+
+      var ext = getExtendedProfile(m);
+      if (!ext.bloodGroup) out.push({ type: "missing_blood_group", label: "Missing blood group", m: m, detail: "No blood group on record — relevant for emergencies." });
+      if (ext.dataVerificationStatus && !ext.isDataVerified) out.push({ type: "not_data_verified", label: "Data not verified", m: m, detail: "Marked \"" + ext.dataVerificationStatus + "\" in the source export." });
+      if (ext.photoVerificationStatus && !ext.isPhotoVerified) out.push({ type: "photo_not_verified", label: "Photo not verified", m: m, detail: "Marked \"" + ext.photoVerificationStatus + "\" — affects ID card reliability." });
     });
     var counts = {};
     out.forEach(function (x) { counts[x.type] = (counts[x.type] || 0) + 1; });
@@ -26,7 +32,9 @@ export function DataQualityPage() {
 
   var filtered = filter === "all" ? issues.out : issues.out.filter(function (x) { return x.type === filter; });
   var categories = [
-    ["no_family", "No family"], ["no_sector", "No sector"], ["missing_phone", "Missing phone"], ["missing_age", "Missing age/DOB"], ["missing_its", "Missing ITS"], ["duplicate_its", "Duplicate ITS"], ["missing_name", "Missing name"]
+    ["no_family", "No family"], ["no_sector", "No sector"], ["missing_phone", "Missing phone"], ["missing_age", "Missing age/DOB"],
+    ["missing_its", "Missing ITS"], ["duplicate_its", "Duplicate ITS"], ["missing_name", "Missing name"],
+    ["missing_blood_group", "Missing blood group"], ["not_data_verified", "Data not verified"], ["photo_not_verified", "Photo not verified"],
   ];
 
   return <div>
