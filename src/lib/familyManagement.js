@@ -1,4 +1,4 @@
-import { sbDelete, sbGet, sbInsert, sbUpdate, sbUpdateWhere } from "./supabase.js";
+import { sbDeleteWhere, sbGet, sbInsert, sbUpdateWhere } from "./supabase.js";
 
 function num(value) {
   if (value === null || value === undefined || value === "") return null;
@@ -17,6 +17,7 @@ export async function createFamily(familyId, sabilNo, hofItsId) {
   if (hof !== null) {
     var people = await sbGet("mumin_data", "its_id=eq." + hof);
     if (!people.length) throw new Error("Selected HOF does not exist in Mumin data.");
+    if (people[0].family_id !== null && people[0].family_id !== undefined) throw new Error("Selected HOF already belongs to another family.");
   }
   var existing = await sbGet("families", "family_id=eq." + id);
   if (existing.length) throw new Error("Family ID " + id + " already exists.");
@@ -64,7 +65,7 @@ export async function mergeFamilies(targetFamilyId, sourceFamilyId) {
   // Clear the source HOF first so the source family can be removed safely.
   if (sourceRows[0].hof_its_id) await updateFamily(source, { hof_its_id: null });
   if (members.length) await sbUpdateWhere("mumin_data", "family_id=eq." + source, { family_id: target });
-  await sbDelete("families", source);
+  await sbDeleteWhere("families", "family_id=eq." + source);
   return { moved: members.length };
 }
 
