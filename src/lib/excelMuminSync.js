@@ -1,5 +1,5 @@
 import * as XLSX from "xlsx";
-import { sbGet, sbUpsert } from "./supabase.js";
+import { sbGet, sbUpsert, sbUpdateWhere } from "./supabase.js";
 
 export const SOURCE_COLUMNS = [
   "ITS_ID", "HOF_FM_TYPE", "HOF_ID", "Family_ID", "Father_ITS_ID", "Mother_ITS_ID", "Spouse_ITS_ID",
@@ -136,23 +136,27 @@ export async function syncMuminExcel(rows, progress) {
   var newSectorNames = Object.keys(sectorNames).sort().filter(function (n) { return !sectorIdByName[n]; });
   if (newSectorNames.length) {
     var newSectors = newSectorNames.map(function (name) {
-      var row = source.find(function (r) { return text(r.Sector) === name; }) || {};
-      var ic = incharge(row, "Sector_Incharge");
       return {
         name: name,
-        masool_its: ic.its ? String(ic.its) : null,
-        masool_name: ic.name || null,
+        masool_its: null,
+        masool_name: null,
         masool_phone: "",
-        incharge_its_id: ic.its || null,
+        incharge_its_id: null,
       };
     });
-    // Do not provide id: sectors.id is GENERATED ALWAYS AS IDENTITY.
-    var insertedSectors = await sbUpsert("sectors", newSectors);
+    // The incharge_its_id column references mumin_data. Create sectors first with it NULL.
+    var insertedSectors = await sbUpsert("sectors", newSectors, "name");
     (insertedSectors || []).forEach(function (s) { sectorIdByName[text(s.name)] = Number(s.id); });
     if (newSectorNames.some(function (n) { return !sectorIdByName[n]; })) {
       sectors = await sbGet("sectors", "order=id.asc");
       sectors.forEach(function (s) { sectorIdByName[text(s.name)] = Number(s.id); });
     }
+  }
+
+  // Refresh sectors before building sub-sector references.
+  if (newSectorNames.length) {
+    sectors = await sbGet("sectors", "order=id.asc");
+    sectors.forEach(function (s) { sectorIdByName[text(s.name)] = Number(s.id); });
   }
 
   var subKeySet = {};
@@ -165,27 +169,21 @@ export async function syncMuminExcel(rows, progress) {
     var sec = sectors.find(function (x) { return Number(x.id) === Number(s.sector_id); });
     if (sec) subSectorIdByKey[text(sec.name) + "\u0000" + text(s.name)] = Number(s.id);
   });
-  if (newSectorNames.length) {
-    sectors = await sbGet("sectors", "order=id.asc");
-    sectors.forEach(function (s) { sectorIdByName[text(s.name)] = Number(s.id); });
-  }
   var newSubKeys = Object.keys(subKeySet).sort().filter(function (k) { return !subSectorIdByKey[k]; });
   if (newSubKeys.length) {
     var newSubs = newSubKeys.map(function (key) {
       var parts = key.split("\u0000"), sector = parts[0], sub = parts[1];
-      var row = source.find(function (r) { return text(r.Sector) === sector && text(r.Sub_Sector) === sub; }) || {};
-      var ic = incharge(row, "Sub_Sector_Incharge");
       return {
         sector_id: sectorIdByName[sector],
         name: sub,
-        musaid_its: ic.its ? String(ic.its) : null,
-        musaid_name: ic.name || null,
+        musaid_its: null,
+        musaid_name: null,
         musaid_phone: "",
-        incharge_its_id: ic.its || null,
+        incharge_its_id: null,
       };
     });
-    // Do not provide id: sub_sectors.id is GENERATED ALWAYS AS IDENTITY.
-    var insertedSubs = await sbUpsert("sub_sectors", newSubs);
+    // The incharge_its_id column references mumin_data. Create sub-sectors first with it NULL.
+    var insertedSubs = await sbUpsert("sub_sectors", newSubs, "sector_id,name");
     (insertedSubs || []).forEach(function (s) {
       var sec = sectors.find(function (x) { return Number(x.id) === Number(s.sector_id); });
       if (sec) subSectorIdByKey[text(sec.name) + "\u0000" + text(s.name)] = Number(s.id);
@@ -216,6 +214,49 @@ export async function syncMuminExcel(rows, progress) {
   // Conflict on its_id keeps imports idempotent while PostgreSQL generates id.
   await chunksUpsert("mumin_data", muminRows, "its_id", 200);
   report("Mumin records synchronized", source.length, source.length);
+
+  // Now that mumin_data exists, safely populate sector/sub-sector incharge foreign keys.
+  report("Linking sector incharges", 0, source.length);
+  var sectorInchargeByName = {};
+  source.forEach(function (r) {
+    var sector = text(r.Sector);
+    if (!sector || sectorInchargeByName[sector]) return;
+    var ic = incharge(r, "Sector_Incharge");
+    var female = incharge(r, "Sector_Incharge_Female");
+    sectorInchargeByName[sector] = { its: ic.its, name: ic.name, femaleIts: female.its, femaleName: female.name };
+  });
+  Object.keys(sectorInchargeByName).forEach(function (sector) {
+    var data = sectorInchargeByName[sector];
+    var id = sectorIdByName[sector];
+    if (!id) return;
+    // Only set the FK when the referenced Mumin exists; otherwise leave it NULL.
+    sbUpdateWhere("sectors", "id=eq." + encodeURIComponent(id), {
+      incharge_its_id: data.its || null,
+      masool_its: data.its ? String(data.its) : null,
+      masool_name: data.name || null,
+    });
+  });
+
+  report("Linking sub-sector incharges", 0, source.length);
+  var subInchargeByKey = {};
+  source.forEach(function (r) {
+    var sector = text(r.Sector), sub = text(r.Sub_Sector);
+    var key = sector + "\u0000" + sub;
+    if (!sector || !sub || subInchargeByKey[key]) return;
+    var ic = incharge(r, "Sub_Sector_Incharge");
+    subInchargeByKey[key] = { its: ic.its, name: ic.name };
+  });
+  await Promise.all(Object.keys(subInchargeByKey).map(async function (key) {
+    var parts = key.split("\u0000"), sector = parts[0], sub = parts[1];
+    var id = subSectorIdByKey[key];
+    if (!id) return;
+    var data = subInchargeByKey[key];
+    await sbUpdateWhere("sub_sectors", "id=eq." + encodeURIComponent(id), {
+      incharge_its_id: data.its || null,
+      musaid_its: data.its ? String(data.its) : null,
+      musaid_name: data.name || null,
+    });
+  }));
 
   report("Synchronizing organisations", 0, source.length);
   var orgEntries = organisationEntries(source);
