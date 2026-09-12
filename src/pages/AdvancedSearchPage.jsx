@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useAppContext } from "../context/AppContext.jsx";
 import { getMuminAge } from "../lib/utils.js";
+import { getExtendedProfile } from "../lib/muminProfile.js";
 
 export function AdvancedSearchPage() {
   var ctx = useAppContext();
@@ -17,7 +18,11 @@ export function AdvancedSearchPage() {
   var results = useMemo(function () {
     var q = query.trim().toLowerCase();
     return muminData.filter(function (m) {
-      if (q && ![(m.name || ""), (m.its_number || ""), (m.phone || ""), (m.email || ""), (m.sabil_no || ""), (m.address || "")].join(" ").toLowerCase().includes(q)) return false;
+if (q) {
+  var ext = getExtendedProfile(m);
+  var haystack = [(m.name || ""), (m.its_number || ""), (m.phone || ""), (m.email || ""), (m.sabil_no || ""), (m.address || ""), (ext.occupation || ""), (ext.city || ""), (ext.organisation || "")].join(" ").toLowerCase();
+  if (!haystack.includes(q)) return false;
+}
       if (sector && m.area_sector !== sector) return false;
       if (gender && m.gender !== gender) return false;
       if (status && m.status !== status) return false;
