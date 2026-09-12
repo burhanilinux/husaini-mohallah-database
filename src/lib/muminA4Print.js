@@ -30,7 +30,7 @@ function openA4(title, html) {
     ".no-print{display:none!important}",
     "@media screen{body{background:#eee;padding:18px}.sheet{background:#fff;padding:12mm;box-shadow:0 2px 12px rgba(0,0,0,.12)}}",
   ].join("");
-  var doc = "<!doctype html><html><head><meta charset='utf-8'><title>" + esc(title) + "</title><style>" + css + "</style></head><body>" + html + "<script>window.onload=function(){setTimeout(function(){window.print()},120)};<\\/script></body></html>";
+  var doc = "<!doctype html><html><head><meta charset='utf-8'><title>" + esc(title) + "</title><style>" + css + "</style></head><body>" + html + "<script>window.onload=function(){setTimeout(function(){window.print()},120)};</script></body></html>";
   var url = URL.createObjectURL(new Blob([doc], { type: "text/html;charset=utf-8" }));
   var win = window.open(url, "_blank");
   if (!win) { alert("Please allow popups for printing."); return; }
