@@ -75,8 +75,11 @@ function buildPayload(row, sectorIdByName, subSectorIdByKey) {
   var sector = text(row.Sector);
   var sub = text(row.Sub_Sector);
   var subKey = sector + "\u0000" + sub;
+
+  // IMPORTANT: mumin_data.id is GENERATED ALWAYS AS IDENTITY in PostgreSQL.
+  // Never send the Excel ITS_ID as `id`; let PostgreSQL generate the row id.
+  // ITS_ID is the stable application/business key and is stored in its_id.
   return {
-    id: its,
     its_id: its,
     its_number: its === null ? "" : String(its),
     name: text(row.Full_Name),
@@ -133,29 +136,28 @@ export async function syncMuminExcel(rows, progress) {
   source.forEach(function (r) { var n = text(r.Sector); if (n) sectorNames[n] = true; });
   var sectorIdByName = {};
   sectors.forEach(function (s) { sectorIdByName[text(s.name)] = Number(s.id); });
-  var nextSectorId = sectors.reduce(function (m, s) { return Math.max(m, Number(s.id) || 0); }, 0) + 1;
-  var newSectors = Object.keys(sectorNames).sort().filter(function (n) { return !sectorIdByName[n]; }).map(function (name) {
-    var row = source.find(function (r) { return text(r.Sector) === name; }) || {};
-    var ic = incharge(row, "Sector_Incharge");
-    var female = incharge(row, "Sector_Incharge_Female");
-    var id = nextSectorId++;
-    sectorIdByName[name] = id;
-    return {
-      id: id, name: name,
-      masool_its: ic.its ? String(ic.its) : null,
-      masool_name: ic.name || null,
-      masool_phone: "",
-      incharge_its_id: ic.its || null,
-      _female_its: female.its || null,
-      _female_name: female.name || null,
-    };
-  });
-  if (newSectors.length) {
-    await sbUpsert("sectors", newSectors.map(function (s) {
-      return { id: s.id, name: s.name, masool_its: s.masool_its, masool_name: s.masool_name, masool_phone: s.masool_phone, incharge_its_id: s.incharge_its_id };
-    }), "id");
+  var newSectorNames = Object.keys(sectorNames).sort().filter(function (n) { return !sectorIdByName[n]; });
+  if (newSectorNames.length) {
+    var newSectors = newSectorNames.map(function (name) {
+      var row = source.find(function (r) { return text(r.Sector) === name; }) || {};
+      var ic = incharge(row, "Sector_Incharge");
+      return {
+        name: name,
+        masool_its: ic.its ? String(ic.its) : null,
+        masool_name: ic.name || null,
+        masool_phone: "",
+        incharge_its_id: ic.its || null,
+      };
+    });
+    // Do not provide `id`: sectors.id is also GENERATED ALWAYS AS IDENTITY.
+    var insertedSectors = await sbUpsert("sectors", newSectors, "name");
+    (insertedSectors || []).forEach(function (s) { sectorIdByName[text(s.name)] = Number(s.id); });
+    // In case the API response is restricted, refresh the reference rows.
+    if (newSectorNames.some(function (n) { return !sectorIdByName[n]; })) {
+      sectors = await sbGet("sectors", "order=id.asc");
+      sectors.forEach(function (s) { sectorIdByName[text(s.name)] = Number(s.id); });
+    }
   }
-  sectors = sectors.concat(newSectors);
 
   var subKeySet = {};
   source.forEach(function (r) {
@@ -167,19 +169,44 @@ export async function syncMuminExcel(rows, progress) {
     var sec = sectors.find(function (x) { return Number(x.id) === Number(s.sector_id); });
     if (sec) subSectorIdByKey[text(sec.name) + "\u0000" + text(s.name)] = Number(s.id);
   });
-  var nextSubId = subSectors.reduce(function (m, s) { return Math.max(m, Number(s.id) || 0); }, 0) + 1;
-  var newSubs = Object.keys(subKeySet).sort().filter(function (k) { return !subSectorIdByKey[k]; }).map(function (key) {
-    var parts = key.split("\u0000"), sector = parts[0], sub = parts[1];
-    var row = source.find(function (r) { return text(r.Sector) === sector && text(r.Sub_Sector) === sub; }) || {};
-    var ic = incharge(row, "Sub_Sector_Incharge");
-    var id = nextSubId++;
-    subSectorIdByKey[key] = id;
-    return { id: id, sector_id: sectorIdByName[sector], name: sub, musaid_its: ic.its ? String(ic.its) : null, musaid_name: ic.name || null, musaid_phone: "", incharge_its_id: ic.its || null };
-  });
-  if (newSubs.length) await sbUpsert("sub_sectors", newSubs, "id");
+  // Include newly created sectors when resolving sub-sector foreign keys.
+  if (newSectorNames.length) {
+    sectors = await sbGet("sectors", "order=id.asc");
+    sectors.forEach(function (s) { sectorIdByName[text(s.name)] = Number(s.id); });
+  }
+  var newSubKeys = Object.keys(subKeySet).sort().filter(function (k) { return !subSectorIdByKey[k]; });
+  if (newSubKeys.length) {
+    var newSubs = newSubKeys.map(function (key) {
+      var parts = key.split("\u0000"), sector = parts[0], sub = parts[1];
+      var row = source.find(function (r) { return text(r.Sector) === sector && text(r.Sub_Sector) === sub; }) || {};
+      var ic = incharge(row, "Sub_Sector_Incharge");
+      return {
+        sector_id: sectorIdByName[sector],
+        name: sub,
+        musaid_its: ic.its ? String(ic.its) : null,
+        musaid_name: ic.name || null,
+        musaid_phone: "",
+        incharge_its_id: ic.its || null,
+      };
+    });
+    // Do not provide `id`: sub_sectors.id is GENERATED ALWAYS AS IDENTITY.
+    var insertedSubs = await sbUpsert("sub_sectors", newSubs, "sector_id,name");
+    (insertedSubs || []).forEach(function (s) {
+      var sec = sectors.find(function (x) { return Number(x.id) === Number(s.sector_id); });
+      if (sec) subSectorIdByKey[text(sec.name) + "\u0000" + text(s.name)] = Number(s.id);
+    });
+    if (newSubKeys.some(function (k) { return !subSectorIdByKey[k]; })) {
+      subSectors = await sbGet("sub_sectors", "order=id.asc");
+      subSectors.forEach(function (s) {
+        var sec = sectors.find(function (x) { return Number(x.id) === Number(s.sector_id); });
+        if (sec) subSectorIdByKey[text(sec.name) + "\u0000" + text(s.name)] = Number(s.id);
+      });
+    }
+  }
 
-  report("Synchronizing 1,584 Mumin records", 0, source.length);
+  report("Synchronizing Mumin records", 0, source.length);
   var muminRows = source.map(function (r) { return buildPayload(r, sectorIdByName, subSectorIdByKey); });
+  // mumin_data.id is generated by PostgreSQL; conflict is on the business key its_id.
   await chunksUpsert("mumin_data", muminRows, "its_id", 200);
   report("Mumin records synchronized", source.length, source.length);
 
