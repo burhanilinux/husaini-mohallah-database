@@ -92,6 +92,14 @@ export async function sbDelete(table, id) {
   if (!res.ok) throw new Error(await res.text());
 }
 
+export async function sbDeleteWhere(table, filterQuery) {
+  var h = Object.assign({}, getHeaders(), { Prefer: "return=minimal" });
+  var res = await fetch(SUPABASE_URL + "/rest/v1/" + table + "?" + filterQuery, {
+    method: "DELETE", headers: h,
+  });
+  if (!res.ok) throw new Error(await res.text());
+}
+
 export async function sbUpdateWhere(table, filterQuery, body) {
   var res = await fetch(SUPABASE_URL + "/rest/v1/" + table + "?" + filterQuery, {
     method: "PATCH", headers: getHeaders(), body: JSON.stringify(body),
