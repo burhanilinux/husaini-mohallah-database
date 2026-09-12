@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAppContext } from "../context/AppContext.jsx";
+import { getExtendedProfile } from "../lib/muminProfile.js";
 
 export function DashboardSearch() {
   var ctx = useAppContext();
@@ -11,9 +12,12 @@ export function DashboardSearch() {
 
   var q = query.toLowerCase();
   var mRes = query ? muminData.filter(function (m) {
+    var ext = getExtendedProfile(m);
     return (m.name || "").toLowerCase().includes(q)
       || (m.its_number || "").includes(q)
-      || (m.area_sector || "").toLowerCase().includes(q);
+      || (m.area_sector || "").toLowerCase().includes(q)
+      || (ext.occupation || "").toLowerCase().includes(q)
+      || (ext.city || "").toLowerCase().includes(q);
   }).slice(0, 5) : [];
   var fRes = query ? filesData.filter(function (f) {
     return (f.title || "").toLowerCase().includes(q) || (f.file_no || "").toLowerCase().includes(q);
