@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Spinner } from "./Shared.jsx";
+import { Spinner } from "../components/Shared.jsx";
 import { MUMIN_COLS } from "../lib/constants.js";
 import { downloadBlob, toCSV, toXLS, parseCSV } from "../lib/utils.js";
 import { parseMuminExcel, syncMuminExcel, getRecentImports, SOURCE_COLUMNS } from "../lib/excelMuminSync.js";
