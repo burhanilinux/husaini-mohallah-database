@@ -1,5 +1,6 @@
 import "./App.css";
 import { AppProvider, useAppContext } from "./context/AppContext.jsx";
+import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
 import { Spinner } from "./components/Shared.jsx";
 import { LoginPage } from "./components/LoginPage.jsx";
 import { Sidebar } from "./components/Sidebar.jsx";
@@ -42,8 +43,11 @@ function ActivePage() {
 
 function AppShell() {
   var ctx = useAppContext();
-  if (ctx.authLoading) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0d1117", color: "#6b7280", gap: 12, fontSize: 14 }}><Spinner /> Loading…</div>;
-  if (!ctx.session) return <LoginPage onLogin={ctx.handleLogin} />;
+  var auth = useAuth();
+
+  if (auth.authLoading) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0d1117", color: "#6b7280", gap: 12, fontSize: 14 }}><Spinner /> Loading…</div>;
+  if (!auth.session) return <LoginPage onLogin={auth.login} />;
+
   return (
     <div className="layout">
       <Sidebar />
@@ -64,5 +68,11 @@ function AppShell() {
 }
 
 export default function App() {
-  return <AppProvider><AppShell /></AppProvider>;
+  return (
+    <AuthProvider>
+      <AppProvider>
+        <AppShell />
+      </AppProvider>
+    </AuthProvider>
+  );
 }
