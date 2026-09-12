@@ -1,5 +1,5 @@
 import * as XLSX from "xlsx";
-import { sbGet, sbUpsert, sbUpdateWhere } from "./supabase.js";
+import { sbGet, sbInsert, sbUpsert, sbUpdateWhere } from "./supabase.js";
 
 export const SOURCE_COLUMNS = [
   "ITS_ID", "HOF_FM_TYPE", "HOF_ID", "Family_ID", "Father_ITS_ID", "Mother_ITS_ID", "Spouse_ITS_ID",
@@ -72,7 +72,41 @@ async function chunksUpsert(table, rows, conflict, chunkSize) {
   return count;
 }
 
-export async function syncMuminExcel(rows, progress) {
+// ── Import history log ────────────────────────────────────────────
+// Non-fatal by design: a logging failure should never surface as a sync
+// failure to the person who just successfully synced their data.
+export async function logImportRun(meta, counts) {
+  try {
+    var total = counts
+      ? (counts.new || 0) + (counts.updated || 0) + (counts.unchanged || 0) + (counts.conflicts || 0) + (counts.invalid || 0)
+      : null;
+    await sbInsert("import_log", {
+      file_name: (meta && meta.fileName) || null,
+      imported_by: (meta && meta.importedBy) || null,
+      total_rows: total,
+      new_count: counts ? counts.new : null,
+      updated_count: counts ? counts.updated : null,
+      unchanged_count: counts ? counts.unchanged : null,
+      conflict_count: counts ? counts.conflicts : null,
+      invalid_count: counts ? counts.invalid : null,
+    });
+  } catch (_e) {
+    // Swallow — import history is a convenience, not a correctness guarantee.
+  }
+}
+
+export async function getRecentImports(limit) {
+  try {
+    return await sbGet("import_log", "order=imported_at.desc&limit=" + (limit || 5));
+  } catch (_e) {
+    return [];
+  }
+}
+
+// meta: { fileName, importedBy, analysisCounts } — analysisCounts is the
+// `counts` object already computed by analyzeMuminExcel() in the caller,
+// reused here purely for the history log (no need to recompute it).
+export async function syncMuminExcel(rows, meta, progress) {
   var source = rows.map(cleanRow).filter(function (r) { return intOrNull(r.ITS_ID) !== null; });
   if (!source.length) throw new Error("No valid ITS_ID values were found in the workbook.");
   var unique = {}; source.forEach(function (r) { unique[intOrNull(r.ITS_ID)] = r; });
@@ -190,5 +224,8 @@ export async function syncMuminExcel(rows, progress) {
   if (memberships.length) await chunksUpsert("mumineen_organisations", memberships, "its_id,org_id", 300);
 
   report("Completed", source.length, source.length);
-  return { imported: source.length, families: families.length, sectors: Object.keys(sectorNames).length, subSectors: Object.keys(subKeySet).length, organisations: orgEntries.length, memberships: memberships.length };
+
+  var result = { imported: source.length, families: families.length, sectors: Object.keys(sectorNames).length, subSectors: Object.keys(subKeySet).length, organisations: orgEntries.length, memberships: memberships.length };
+  await logImportRun(meta, meta && meta.analysisCounts);
+  return result;
 }
