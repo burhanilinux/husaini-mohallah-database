@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { sbSignIn } from "../lib/supabase.js";
 
 export function LoginPage({ onLogin }) {
   const [email, setEmail] = useState("");
@@ -10,9 +9,7 @@ export function LoginPage({ onLogin }) {
   function doLogin() {
     if (!email || !password) { setError("Please enter email and password."); return; }
     setLoading(true); setError(null);
-    sbSignIn(email, password).then(function (data) {
-      onLogin(data);
-    }).catch(function (e) {
+    Promise.resolve(onLogin(email, password)).catch(function (e) {
       setError(e.message);
       setLoading(false);
     });
