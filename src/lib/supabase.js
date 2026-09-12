@@ -26,11 +26,32 @@ function getHeaders() {
   };
 }
 
+// Supabase/PostgREST commonly caps an unpaginated response at 1,000 rows.
+// Read in 1,000-row ranges until the final page so directory/report screens
+// receive the complete dataset (for example, all 1,584 Mumin records).
 export async function sbGet(table, params) {
-  var url = SUPABASE_URL + "/rest/v1/" + table + "?" + (params || "");
-  var res = await fetch(url, { headers: getHeaders() });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+  var baseUrl = SUPABASE_URL + "/rest/v1/" + table + "?" + (params || "");
+  var pageSize = 1000;
+  var offset = 0;
+  var all = [];
+
+  while (true) {
+    var res = await fetch(baseUrl, {
+      headers: Object.assign({}, getHeaders(), {
+        "Range": offset + "-" + (offset + pageSize - 1),
+      }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+
+    var rows = await res.json();
+    if (!Array.isArray(rows)) return rows;
+
+    all = all.concat(rows);
+    if (rows.length < pageSize) break;
+    offset += pageSize;
+  }
+
+  return all;
 }
 
 export async function sbInsert(table, body) {
