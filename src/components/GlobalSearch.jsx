@@ -1,4 +1,5 @@
 import { useAppContext } from "../context/AppContext.jsx";
+import { getExtendedProfile } from "../lib/muminProfile.js";
 
 export function GlobalSearch() {
   var ctx = useAppContext();
@@ -20,9 +21,12 @@ export function GlobalSearch() {
       {gSearchOpen && (function () {
         var q = gSearch.toLowerCase();
         var mRes = muminData.filter(function (m) {
+          var ext = getExtendedProfile(m);
           return (m.name || "").toLowerCase().includes(q)
             || (m.its_number || "").includes(q)
-            || (m.area_sector || "").toLowerCase().includes(q);
+            || (m.area_sector || "").toLowerCase().includes(q)
+            || (ext.occupation || "").toLowerCase().includes(q)
+            || (ext.city || "").toLowerCase().includes(q);
         }).slice(0, 5);
         var fRes = filesData.filter(function (f) {
           return (f.title || "").toLowerCase().includes(q) || (f.file_no || "").toLowerCase().includes(q);
