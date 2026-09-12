@@ -5,7 +5,7 @@ function esc(value) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
+    .replace(/\"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
 
@@ -30,7 +30,7 @@ function openA4(title, html) {
     ".no-print{display:none!important}",
     "@media screen{body{background:#eee;padding:18px}.sheet{background:#fff;padding:12mm;box-shadow:0 2px 12px rgba(0,0,0,.12)}}",
   ].join("");
-  var doc = "<!doctype html><html><head><meta charset='utf-8'><title>" + esc(title) + "</title><style>" + css + "</style></head><body>" + html + "<script>window.onload=function(){setTimeout(function(){window.print()},120)};<\/script></body></html>";
+  var doc = "<!doctype html><html><head><meta charset='utf-8'><title>" + esc(title) + "</title><style>" + css + "</style></head><body>" + html + "<script>window.onload=function(){setTimeout(function(){window.print()},120)};<\\/script></body></html>";
   var url = URL.createObjectURL(new Blob([doc], { type: "text/html;charset=utf-8" }));
   var win = window.open(url, "_blank");
   if (!win) { alert("Please allow popups for printing."); return; }
@@ -82,7 +82,7 @@ export function printMuminA4(m, familyRecord, familyMembers, sectorInfo) {
   h += "</div>";
 
   if (warnings.length) {
-    h += "<div class='section'><div class='section-title'>Data Quality</div><div class='quality">" + warnings.map(esc).join(" &nbsp;•&nbsp; ") + "</div></div>";
+    h += "<div class='section'><div class='section-title'>Data Quality</div><div class='quality'>" + warnings.map(esc).join(" &nbsp;•&nbsp; ") + "</div></div>";
   }
   h += "<div class='footer'><span>Husaini Mohallah Database</span><span>Confidential community record</span><span>Printed: " + esc(new Date().toLocaleString()) + "</span></div></div>";
   openA4("Mumin Profile - " + (m.name || ""), h);
