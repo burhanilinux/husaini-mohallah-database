@@ -136,15 +136,9 @@ export async function syncMuminExcel(rows, progress) {
   var newSectorNames = Object.keys(sectorNames).sort().filter(function (n) { return !sectorIdByName[n]; });
   if (newSectorNames.length) {
     var newSectors = newSectorNames.map(function (name) {
-      return {
-        name: name,
-        masool_its: null,
-        masool_name: null,
-        masool_phone: "",
-        incharge_its_id: null,
-      };
+      return { name: name, masool_its: null, masool_name: null, masool_phone: "", incharge_its_id: null };
     });
-    // The incharge_its_id column references mumin_data. Create sectors first with it NULL.
+    // sectors.incharge_its_id references mumin_data, so create new sectors with NULL first.
     var insertedSectors = await sbUpsert("sectors", newSectors, "name");
     (insertedSectors || []).forEach(function (s) { sectorIdByName[text(s.name)] = Number(s.id); });
     if (newSectorNames.some(function (n) { return !sectorIdByName[n]; })) {
@@ -153,7 +147,6 @@ export async function syncMuminExcel(rows, progress) {
     }
   }
 
-  // Refresh sectors before building sub-sector references.
   if (newSectorNames.length) {
     sectors = await sbGet("sectors", "order=id.asc");
     sectors.forEach(function (s) { sectorIdByName[text(s.name)] = Number(s.id); });
@@ -173,16 +166,9 @@ export async function syncMuminExcel(rows, progress) {
   if (newSubKeys.length) {
     var newSubs = newSubKeys.map(function (key) {
       var parts = key.split("\u0000"), sector = parts[0], sub = parts[1];
-      return {
-        sector_id: sectorIdByName[sector],
-        name: sub,
-        musaid_its: null,
-        musaid_name: null,
-        musaid_phone: "",
-        incharge_its_id: null,
-      };
+      return { sector_id: sectorIdByName[sector], name: sub, musaid_its: null, musaid_name: null, musaid_phone: "", incharge_its_id: null };
     });
-    // The incharge_its_id column references mumin_data. Create sub-sectors first with it NULL.
+    // sub_sectors.incharge_its_id also references mumin_data, so create with NULL first.
     var insertedSubs = await sbUpsert("sub_sectors", newSubs, "sector_id,name");
     (insertedSubs || []).forEach(function (s) {
       var sec = sectors.find(function (x) { return Number(x.id) === Number(s.sector_id); });
@@ -197,7 +183,6 @@ export async function syncMuminExcel(rows, progress) {
     }
   }
 
-  // Families are created before members because mumin_data.family_id is a foreign key.
   report("Synchronizing families", 0, source.length);
   var familyMap = {};
   source.forEach(function (r) {
@@ -211,43 +196,65 @@ export async function syncMuminExcel(rows, progress) {
 
   report("Synchronizing Mumin records", 0, source.length);
   var muminRows = source.map(function (r) { return buildPayload(r, sectorIdByName, subSectorIdByKey); });
-  // Conflict on its_id keeps imports idempotent while PostgreSQL generates id.
   await chunksUpsert("mumin_data", muminRows, "its_id", 200);
   report("Mumin records synchronized", source.length, source.length);
 
-  // Now that mumin_data exists, safely populate sector/sub-sector incharge foreign keys.
+  // Resolve only ITS IDs that actually exist in mumin_data. This prevents 23503 errors
+  // when an Excel row references an incharge who is not part of this import.
+  var inchargeIds = {};
+  source.forEach(function (r) {
+    ["Sector_Incharge", "Sector_Incharge_Female", "Sub_Sector_Incharge", "Sub_Sector_Incharge_Female"].forEach(function (prefix) {
+      var its = intOrNull(r[prefix + "_ITSID"]);
+      if (its !== null) inchargeIds[its] = true;
+    });
+  });
+  var existingInchargeIds = {};
+  var idList = Object.keys(inchargeIds);
+  for (var p = 0; p < idList.length; p += 500) {
+    var idChunk = idList.slice(p, p + 500);
+    if (!idChunk.length) continue;
+    var found = await sbGet("mumin_data", "its_id=in.\\(" + idChunk.join(",") + "\\)&select=its_id");
+    (found || []).forEach(function (m) { existingInchargeIds[Number(m.its_id)] = true; });
+  }
+
   report("Linking sector incharges", 0, source.length);
   var sectorInchargeByName = {};
   source.forEach(function (r) {
     var sector = text(r.Sector);
-    if (!sector || sectorInchargeByName[sector]) return;
+    if (!sector) return;
+    var current = sectorInchargeByName[sector] || {};
     var ic = incharge(r, "Sector_Incharge");
     var female = incharge(r, "Sector_Incharge_Female");
-    sectorInchargeByName[sector] = { its: ic.its, name: ic.name, femaleIts: female.its, femaleName: female.name };
+    if (!current.its && ic.its && existingInchargeIds[ic.its]) current.its = ic.its;
+    if (!current.name && ic.name) current.name = ic.name;
+    if (!current.femaleIts && female.its && existingInchargeIds[female.its]) current.femaleIts = female.its;
+    if (!current.femaleName && female.name) current.femaleName = female.name;
+    sectorInchargeByName[sector] = current;
   });
-  Object.keys(sectorInchargeByName).forEach(function (sector) {
+  await Promise.all(Object.keys(sectorInchargeByName).map(async function (sector) {
     var data = sectorInchargeByName[sector];
     var id = sectorIdByName[sector];
     if (!id) return;
-    // Only set the FK when the referenced Mumin exists; otherwise leave it NULL.
-    sbUpdateWhere("sectors", "id=eq." + encodeURIComponent(id), {
+    await sbUpdateWhere("sectors", "id=eq." + encodeURIComponent(id), {
       incharge_its_id: data.its || null,
       masool_its: data.its ? String(data.its) : null,
       masool_name: data.name || null,
     });
-  });
+  }));
 
   report("Linking sub-sector incharges", 0, source.length);
   var subInchargeByKey = {};
   source.forEach(function (r) {
     var sector = text(r.Sector), sub = text(r.Sub_Sector);
     var key = sector + "\u0000" + sub;
-    if (!sector || !sub || subInchargeByKey[key]) return;
+    if (!sector || !sub) return;
+    var current = subInchargeByKey[key] || {};
     var ic = incharge(r, "Sub_Sector_Incharge");
-    subInchargeByKey[key] = { its: ic.its, name: ic.name };
+    if (!current.its && ic.its && existingInchargeIds[ic.its]) current.its = ic.its;
+    if (!current.name && ic.name) current.name = ic.name;
+    subInchargeByKey[key] = current;
   });
   await Promise.all(Object.keys(subInchargeByKey).map(async function (key) {
-    var parts = key.split("\u0000"), sector = parts[0], sub = parts[1];
     var id = subSectorIdByKey[key];
     if (!id) return;
     var data = subInchargeByKey[key];
