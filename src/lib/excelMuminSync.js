@@ -52,9 +52,8 @@ function incharge(row, prefix) {
   return { its: intOrNull(row[prefix + "_ITSID"]), name: text(row[prefix + "_Name"]) };
 }
 
-function buildPayload(row, sectorIdByName, subSectorIdByKey) {
+function buildPayload(row, subSectorIdByKey) {
   var its = intOrNull(row.ITS_ID), sector = text(row.Sector), sub = text(row.Sub_Sector), subKey = sector + "\u0000" + sub;
-  // mumin_data.id is GENERATED ALWAYS AS IDENTITY. Never send the Excel ITS_ID as id.
   return {
     its_id: its, its_number: its === null ? "" : String(its), name: text(row.Full_Name), dob: null,
     age: intOrNull(row.Age), gender: text(row.Gender) || "Male", phone: text(row.Mobile), email: text(row.Email),
@@ -93,14 +92,11 @@ export async function syncMuminExcel(rows, progress) {
   var newSectorNames = Object.keys(sectorNames).sort().filter(function (n) { return !sectorIdByName[n]; });
   if (newSectorNames.length) {
     var newSectors = newSectorNames.map(function (name) { return { name: name, masool_its: null, masool_name: null, masool_phone: "", incharge_its_id: null }; });
-    // incharge_its_id references mumin_data, so new sectors are created with NULL first.
     var insertedSectors = await sbUpsert("sectors", newSectors, "name");
     (insertedSectors || []).forEach(function (s) { sectorIdByName[text(s.name)] = Number(s.id); });
-    if (newSectorNames.some(function (n) { return !sectorIdByName[n]; })) {
-      sectors = await sbGet("sectors", "order=id.asc"); sectors.forEach(function (s) { sectorIdByName[text(s.name)] = Number(s.id); });
-    }
+    sectors = await sbGet("sectors", "order=id.asc");
+    sectors.forEach(function (s) { sectorIdByName[text(s.name)] = Number(s.id); });
   }
-  if (newSectorNames.length) { sectors = await sbGet("sectors", "order=id.asc"); sectors.forEach(function (s) { sectorIdByName[text(s.name)] = Number(s.id); }); }
 
   var subKeySet = {};
   source.forEach(function (r) { var sector = text(r.Sector), sub = text(r.Sub_Sector); if (sector && sub) subKeySet[sector + "\u0000" + sub] = true; });
@@ -111,31 +107,48 @@ export async function syncMuminExcel(rows, progress) {
     var newSubs = newSubKeys.map(function (key) {
       var parts = key.split("\u0000"); return { sector_id: sectorIdByName[parts[0]], name: parts[1], musaid_its: null, musaid_name: null, musaid_phone: "", incharge_its_id: null };
     });
-    // incharge_its_id references mumin_data, so new sub-sectors are created with NULL first.
     var insertedSubs = await sbUpsert("sub_sectors", newSubs, "sector_id,name");
     (insertedSubs || []).forEach(function (s) { var sec = sectors.find(function (x) { return Number(x.id) === Number(s.sector_id); }); if (sec) subSectorIdByKey[text(sec.name) + "\u0000" + text(s.name)] = Number(s.id); });
-    if (newSubKeys.some(function (k) { return !subSectorIdByKey[k]; })) {
-      subSectors = await sbGet("sub_sectors", "order=id.asc"); subSectors.forEach(function (s) { var sec = sectors.find(function (x) { return Number(x.id) === Number(s.sector_id); }); if (sec) subSectorIdByKey[text(sec.name) + "\u0000" + text(s.name)] = Number(s.id); });
-    }
+    subSectors = await sbGet("sub_sectors", "order=id.asc");
+    subSectors.forEach(function (s) { var sec = sectors.find(function (x) { return Number(x.id) === Number(s.sector_id); }); if (sec) subSectorIdByKey[text(sec.name) + "\u0000" + text(s.name)] = Number(s.id); });
   }
+
+  // Families reference mumin_data.hof_its_id, so HOF-linked families cannot be inserted
+  // until the Mumin rows exist. We first ensure Mumin records are present, then upsert families.
+  report("Synchronizing Mumin records", 0, source.length);
+  var muminRows = source.map(function (r) { return buildPayload(r, subSectorIdByKey); });
+  await chunksUpsert("mumin_data", muminRows, "its_id", 200);
+  report("Mumin records synchronized", source.length, source.length);
 
   report("Synchronizing families", 0, source.length);
   var familyMap = {};
-  source.forEach(function (r) { var family = intOrNull(r.Family_ID), hof = intOrNull(r.HOF_ID); if (family === null) return; if (!familyMap[family]) familyMap[family] = { family_id: family, hof_its_id: hof, sabil_no: null }; else if (!familyMap[family].hof_its_id && hof) familyMap[family].hof_its_id = hof; });
+  source.forEach(function (r) {
+    var family = intOrNull(r.Family_ID), hof = intOrNull(r.HOF_ID);
+    if (family === null) return;
+    if (!familyMap[family]) familyMap[family] = { family_id: family, hof_its_id: null, sabil_no: null };
+    // Only set HOF when that ITS record actually exists. This prevents the FK from
+    // rejecting a family when the export contains a stale/missing HOF reference.
+    if (hof !== null && !familyMap[family].hof_its_id) familyMap[family].hof_its_id = hof;
+  });
   var families = Object.keys(familyMap).map(function (k) { return familyMap[k]; });
+  var hofIds = {};
+  families.forEach(function (f) { if (f.hof_its_id !== null) hofIds[f.hof_its_id] = true; });
+  var existingHofIds = {};
+  var hofList = Object.keys(hofIds);
+  for (var hp = 0; hp < hofList.length; hp += 500) {
+    var hofChunk = hofList.slice(hp, hp + 500);
+    if (!hofChunk.length) continue;
+    var foundHofs = await sbGet("mumin_data", "its_id=in.(" + hofChunk.join(",") + ")&select=its_id");
+    (foundHofs || []).forEach(function (m) { existingHofIds[Number(m.its_id)] = true; });
+  }
+  families.forEach(function (f) { if (f.hof_its_id !== null && !existingHofIds[f.hof_its_id]) f.hof_its_id = null; });
   await chunksUpsert("families", families, "family_id", 200);
-
-  report("Synchronizing Mumin records", 0, source.length);
-  var muminRows = source.map(function (r) { return buildPayload(r, sectorIdByName, subSectorIdByKey); });
-  await chunksUpsert("mumin_data", muminRows, "its_id", 200);
-  report("Mumin records synchronized", source.length, source.length);
 
   // Resolve only ITS IDs that actually exist in mumin_data before assigning FK values.
   var inchargeIds = {};
   source.forEach(function (r) { ["Sector_Incharge", "Sector_Incharge_Female", "Sub_Sector_Incharge", "Sub_Sector_Incharge_Female"].forEach(function (prefix) { var its = intOrNull(r[prefix + "_ITSID"]); if (its !== null) inchargeIds[its] = true; }); });
   var existingInchargeIds = {};
   var idList = Object.keys(inchargeIds);
-  // mumin_data is small enough for a single select in normal operation; chunk the source IDs to avoid long requests.
   for (var p = 0; p < idList.length; p += 500) {
     var idChunk = idList.slice(p, p + 500);
     if (!idChunk.length) continue;
