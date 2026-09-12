@@ -3,6 +3,7 @@ import { useAppContext } from "../context/AppContext.jsx";
 import { sbGet } from "../lib/supabase.js";
 import { getMuminAge } from "../lib/utils.js";
 import { printMumin, printIdCard } from "../lib/print.js";
+import { printMuminA4 } from "../lib/muminA4Print.js";
 
 export function MuminPreview() {
   var ctx = useAppContext();
@@ -26,6 +27,11 @@ export function MuminPreview() {
 
   var m = muminPreview;
   var sabilFamily = m.sabil_no ? getFamilyBySabil(m.sabil_no).filter(function (o) { return o.id !== m.id; }) : [];
+  var familyMembers = m.sabil_no ? getFamilyBySabil(m.sabil_no) : [];
+  if (familyRecord && familyRecord.family_id) {
+    var familyIdMembers = (ctx.muminData || []).filter(function (o) { return String(o.family_id) === String(familyRecord.family_id); });
+    if (familyIdMembers.length) familyMembers = familyIdMembers;
+  }
   var sectorInfo = getSectorInfo(m) || {};
   var hof = familyRecord && familyRecord.hof_its_id
     ? (ctx.getMuminByIts ? ctx.getMuminByIts(familyRecord.hof_its_id) : null)
@@ -52,9 +58,7 @@ export function MuminPreview() {
         <div className="preview-hdr">
           <div style={{ display: "flex", alignItems: "center", gap: 16, minWidth: 0 }}>
             <div className="preview-avatar" style={{ width: 76, height: 76, flexShrink: 0, fontSize: 28 }}>
-              {m.photo_url
-                ? <img src={m.photo_url} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
-                : initials}
+              {m.photo_url ? <img src={m.photo_url} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} /> : initials}
             </div>
             <div style={{ minWidth: 0 }}>
               <div className="preview-name" style={{ fontSize: 22 }}>{m.name || "Unnamed Mumin"}</div>
@@ -70,72 +74,38 @@ export function MuminPreview() {
         </div>
 
         <div className="preview-body">
-          {warnings.length > 0 && (
-            <div style={{ border: "1px solid #7c5a17", background: "rgba(124,90,23,.12)", borderRadius: 8, padding: "10px 12px", marginBottom: 14 }}>
-              <div style={{ fontWeight: 700, marginBottom: 5 }}>⚠ Data quality ({warnings.length})</div>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {warnings.map(function (w) { return <span key={w} style={{ fontSize: 12, padding: "4px 8px", borderRadius: 14, background: "rgba(245,158,11,.12)" }}>{w}</span>; })}
-              </div>
-            </div>
-          )}
+          {warnings.length > 0 && <div style={{ border: "1px solid #7c5a17", background: "rgba(124,90,23,.12)", borderRadius: 8, padding: "10px 12px", marginBottom: 14 }}><div style={{ fontWeight: 700, marginBottom: 5 }}>⚠ Data quality ({warnings.length})</div><div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{warnings.map(function (w) { return <span key={w} style={{ fontSize: 12, padding: "4px 8px", borderRadius: 14, background: "rgba(245,158,11,.12)" }}>{w}</span>; })}</div></div>}
 
           <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.15fr) minmax(0, .85fr)", gap: 14 }}>
-            <div className="preview-section" style={{ margin: 0 }}>
-              <div className="preview-sec-title">Personal & Contact Details</div>
-              <div className="preview-grid">
-                <div className="preview-field"><div className="preview-field-label">Age / DOB</div><div className="preview-field-val">{age || "—"}{m.dob ? " • " + m.dob : ""}</div></div>
-                <div className="preview-field"><div className="preview-field-label">Gender</div><div className="preview-field-val">{m.gender || "—"}</div></div>
-                <div className="preview-field">
-                  <div className="preview-field-label">Phone</div>
-                  <div className="preview-field-val" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
-                    <span>{m.phone || "—"}</span>
-                    {m.phone && <span style={{ display: "flex", gap: 6 }}>
-                      <a href={"tel:" + m.phone.replace(/[^0-9+]/g, "")} className="quick-contact-btn quick-call" title="Call">📞</a>
-                      <a href={"https://wa.me/" + m.phone.replace(/[^0-9]/g, "")} target="_blank" rel="noopener noreferrer" className="quick-contact-btn quick-wa" title="WhatsApp">💬</a>
-                    </span>}
-                  </div>
-                </div>
-                <div className="preview-field"><div className="preview-field-label">Email</div><div className="preview-field-val" style={{ fontSize: 12 }}>{m.email || "—"}</div></div>
-                <div className="preview-field" style={{ gridColumn: "span 2" }}><div className="preview-field-label">Address</div><div className="preview-field-val">{m.address || "—"}</div></div>
-              </div>
-            </div>
-
-            <div className="preview-section" style={{ margin: 0 }}>
-              <div className="preview-sec-title">Community Assignment</div>
-              <div className="preview-grid" style={{ gridTemplateColumns: "1fr" }}>
-                <div className="preview-field"><div className="preview-field-label">Area Sector</div><div className="preview-field-val">{sectorInfo.sectorName || m.area_sector || "—"}</div></div>
-                <div className="preview-field"><div className="preview-field-label">Masool</div><div className="preview-field-val">{sectorInfo.masoolName || "—"}</div></div>
-                <div className="preview-field"><div className="preview-field-label">Sub-Sector</div><div className="preview-field-val">{sectorInfo.subSectorName || "—"}</div></div>
-                <div className="preview-field"><div className="preview-field-label">Musaid</div><div className="preview-field-val">{sectorInfo.musaidName || "—"}</div></div>
-                <div className="preview-field"><div className="preview-field-label">Sabil No.</div><div className="preview-field-val">{m.sabil_no || (familyRecord && familyRecord.sabil_no) || "—"}</div></div>
-              </div>
-            </div>
+            <div className="preview-section" style={{ margin: 0 }}><div className="preview-sec-title">Personal & Contact Details</div><div className="preview-grid">
+              <div className="preview-field"><div className="preview-field-label">Age / DOB</div><div className="preview-field-val">{age || "—"}{m.dob ? " • " + m.dob : ""}</div></div>
+              <div className="preview-field"><div className="preview-field-label">Gender</div><div className="preview-field-val">{m.gender || "—"}</div></div>
+              <div className="preview-field"><div className="preview-field-label">Phone</div><div className="preview-field-val" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}><span>{m.phone || "—"}</span>{m.phone && <span style={{ display: "flex", gap: 6 }}><a href={"tel:" + m.phone.replace(/[^0-9+]/g, "")} className="quick-contact-btn quick-call" title="Call">📞</a><a href={"https://wa.me/" + m.phone.replace(/[^0-9]/g, "")} target="_blank" rel="noopener noreferrer" className="quick-contact-btn quick-wa" title="WhatsApp">💬</a></span>}</div></div>
+              <div className="preview-field"><div className="preview-field-label">Email</div><div className="preview-field-val" style={{ fontSize: 12 }}>{m.email || "—"}</div></div>
+              <div className="preview-field" style={{ gridColumn: "span 2" }}><div className="preview-field-label">Address</div><div className="preview-field-val">{m.address || "—"}</div></div>
+            </div></div>
+            <div className="preview-section" style={{ margin: 0 }}><div className="preview-sec-title">Community Assignment</div><div className="preview-grid" style={{ gridTemplateColumns: "1fr" }}>
+              <div className="preview-field"><div className="preview-field-label">Area Sector</div><div className="preview-field-val">{sectorInfo.sectorName || m.area_sector || "—"}</div></div>
+              <div className="preview-field"><div className="preview-field-label">Masool</div><div className="preview-field-val">{sectorInfo.masoolName || "—"}</div></div>
+              <div className="preview-field"><div className="preview-field-label">Sub-Sector</div><div className="preview-field-val">{sectorInfo.subSectorName || "—"}</div></div>
+              <div className="preview-field"><div className="preview-field-label">Musaid</div><div className="preview-field-val">{sectorInfo.musaidName || "—"}</div></div>
+              <div className="preview-field"><div className="preview-field-label">Sabil No.</div><div className="preview-field-val">{m.sabil_no || (familyRecord && familyRecord.sabil_no) || "—"}</div></div>
+            </div></div>
           </div>
 
-          <div className="preview-section">
-            <div className="preview-sec-title">Family & HOF</div>
+          <div className="preview-section"><div className="preview-sec-title">Family & HOF</div>
             <div style={{ display: "grid", gridTemplateColumns: "minmax(120px,.6fr) minmax(180px,1fr) minmax(180px,1.4fr)", gap: 10, marginBottom: 10 }}>
               <div className="preview-field"><div className="preview-field-label">Family ID</div><div className="preview-field-val">{m.family_id || "—"}</div></div>
               <div className="preview-field"><div className="preview-field-label">Sabil No.</div><div className="preview-field-val">{(familyRecord && familyRecord.sabil_no) || m.sabil_no || "—"}</div></div>
               <div className="preview-field"><div className="preview-field-label">Head of Family</div><div className="preview-field-val">{hof ? hof.name + " • " + hof.its_number : (familyRecord && familyRecord.hof_its_id ? "ITS " + familyRecord.hof_its_id : "Not assigned")}</div></div>
             </div>
-            {sabilFamily.length > 0 ? (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(210px,1fr))", gap: 7 }}>
-                {sabilFamily.map(function (o) {
-                  var isHof = familyRecord && familyRecord.hof_its_id && (String(o.its_id) === String(familyRecord.hof_its_id) || String(o.its_number) === String(familyRecord.hof_its_id));
-                  return <div className="preview-family-chip" key={o.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }} onClick={function () { openSibling(o); }}>
-                    <span>{isHof ? "👑 " : "🏠 "}{o.name}</span>
-                    <span style={{ color: "#6b7280", fontSize: 11 }}>{o.its_number || "—"}</span>
-                  </div>;
-                })}
-              </div>
-            ) : <div style={{ color: "#777", fontSize: 12 }}>No other family members found.</div>}
+            {sabilFamily.length > 0 ? <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(210px,1fr))", gap: 7 }}>{sabilFamily.map(function (o) { var isHof = familyRecord && familyRecord.hof_its_id && (String(o.its_id) === String(familyRecord.hof_its_id) || String(o.its_number) === String(familyRecord.hof_its_id)); return <div className="preview-family-chip" key={o.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }} onClick={function () { openSibling(o); }}><span>{isHof ? "👑 " : "🏠 "}{o.name}</span><span style={{ color: "#6b7280", fontSize: 11 }}>{o.its_number || "—"}</span></div>; })}</div> : <div style={{ color: "#777", fontSize: 12 }}>No other family members found.</div>}
           </div>
 
           <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
             {canEdit && <button className="btn btn-primary" onClick={function () { setMuminPreview(null); openModal("mumin", "edit", m); }}>✎ Edit Record</button>}
             <button className="btn btn-ghost" onClick={function () { printIdCard(m, sabilFamily, sectorInfo); }}>🪪 ID Card</button>
-            <button className="btn btn-ghost" onClick={function () { printMumin(m, sabilFamily, sectorInfo); }}>🖨 Print A4</button>
+            <button className="btn btn-primary" onClick={function () { printMuminA4(m, familyRecord, familyMembers, sectorInfo); }}>🖨 Print A4</button>
             {m.family_id && <button className="btn btn-ghost" onClick={function () { close(); setPage("families"); }}>🏠 Open Families</button>}
             <button className="btn btn-ghost" onClick={close}>Close</button>
           </div>
