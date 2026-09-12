@@ -1,11 +1,36 @@
+import { SOURCE_COLUMNS } from "./excelMuminSync.js";
+
 function text(v) { return v === null || v === undefined ? "" : String(v).trim(); }
 function intOrNull(v) { var n = Number(text(v)); return Number.isFinite(n) && n !== 0 ? Math.trunc(n) : null; }
-
 function clean(v) { return text(v); }
 
-export function analyzeMuminExcel(rows, existingRows) {
+// ── Column drift guard ──────────────────────────────────────────────
+// Compares the uploaded workbook's header row against SOURCE_COLUMNS
+// (the columns the sync pipeline actually reads). A missing column means
+// a silent partial sync — that field will just be blank for every row.
+// Extra columns are harmless and are simply ignored by the sync.
+export function checkColumnDrift(rows) {
+  var uploaded = rows && rows.length ? Object.keys(rows[0]) : [];
+  var missing = SOURCE_COLUMNS.filter(function (c) { return uploaded.indexOf(c) === -1; });
+  var extra = uploaded.filter(function (c) { return SOURCE_COLUMNS.indexOf(c) === -1; });
+  return {
+    uploadedCount: uploaded.length,
+    expectedCount: SOURCE_COLUMNS.length,
+    missing: missing,
+    extra: extra,
+    ok: missing.length === 0,
+  };
+}
+
+// ── Synchronization preview ───────────────────────────────────────────
+// existingSectorNames (optional) lets the caller flag sectors in the
+// workbook that don't exist yet, since a sync will auto-create them.
+export function analyzeMuminExcel(rows, existingRows, existingSectorNames) {
   var source = Array.isArray(rows) ? rows : [];
   var existing = Array.isArray(existingRows) ? existingRows : [];
+  var knownSectors = {};
+  (existingSectorNames || []).forEach(function (s) { if (s) knownSectors[text(s)] = true; });
+
   var existingByIts = {};
   existing.forEach(function (m) {
     var its = intOrNull(m.its_id !== undefined ? m.its_id : m.its_number);
@@ -15,6 +40,8 @@ export function analyzeMuminExcel(rows, existingRows) {
   var counts = { new: 0, updated: 0, unchanged: 0, conflicts: 0, invalid: 0 };
   var details = { new: [], updated: [], unchanged: [], conflicts: [], invalid: [] };
   var seen = {};
+  var incomingSectors = {};
+  var selfHeadedFM = [];
 
   source.forEach(function (r, index) {
     var row = index + 2;
@@ -26,6 +53,21 @@ export function analyzeMuminExcel(rows, existingRows) {
       return;
     }
     seen[its] = (seen[its] || 0) + 1;
+
+    var sector = text(r.Sector);
+    if (sector) incomingSectors[sector] = true;
+
+    var family = intOrNull(r.Family_ID);
+    var hofId = intOrNull(r.HOF_ID);
+
+    // Real-world Jamaat export quirk: a row marked "FM" (family member)
+    // with no HOF_ID, whose Family_ID equals its own ITS_ID. This syncs
+    // fine (it behaves like a self-headed family) but usually means the
+    // source record should really be labeled "HOF" upstream.
+    if (text(r.HOF_FM_TYPE) === "FM" && hofId === null && family === its) {
+      selfHeadedFM.push({ row: row, its: its, name: name || "Unnamed" });
+    }
+
     var current = existingByIts[its];
     if (!current) {
       counts.new++;
@@ -56,13 +98,11 @@ export function analyzeMuminExcel(rows, existingRows) {
       details.unchanged.push({ row: row, its: its, name: name || current.name || "Unnamed" });
     }
 
-    var family = intOrNull(r.Family_ID);
-    var hof = intOrNull(r.HOF_ID);
-    if (hof !== null && family !== null) {
-      var hofInSource = source.some(function (x) { return intOrNull(x.ITS_ID) === hof; });
-      if (!hofInSource && !existingByIts[hof]) {
+    if (hofId !== null && family !== null) {
+      var hofInSource = source.some(function (x) { return intOrNull(x.ITS_ID) === hofId; });
+      if (!hofInSource && !existingByIts[hofId]) {
         counts.conflicts++;
-        details.conflicts.push({ row: row, its: its, name: name, reason: "HOF_ID " + hof + " is not present in the workbook or current database" });
+        details.conflicts.push({ row: row, its: its, name: name, reason: "HOF_ID " + hofId + " is not present in the workbook or current database" });
       }
     }
   });
@@ -74,9 +114,15 @@ export function analyzeMuminExcel(rows, existingRows) {
     }
   });
 
+  var newSectors = Object.keys(incomingSectors)
+    .filter(function (s) { return !knownSectors[s]; })
+    .sort();
+
   return {
     counts: counts,
     details: details,
     blocking: counts.invalid > 0 || details.conflicts.some(function (x) { return String(x.reason).indexOf("Duplicate ITS_ID") === 0; }),
+    newSectors: newSectors,
+    selfHeadedFM: selfHeadedFM,
   };
 }
