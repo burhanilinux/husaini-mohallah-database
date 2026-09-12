@@ -4,7 +4,7 @@ import { sbGet } from "../lib/supabase.js";
 import { getMuminAge } from "../lib/utils.js";
 import { getExtendedProfile } from "../lib/muminProfile.js";
 import { printMumin, printIdCard } from "../lib/print.js";
-import { printMuminA4 } from "../lib/muminA4Print.js";
+import { printMuminA4, printMuminFullProfile } from "../lib/muminA4Print.js";
 
 export function MuminPreview() {
   var ctx = useAppContext();
@@ -143,6 +143,7 @@ export function MuminPreview() {
             {canEdit && <button className="btn btn-primary" onClick={function () { setMuminPreview(null); openModal("mumin", "edit", m); }}>✎ Edit Record</button>}
             <button className="btn btn-ghost" onClick={function () { printIdCard(m, sabilFamily, sectorInfo); }}>🪪 ID Card</button>
             <button className="btn btn-primary" onClick={function () { printMuminA4(m, familyRecord, familyMembers, sectorInfo); }}>🖨 Print A4</button>
+            <button className="btn btn-ghost" onClick={function () { printMuminFullProfile(m, familyRecord, familyMembers, sectorInfo); }}>📋 Print Full Profile</button>
             {m.family_id && <button className="btn btn-ghost" onClick={function () { close(); setPage("families"); }}>🏠 Open Families</button>}
             <button className="btn btn-ghost" onClick={close}>Close</button>
           </div>
