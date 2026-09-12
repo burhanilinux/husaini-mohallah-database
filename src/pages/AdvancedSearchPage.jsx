@@ -18,11 +18,11 @@ export function AdvancedSearchPage() {
   var results = useMemo(function () {
     var q = query.trim().toLowerCase();
     return muminData.filter(function (m) {
-if (q) {
-  var ext = getExtendedProfile(m);
-  var haystack = [(m.name || ""), (m.its_number || ""), (m.phone || ""), (m.email || ""), (m.sabil_no || ""), (m.address || ""), (ext.occupation || ""), (ext.city || ""), (ext.organisation || "")].join(" ").toLowerCase();
-  if (!haystack.includes(q)) return false;
-}
+      if (q) {
+        var ext = getExtendedProfile(m);
+        var haystack = [(m.name || ""), (m.its_number || ""), (m.phone || ""), (m.email || ""), (m.sabil_no || ""), (m.address || ""), (ext.occupation || ""), (ext.city || ""), (ext.organisation || "")].join(" ").toLowerCase();
+        if (haystack.indexOf(q) === -1) return false;
+      }
       if (sector && m.area_sector !== sector) return false;
       if (gender && m.gender !== gender) return false;
       if (status && m.status !== status) return false;
@@ -56,7 +56,7 @@ if (q) {
       <div className="card" style={{ marginBottom: 18 }}>
         <div className="card-hdr"><span className="card-title">Search & Filters</span><button className="btn btn-ghost btn-sm" onClick={clearFilters}>Clear All</button></div>
         <div style={{ padding: 18, display: "grid", gridTemplateColumns: "2fr repeat(3,1fr)", gap: 12 }}>
-          <input placeholder="Name, ITS, phone, email, Sabil or address…" value={query} onChange={function (e) { setQuery(e.target.value); }} />
+          <input placeholder="Name, ITS, phone, email, occupation, city, Sabil or address…" value={query} onChange={function (e) { setQuery(e.target.value); }} />
           <select value={sector} onChange={function (e) { setSector(e.target.value); }}><option value="">All Sectors</option>{areaSectors.map(function (s) { return <option key={s} value={s}>{s}</option>; })}</select>
           <select value={gender} onChange={function (e) { setGender(e.target.value); }}><option value="">All Genders</option><option value="Male">Male</option><option value="Female">Female</option></select>
           <select value={status} onChange={function (e) { setStatus(e.target.value); }}><option value="">All Status</option><option value="Active">Active</option><option value="Inactive">Inactive</option></select>
