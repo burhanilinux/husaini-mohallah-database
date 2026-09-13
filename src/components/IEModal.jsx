@@ -2,8 +2,9 @@ import { useState, useRef } from "react";
 import { Spinner } from "./Shared.jsx";
 import { MUMIN_COLS } from "../lib/constants.js";
 import { downloadBlob, toCSV, toXLS, parseCSV } from "../lib/utils.js";
-import { parseMuminExcel, syncMuminExcel, SOURCE_COLUMNS } from "../lib/excelMuminSync.js";
+import { parseMuminExcel, SOURCE_COLUMNS } from "../lib/excelMuminSync.js";
 import { analyzeMuminExcel } from "../lib/excelMuminPreview.js";
+import { safeSyncMuminExcel } from "../lib/safeMuminImport.js";
 
 export function IEModal({ onClose, muminData, onImportMumin, importing }) {
   const [tab, setTab] = useState("export");
@@ -74,7 +75,7 @@ export function IEModal({ onClose, muminData, onImportMumin, importing }) {
       }
       setSyncing(true);
       try {
-        await syncMuminExcel(parsedRows);
+        await safeSyncMuminExcel(parsedRows, muminData, { fileName: preview.name });
         window.location.reload();
       } catch (e) {
         setSyncError(e.message || "Import failed");
