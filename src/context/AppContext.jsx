@@ -6,7 +6,6 @@ import {
 import { UMOOR_TYPES, currentYear } from "../lib/constants.js";
 import { getUmoorPrefix, calcAge, downloadBlob, toXLS } from "../lib/utils.js";
 import { validateMuminForm, validateFileForm, getMuminDuplicateWarnings } from "../lib/validation.js";
-import { buildReportRows } from "../lib/reports.js";
 
 const AppContext = createContext(null);
 
@@ -37,9 +36,6 @@ export function AppProvider({ children }) {
   const [subSectorsData, setSubSectorsData] = useState([]);
   const [activityLog, setActivityLog] = useState([]);
   const [usersData, setUsersData] = useState([]);
-  const [organisationsData, setOrganisationsData] = useState([]);
-  const [membershipsData, setMembershipsData] = useState([]);
-  const [importLogData, setImportLogData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [dbError, setDbError] = useState(null);
 
@@ -99,11 +95,174 @@ export function AppProvider({ children }) {
 
   // ── Report row builder (feeds print previews + Excel export) ──
   function getReportRows(reportId, extra) {
-    return buildReportRows(reportId, extra, {
-      muminData, filesData, sectorsData, activityLog,
-      organisationsData, membershipsData, importLogData,
-      areaSectors, calcAge, getMuminByIts, getSectorInfo, getSubSectorsFor,
-    });
+    if (reportId === "mumin") {
+      return {
+        cols: ["its_number","name","age","gender","phone","address","area_sector","masool","sub_sector","musaid","status"],
+        rows: muminData.map(function (m) {
+          var si = getSectorInfo(m);
+          return {
+            its_number: m.its_number || "", name: m.name || "", age: getMuminAgeLocal(m) || "",
+            gender: m.gender || "", phone: m.phone || "", address: m.address || "",
+            area_sector: m.area_sector || "", masool: si.masoolName || "",
+            sub_sector: si.subSectorName || "", musaid: si.musaidName || "",
+            status: m.status || "",
+          };
+        }),
+        filename: "mumin_directory",
+      };
+    }
+    if (reportId === "files_all") {
+      return {
+        cols: ["file_no","title","umoor_type","year","status","due_date"],
+        rows: filesData.map(function (f) {
+          return {
+            file_no: f.file_no || "", title: f.title || "", umoor_type: f.umoor_type || "",
+            year: f.year || "", status: f.status || "", due_date: f.due_date || "",
+          };
+        }),
+        filename: "umoor_files_all",
+      };
+    }
+    if (reportId === "reminders") {
+      var withDue = filesData.filter(function (f) { return f.due_date; })
+        .sort(function (a, b) { return new Date(a.due_date) - new Date(b.due_date); });
+      return {
+        cols: ["file_no","title","umoor_type","status","due_date"],
+        rows: withDue.map(function (f) {
+          return {
+            file_no: f.file_no || "", title: f.title || "", umoor_type: f.umoor_type || "",
+            status: f.status || "", due_date: f.due_date || "",
+          };
+        }),
+        filename: "reminders_report",
+      };
+    }
+    if (reportId === "families") {
+      var sabilGroups = {};
+      muminData.forEach(function (m) {
+        if (m.sabil_no && String(m.sabil_no).trim()) {
+          var key = String(m.sabil_no).trim();
+          if (!sabilGroups[key]) sabilGroups[key] = [];
+          sabilGroups[key].push(m);
+        }
+      });
+      var sabilKeys = Object.keys(sabilGroups).sort();
+      return {
+        cols: ["sabil_no","members","names"],
+        rows: sabilKeys.map(function (k) {
+          var grp = sabilGroups[k];
+          return { sabil_no: k, members: grp.length, names: grp.map(function (m) { return m.name; }).join(", ") };
+        }),
+        filename: "family_directory_by_sabil",
+      };
+    }
+    if (reportId === "age_groups") {
+      var groups = [
+        { label: "Children (0-15)", min: 0,  max: 15 },
+        { label: "Youth (16-30)",   min: 16, max: 30 },
+        { label: "Adults (31-60)",  min: 31, max: 60 },
+        { label: "Seniors (61+)",   min: 61, max: 999 },
+      ];
+      return {
+        cols: ["age_group","count","male","female","percent"],
+        rows: groups.map(function (g) {
+          var mem = muminData.filter(function (m) { var a = getMuminAgeLocal(m); return a !== null && a >= g.min && a <= g.max; });
+          var male = mem.filter(function (m) { return m.gender === "Male"; }).length;
+          var pct = muminData.length > 0 ? ((mem.length / muminData.length) * 100).toFixed(1) : 0;
+          return { age_group: g.label, count: mem.length, male: male, female: mem.length - male, percent: pct + "%" };
+        }),
+        filename: "age_group_summary",
+      };
+    }
+    if (reportId === "sector_summary") {
+      var rows = areaSectors.map(function (s) {
+        var mem = muminData.filter(function (m) { return m.area_sector === s; });
+        var male = mem.filter(function (m) { return m.gender === "Male"; }).length;
+        var pct = muminData.length > 0 ? ((mem.length / muminData.length) * 100).toFixed(1) : 0;
+        var secObj = sectorsData.find(function (x) { return x.name === s; });
+        var masoolLbl = secObj ? (secObj.masool_its ? (getMuminByIts(secObj.masool_its) ? getMuminByIts(secObj.masool_its).name : secObj.masool_its) : (secObj.masool_name || "")) : "";
+        return { sector: s, masool: masoolLbl, count: mem.length, male: male, female: mem.length - male, percent: pct + "%" };
+      });
+      var noSector = muminData.filter(function (m) { return !m.area_sector || !m.area_sector.trim(); });
+      if (noSector.length > 0) {
+        var maleNS = noSector.filter(function (m) { return m.gender === "Male"; }).length;
+        var pctNS = muminData.length > 0 ? ((noSector.length / muminData.length) * 100).toFixed(1) : 0;
+        rows.push({ sector: "Not Assigned", masool: "", count: noSector.length, male: maleNS, female: noSector.length - maleNS, percent: pctNS + "%" });
+      }
+      return { cols: ["sector","masool","count","male","female","percent"], rows: rows, filename: "sector_summary" };
+    }
+    if (reportId === "sector") {
+      var sectorMembers = muminData.filter(function (m) { return m.area_sector === extra; });
+      return {
+        cols: ["its_number","name","age","gender","phone","address","sub_sector","musaid","status"],
+        rows: sectorMembers.map(function (m) {
+          var si = getSectorInfo(m);
+          return {
+            its_number: m.its_number || "", name: m.name || "", age: getMuminAgeLocal(m) || "",
+            gender: m.gender || "", phone: m.phone || "", address: m.address || "",
+            sub_sector: si.subSectorName || "", musaid: si.musaidName || "", status: m.status || "",
+          };
+        }),
+        filename: "sector_" + (extra || "unknown").replace(/[^a-zA-Z0-9]/g, "_"),
+      };
+    }
+    if (reportId === "umoor") {
+      var umoorFiles = filesData.filter(function (f) { return f.umoor_type === extra; });
+      return {
+        cols: ["file_no","title","year","date","status","due_date"],
+        rows: umoorFiles.map(function (f) {
+          return {
+            file_no: f.file_no || "", title: f.title || "", year: f.year || "",
+            date: f.date || "", status: f.status || "", due_date: f.due_date || "",
+          };
+        }),
+        filename: "umoor_" + (extra || "unknown").replace(/[^a-zA-Z0-9]/g, "_"),
+      };
+    }
+    if (reportId === "masool_directory") {
+      var msRows = [];
+      sectorsData.forEach(function (sec) {
+        var secMasoolName = sec.masool_its
+          ? (getMuminByIts(sec.masool_its) ? getMuminByIts(sec.masool_its).name : sec.masool_its)
+          : (sec.masool_name || "");
+        var subs = getSubSectorsFor(sec.id);
+        if (subs.length === 0) {
+          msRows.push({
+            sector: sec.name, masool: secMasoolName, masool_phone: sec.masool_phone || "",
+            sub_sector: "", musaid: "", musaid_phone: "",
+          });
+        } else {
+          subs.forEach(function (sub) {
+            var subMusaidName = sub.musaid_its
+              ? (getMuminByIts(sub.musaid_its) ? getMuminByIts(sub.musaid_its).name : sub.musaid_its)
+              : (sub.musaid_name || "");
+            msRows.push({
+              sector: sec.name, masool: secMasoolName, masool_phone: sec.masool_phone || "",
+              sub_sector: sub.name, musaid: subMusaidName, musaid_phone: sub.musaid_phone || "",
+            });
+          });
+        }
+      });
+      return {
+        cols: ["sector","masool","masool_phone","sub_sector","musaid","musaid_phone"],
+        rows: msRows,
+        filename: "masool_directory",
+      };
+    }
+    if (reportId === "activity_log") {
+      return {
+        cols: ["created_at","user_email","action","entity_type","entity_name"],
+        rows: activityLog.map(function (a) {
+          return {
+            created_at: a.created_at ? new Date(a.created_at).toLocaleString() : "",
+            user_email: a.user_email || "", action: a.action || "",
+            entity_type: a.entity_type || "", entity_name: a.entity_name || "",
+          };
+        }),
+        filename: "activity_log",
+      };
+    }
+    return { cols: [], rows: [], filename: "report" };
   }
 
   function exportReportXLS(reportId, extra) {
@@ -362,22 +521,6 @@ export function AppProvider({ children }) {
       setActivityLog(results[3] || []);
       setSectorsData(results[4] || []);
       setSubSectorsData(results[5] || []);
-
-      // Best-effort — these tables are supplementary (organisations,
-      // memberships, import history) and shouldn't block core data loading
-      // if one of them isn't set up yet (e.g. import_log migration not run).
-      try {
-        var extras = await Promise.all([
-          sbGet("organisations", "order=name.asc"),
-          sbGet("mumineen_organisations", "order=org_id.asc"),
-          sbGet("import_log", "order=imported_at.desc&limit=100"),
-        ]);
-        setOrganisationsData(extras[0] || []);
-        setMembershipsData(extras[1] || []);
-        setImportLogData(extras[2] || []);
-      } catch (_extraErr) {
-        setOrganisationsData([]); setMembershipsData([]); setImportLogData([]);
-      }
     } catch (e) {
       setDbError(e.message);
     }
@@ -460,4 +603,216 @@ export function AppProvider({ children }) {
       var photoUrl = form.photo_url || null;
       if (muminPhotoFile) {
         setUploadingPhoto(true);
-        var path =
+        var path = "mumin-photos/" + Date.now() + "-" + muminPhotoFile.name.replace(/[^a-zA-Z0-9.]/g, "_");
+        photoUrl = await uploadStorage(muminPhotoFile, path);
+        setUploadingPhoto(false);
+      }
+      var payload = {
+        its_number: (form.its_number || "").trim(),
+        name: form.name.trim(),
+        dob: form.dob || null,
+        age: form.dob ? calcAge(form.dob) : (form.age ? Number(form.age) : null),
+        gender: form.gender || "Male",
+        phone: form.phone || "",
+        email: form.email || "",
+        address: form.address || "",
+        area_sector: form.area_sector || "",
+        sabil_no: form.sabil_no || "",
+        sub_sector_id: form.sub_sector_id || null,
+        status: form.status || "Active",
+        photo_url: photoUrl,
+      };
+      if (modal.mode === "add") await sbInsert("mumin_data", payload);
+      else await sbUpdate("mumin_data", form.id, payload);
+      await logActivity(modal.mode === "add" ? "create" : "update", "mumin", payload.name, getUserEmail());
+      showToast(modal.mode === "add" ? "Mumin record saved ☁" : "Record updated");
+      await loadAll(); closeModal();
+    } catch (e) { showToast("Error: " + e.message, "error"); }
+    setSaving(false); setUploadingPhoto(false);
+  }
+
+  async function saveFile() {
+    var errors = validateFileForm(form);
+    if (errors.length > 0) { setFormErrors(errors); return; }
+    setFormErrors([]);
+    setSaving(true);
+    try {
+      var fileNo = form.file_no || ("HM-" + getUmoorPrefix(form.umoor_type || "") + "-" + form.year + "-" + String(Date.now()).slice(-3));
+      var payload = {
+        file_no: fileNo,
+        umoor_type: form.umoor_type || "",
+        year: Number(form.year) || 2026,
+        title: form.title.trim(),
+        description: form.description || "",
+        status: form.status || "Active",
+        date: form.date || "",
+        due_date: form.due_date || null,
+      };
+      var fileId;
+      if (modal.mode === "add") {
+        var result = await sbInsert("umoor_files", payload);
+        fileId = Array.isArray(result) ? result[0].id : result.id;
+      } else {
+        fileId = form.id;
+        await sbUpdate("umoor_files", fileId, payload);
+        var existingIds = attsData.filter(function (a) { return a.file_id === fileId; }).map(function (a) { return a.id; });
+        var keptIds = formAtts.filter(function (a) { return a.id; }).map(function (a) { return a.id; });
+        for (var i = 0; i < existingIds.length; i++) {
+          if (keptIds.indexOf(existingIds[i]) < 0) await sbDelete("attachments", existingIds[i]);
+        }
+      }
+      var newAtts = formAtts.filter(function (a) { return !a.id; });
+      if (newAtts.length > 0) {
+        setUploading(true);
+        for (var j = 0; j < newAtts.length; j++) {
+          var att = newAtts[j];
+          var ext = att.name.split(".").pop();
+          var path = "files/" + fileId + "/" + Date.now() + "-" + Math.random().toString(36).slice(2) + "." + ext;
+          var url = await uploadStorage(att, path);
+          await sbInsert("attachments", { file_id: fileId, name: att.name, size: att.size, type: att.type, url: url });
+        }
+        setUploading(false);
+      }
+      await logActivity(modal.mode === "add" ? "create" : "update", "file", payload.title, getUserEmail());
+      showToast(modal.mode === "add" ? "File saved ☁" : "File updated");
+      await loadAll(); closeModal();
+    } catch (e) { showToast("Error: " + e.message, "error"); setUploading(false); }
+    setSaving(false);
+  }
+
+  async function deleteRecord(type, id) {
+    try {
+      var table = type === "mumin" ? "mumin_data" : "umoor_files";
+      var list  = type === "mumin" ? muminData : filesData;
+      var rec   = list.find(function (r) { return r.id === id; });
+      var name  = rec ? (rec.name || rec.title || ("#" + id)) : ("#" + id);
+      await sbUpdate(table, id, { deleted_at: new Date().toISOString() });
+      await logActivity("delete", type, name, getUserEmail());
+      showToast("Moved to Trash"); await loadAll();
+    } catch (e) { showToast("Error: " + e.message, "error"); }
+  }
+
+  // ── Import handlers ────────────────────────────────────────────
+  async function handleImportMumin(rows) {
+    setImporting(true);
+    var ok = 0;
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      try {
+        await sbInsert("mumin_data", {
+          its_number: r.its_number || "", name: r.name || "",
+          dob: r.dob || null, age: r.dob ? calcAge(r.dob) : (r.age ? Number(r.age) : null), gender: r.gender || "Male",
+          phone: r.phone || "", email: r.email || "",
+          address: r.address || "", area_sector: r.area_sector || "", sabil_no: r.sabil_no || "", status: r.status || "Active",
+        });
+        ok++;
+      } catch (e) {}
+    }
+    await loadAll(); setImporting(false); setIeModal(false);
+    showToast("Imported " + ok + " of " + rows.length + " records ☁");
+  }
+
+  async function handleImportFiles(rows) {
+    setImporting(true);
+    var ok = 0;
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      try {
+        await sbInsert("umoor_files", {
+          file_no: r.file_no || ("HM-" + getUmoorPrefix(r.umoor_type || "") + "-" + r.year + "-" + String(Date.now()).slice(-3)),
+          umoor_type: r.umoor_type || "", year: Number(r.year) || 2026,
+          title: r.title || "", description: r.description || "",
+          status: r.status || "Active", date: r.date || "",
+        });
+        ok++;
+      } catch (e) {}
+    }
+    await loadAll(); setImporting(false); setIeModal(false);
+    showToast("Imported " + ok + " of " + rows.length + " records ☁");
+  }
+
+  // ── Local re-export of getMuminAge (avoids extra import wiring below) ──
+  function getMuminAgeLocal(m) {
+    if (!m) return null;
+    var fromDob = calcAge(m.dob);
+    return fromDob !== null ? fromDob : (m.age || null);
+  }
+
+  // ── Derived / computed values ──────────────────────────────────
+  var areaSectors = (function () {
+    var set = {};
+    muminData.forEach(function (m) { if (m.area_sector && m.area_sector.trim()) set[m.area_sector.trim()] = true; });
+    return Object.keys(set).sort();
+  })();
+
+  var sabilNos = (function () {
+    var set = {};
+    muminData.forEach(function (m) { if (m.sabil_no && String(m.sabil_no).trim()) set[String(m.sabil_no).trim()] = true; });
+    return Object.keys(set).sort();
+  })();
+
+  var filteredMumin = muminData.filter(function (m) {
+    var matchesSearch = (m.name || "").toLowerCase().indexOf(search.toLowerCase()) >= 0
+      || (m.its_number || "").indexOf(search) >= 0;
+    var matchesSector = selSector ? m.area_sector === selSector : true;
+    return matchesSearch && matchesSector;
+  });
+
+  var filteredFiles = filesData.filter(function (f) {
+    return (selYear ? f.year === selYear : true)
+      && (selUmoor ? f.umoor_type === selUmoor : true)
+      && (search ? (f.title || "").toLowerCase().indexOf(search.toLowerCase()) >= 0
+          || (f.file_no || "").indexOf(search) >= 0 : true);
+  });
+
+  var umoorStats = UMOOR_TYPES.map(function (u, i) {
+    return {
+      name: u, num: i + 1,
+      count: filesData.filter(function (f) { return f.umoor_type === u && f.year === selYear; }).length,
+    };
+  });
+
+  // ── Context value ───────────────────────────────────────────────
+  var value = {
+    // auth
+    session, authLoading, userRole, setUserRole, canEdit, canDelete, isAdmin,
+    handleLogin, handleSignOut,
+    // nav
+    page, setPage,
+    // data
+    muminData, filesData, attsData, sectorsData, subSectorsData, activityLog,
+    usersData, setUsersData, loading, dbError, loadAll,
+    // filters
+    selYear, setSelYear, selUmoor, setSelUmoor, selSector, setSelSector,
+    search, setSearch, expandedSector, setExpandedSector,
+    sabilPreview, setSabilPreview, gSearch, setGSearch, gSearchOpen, setGSearchOpen,
+    // mumin/file modal
+    modal, setModal, form, setForm, formAtts, setFormAtts, formErrors, setFormErrors,
+    formWarnings, setFormWarnings,
+    saving, uploading, muminPhotoFile, setMuminPhotoFile, uploadingPhoto,
+    openModal, closeModal, saveMumin, saveFile, deleteRecord, getFileAtts,
+    // sector/subsector (masool)
+    sectorModal, sectorForm, setSectorForm, subSectorModal, subSectorForm, setSubSectorForm,
+    openSectorModal, closeSectorModal, saveSector, deleteSector,
+    openSubSectorModal, closeSubSectorModal, saveSubSector, deleteSubSector,
+    getSubSectorsFor, getMuminByIts, getSectorInfo,
+    getMuminCountForSector, getMuminCountForSubSector, getFamilyBySabil, getSabilMembers,
+    // ui
+    toast, showToast, lightbox, setLightbox,
+    muminPreview, setMuminPreview, filePreview, setFilePreview,
+    printTarget, setPrintTarget,
+    // import/export
+    ieModal, setIeModal, importing, handleImportMumin, handleImportFiles,
+    getReportRows, exportReportXLS,
+    // trash
+    trashModal, setTrashModal, trashMumin, trashFiles, restoring,
+    loadTrash, restoreRecord, permanentDelete,
+    // backup
+    downloadFullBackup, restoreFromBackup,
+    // computed
+    areaSectors, sabilNos, filteredMumin, filteredFiles, umoorStats,
+    getUserEmail,
+  };
+
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+}
