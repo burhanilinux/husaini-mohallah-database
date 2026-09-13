@@ -5,14 +5,12 @@ function intOrNull(v) { var n = Number(text(v)); return Number.isFinite(n) && n 
 function clean(v) { return text(v); }
 
 // ── Column drift guard ──────────────────────────────────────────────
-// Compares the uploaded workbook's header row against SOURCE_COLUMNS
-// (the columns the sync pipeline actually reads). A missing column means
-// a silent partial sync — that field will just be blank for every row.
-// Extra columns are harmless and are simply ignored by the sync.
 export function checkColumnDrift(rows) {
   var uploaded = rows && rows.length ? Object.keys(rows[0]) : [];
   var missing = SOURCE_COLUMNS.filter(function (c) { return uploaded.indexOf(c) === -1; });
-  var extra = uploaded.filter(function (c) { return SOURCE_COLUMNS.indexOf(c) === -1; });
+  // Ignore auto-generated placeholder headers Excel parsers emit for blank
+  // header cells (e.g. "__EMPTY", "__EMPTY_1") — not a real extra column.
+  var extra = uploaded.filter(function (c) { return SOURCE_COLUMNS.indexOf(c) === -1 && !/^__EMPTY/.test(c); });
   return {
     uploadedCount: uploaded.length,
     expectedCount: SOURCE_COLUMNS.length,
@@ -23,8 +21,6 @@ export function checkColumnDrift(rows) {
 }
 
 // ── Synchronization preview ───────────────────────────────────────────
-// existingSectorNames (optional) lets the caller flag sectors in the
-// workbook that don't exist yet, since a sync will auto-create them.
 export function analyzeMuminExcel(rows, existingRows, existingSectorNames) {
   var source = Array.isArray(rows) ? rows : [];
   var existing = Array.isArray(existingRows) ? existingRows : [];
@@ -39,7 +35,7 @@ export function analyzeMuminExcel(rows, existingRows, existingSectorNames) {
 
   var counts = { new: 0, updated: 0, unchanged: 0, conflicts: 0, invalid: 0 };
   var details = { new: [], updated: [], unchanged: [], conflicts: [], invalid: [] };
-  var seen = {};
+  var seen = {}; // its -> array of row numbers
   var incomingSectors = {};
   var selfHeadedFM = [];
 
@@ -52,7 +48,8 @@ export function analyzeMuminExcel(rows, existingRows, existingSectorNames) {
       details.invalid.push({ row: row, its: "—", name: name, reason: "Missing or invalid ITS_ID" });
       return;
     }
-    seen[its] = (seen[its] || 0) + 1;
+    seen[its] = seen[its] || [];
+    seen[its].push(row);
 
     var sector = text(r.Sector);
     if (sector) incomingSectors[sector] = true;
@@ -60,10 +57,6 @@ export function analyzeMuminExcel(rows, existingRows, existingSectorNames) {
     var family = intOrNull(r.Family_ID);
     var hofId = intOrNull(r.HOF_ID);
 
-    // Real-world Jamaat export quirk: a row marked "FM" (family member)
-    // with no HOF_ID, whose Family_ID equals its own ITS_ID. This syncs
-    // fine (it behaves like a self-headed family) but usually means the
-    // source record should really be labeled "HOF" upstream.
     if (text(r.HOF_FM_TYPE) === "FM" && hofId === null && family === its) {
       selfHeadedFM.push({ row: row, its: its, name: name || "Unnamed" });
     }
@@ -108,9 +101,9 @@ export function analyzeMuminExcel(rows, existingRows, existingSectorNames) {
   });
 
   Object.keys(seen).forEach(function (its) {
-    if (seen[its] > 1) {
+    if (seen[its].length > 1) {
       counts.conflicts++;
-      details.conflicts.push({ its: Number(its), name: "", reason: "Duplicate ITS_ID appears " + seen[its] + " times in the workbook" });
+      details.conflicts.push({ row: seen[its].join(", "), its: Number(its), name: "", reason: "Duplicate ITS_ID appears " + seen[its].length + " times (rows " + seen[its].join(", ") + ")" });
     }
   });
 
