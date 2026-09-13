@@ -52,7 +52,7 @@ function incharge(row, prefix) {
   return { its: intOrNull(row[prefix + "_ITSID"]), name: text(row[prefix + "_Name"]) };
 }
 
-function buildPayload(row, subSectorIdByKey) {
+   function buildPayload(row, subSectorIdByKey) {
   var its = intOrNull(row.ITS_ID), sector = text(row.Sector), sub = text(row.Sub_Sector), subKey = sector + "\u0000" + sub;
   return {
     its_id: its, its_number: its === null ? "" : String(its), name: text(row.Full_Name), dob: null,
@@ -60,9 +60,6 @@ function buildPayload(row, subSectorIdByKey) {
     address: text(row.Address), area_sector: sector, sub_sector_id: subSectorIdByKey[subKey] || null,
     sabil_no: null, status: text(row.Inactive_Status) ? "Inactive" : "Active", family_id: intOrNull(row.Family_ID),
     spouse_its_id: intOrNull(row.Spouse_ITS_ID), source_data: row,
-    // Extended fields — written to the dedicated columns added by the
-    // schema-extension migration, so they're directly queryable via SQL
-    // and PostgREST instead of trapped inside source_data JSON.
     occupation: text(row.Occupation) || null,
     sub_occupation: text(row.Sub_Occupation) || null,
     qualification: text(row.Qualification) || null,
@@ -83,12 +80,14 @@ function buildPayload(row, subSectorIdByKey) {
     qadambosi_sharaf: text(row.Qadambosi_Sharaf) || null,
     raudat_tahera_ziyarat: text(row.Raudat_Tahera_Ziyarat) || null,
     karbala_ziyarat: text(row.Karbala_Ziyarat) || null,
-    ashara_mubaraka: text(row.Ashara_Mubaraka) || null,
+    // FIX: this is an INTEGER column — must be a number, not text.
+    ashara_mubaraka: intOrNull(row.Ashara_Mubaraka),
     warakatul_tarkhis: text(row.Warakatul_Tarkhis) || null,
     last_scanned_event: text(row.Last_Scanned_Event) || null,
     last_scanned_place: text(row.Last_Scanned_Place) || null,
   };
 }
+
 
 async function chunksUpsert(table, rows, conflict, chunkSize) {
   var count = 0;
@@ -238,21 +237,53 @@ export async function syncMuminExcel(rows, meta, progress) {
   source.forEach(function (r) { var sector = text(r.Sector), sub = text(r.Sub_Sector); if (!sector || !sub) return; var key = sector + "\u0000" + sub, current = subInchargeByKey[key] || {}, ic = incharge(r, "Sub_Sector_Incharge"); if (!current.its && ic.its && existingInchargeIds[ic.its]) current.its = ic.its; if (!current.name && ic.name) current.name = ic.name; subInchargeByKey[key] = current; });
   await Promise.all(Object.keys(subInchargeByKey).map(async function (key) { var id = subSectorIdByKey[key]; if (!id) return; var data = subInchargeByKey[key]; await sbUpdateWhere("sub_sectors", "id=eq." + encodeURIComponent(id), { incharge_its_id: data.its || null, musaid_its: data.its ? String(data.its) : null, musaid_name: data.name || null }); }));
 
-  report("Synchronizing organisations", 0, source.length);
-  var orgEntries = organisationEntries(source), orgByName = {};
-  organisations.forEach(function (o) { orgByName[text(o.name)] = Number(o.org_id); });
-  var nextOrgId = organisations.reduce(function (m, o) { return Math.max(m, Number(o.org_id) || 0); }, 0) + 1;
-  var newOrgs = orgEntries.filter(function (o) { return !orgByName[o.name]; }).map(function (o) { var item = { org_id: nextOrgId++, name: o.name }; orgByName[o.name] = item.org_id; return item; });
-  if (newOrgs.length) await sbUpsert("organisations", newOrgs, "name");
-  organisations = organisations.concat(newOrgs);
+   report("Synchronizing organisations", 0, source.length);
+  var result = {
+    imported: source.length, families: families.length,
+    sectors: Object.keys(sectorNames).length, subSectors: Object.keys(subKeySet).length,
+    organisations: 0, memberships: 0,
+  };
+  try {
+    var orgEntries = organisationEntries(source), orgByName = {};
+    organisations.forEach(function (o) { orgByName[text(o.name)] = Number(o.org_id); });
+    var nextOrgId = organisations.reduce(function (m, o) { return Math.max(m, Number(o.org_id) || 0); }, 0) + 1;
+    var newOrgs = orgEntries.filter(function (o) { return !orgByName[o.name]; }).map(function (o) { var item = { org_id: nextOrgId++, name: o.name }; orgByName[o.name] = item.org_id; return item; });
+    if (newOrgs.length) await sbUpsert("organisations", newOrgs, "name");
+    organisations = organisations.concat(newOrgs);
 
-  var memberships = [];
-  orgEntries.forEach(function (o) { var orgId = orgByName[o.name]; Object.keys(o.roleByIts).forEach(function (its) { memberships.push({ its_id: Number(its), org_id: orgId, role: o.roleByIts[its] || null }); }); });
-  if (memberships.length) await chunksUpsert("mumineen_organisations", memberships, "its_id,org_id", 300);
+    // mumineen_organisations references mumin_data.id (mumin_id), not its_id —
+    // resolve each ITS number to its internal row id before linking. This was
+    // previously sent as its_id directly, which does not match the schema.
+    var allIts = [];
+    orgEntries.forEach(function (o) { Object.keys(o.roleByIts).forEach(function (its) { allIts.push(Number(its)); }); });
+    var idByIts = {};
+    for (var op = 0; op < allIts.length; op += 500) {
+      var chunk = allIts.slice(op, op + 500);
+      if (!chunk.length) continue;
+      var found = await sbGet("mumin_data", "its_id=in.(" + chunk.join(",") + ")&select=id,its_id");
+      (found || []).forEach(function (m) { idByIts[Number(m.its_id)] = Number(m.id); });
+    }
+
+    var memberships = [];
+    orgEntries.forEach(function (o) {
+      var orgId = orgByName[o.name];
+      Object.keys(o.roleByIts).forEach(function (its) {
+        var muminId = idByIts[Number(its)];
+        if (!muminId) return; // ITS not resolvable — skip this link rather than fail the whole sync
+        memberships.push({ mumin_id: muminId, org_id: orgId, role: o.roleByIts[its] || null });
+      });
+    });
+    if (memberships.length) await chunksUpsert("mumineen_organisations", memberships, "mumin_id,org_id", 300);
+
+    result.organisations = orgEntries.length;
+    result.memberships = memberships.length;
+  } catch (orgErr) {
+    // Organisation/membership linking is supplementary. A failure here must
+    // never make an otherwise-successful Mumin/Family sync look like it failed.
+    result.organisationSyncError = orgErr.message || String(orgErr);
+  }
 
   report("Completed", source.length, source.length);
-
-  var result = { imported: source.length, families: families.length, sectors: Object.keys(sectorNames).length, subSectors: Object.keys(subKeySet).length, organisations: orgEntries.length, memberships: memberships.length };
   await logImportRun(meta, meta && meta.analysisCounts);
   return result;
 }
