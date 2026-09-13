@@ -196,10 +196,32 @@ export function printMuminFullProfile(m, familyRecord, familyMembers, sectorInfo
   var src = m.source_data || {};
   var hasSource = !!m.source_data;
 
+     // Fields with a dedicated mumin_data column always win over source_data,
+  // since a manual edit after sync updates the column but not the frozen
+  // export snapshot. source_data is the fallback for the ~50 fields that
+  // have no dedicated column (Arabic name, prefixes, nikah dates, incharge
+  // names, etc.) and for records with no dedicated columns at all.
+  var liveMap = {
+    ITS_ID: m.its_number, Full_Name: m.name, Age: m.age, Gender: m.gender,
+    Mobile: m.phone, Email: m.email, Address: m.address, Sector: m.area_sector,
+    Family_ID: m.family_id, Inactive_Status: m.status || "",
+    Occupation: m.occupation, Sub_Occupation: m.sub_occupation, Qualification: m.qualification,
+    Languages: m.languages, Hunars: m.hunars, Marital_Status: m.marital_status, Blood_Group: m.blood_group,
+    Misaq: m.misaq, City: m.city, Vatan: m.vatan, Nationality: m.nationality, WhatsApp_No: m.whatsapp_no,
+    Housing: m.housing, Type_of_House: m.type_of_house, Data_Verifcation_Status: m.data_verification_status,
+    Photo_Verifcation_Status: m.photo_verification_status, Quran_Sanad: m.quran_sanad,
+    Qadambosi_Sharaf: m.qadambosi_sharaf, Raudat_Tahera_Ziyarat: m.raudat_tahera_ziyarat,
+    Karbala_Ziyarat: m.karbala_ziyarat, Ashara_Mubaraka: m.ashara_mubaraka, Warakatul_Tarkhis: m.warakatul_tarkhis,
+    Last_Scanned_Event: m.last_scanned_event, Last_Scanned_Place: m.last_scanned_place,
+  };
+
   function val(sourceKey) {
+    var live = liveMap[sourceKey];
+    if (live !== undefined && live !== null && live !== "") return esc(live);
     var raw = hasSource ? src[sourceKey] : manualFallbackValue(m, sourceKey);
     return raw === null || raw === undefined || raw === "" ? "—" : esc(raw);
   }
+  
 
   var css = [
     "@page{size:A4;margin:12mm}",
