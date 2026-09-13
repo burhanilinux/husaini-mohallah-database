@@ -88,3 +88,77 @@ export function ReportsPage() {
           var rows = muminData.map(function (m) { return { m: m, data: getVal(m, "data_verification_status", "Data_Verifcation_Status") || "Unknown", photo: getVal(m, "photo_verification_status", "Photo_Verifcation_Status") || "Unknown" }; })
             .filter(function (r) { return r.data.toLowerCase().indexOf("not") === 0 || r.photo.toLowerCase().indexOf("not") === 0 || r.data === "Unknown" || r.photo === "Unknown"; });
           return <table style={{ width: "100%", borderCollapse: "collapse" }}><thead><tr><th>ITS</th><th>Name</th><th>Data Status</th><th>Photo Status</th><th>Sector</th></tr></thead><tbody>{rows.map(function (r) { return <tr key={r.m.id}><td>{r.m.its_number}</td><td>{r.m.name}</td><td>{r.data}</td><td>{r.photo}</td><td>{r.m.area_sector || "—"}</td></tr>; })}</tbody></table>;
+        })()}
+
+        {printTarget && printTarget.id === "city_distribution" && (function () {
+          var map = {}; muminData.forEach(function (m) { var c = getVal(m, "city", "City").trim() || "Not Specified"; map[c] = (map[c] || 0) + 1; });
+          var keys = Object.keys(map).sort(function (a, b) { return map[b] - map[a]; });
+          return <table style={{ width: "100%", borderCollapse: "collapse" }}><thead><tr><th>City</th><th>Count</th></tr></thead><tbody>{keys.map(function (k) { return <tr key={k}><td>{k}</td><td>{map[k]}</td></tr>; })}</tbody></table>;
+        })()}
+
+        {printTarget && printTarget.id === "marital_status_summary" && (function () {
+          var map = {}; muminData.forEach(function (m) { var s = getVal(m, "marital_status", "Marital_Status").trim() || "Not Specified"; map[s] = (map[s] || 0) + 1; });
+          return <table style={{ width: "100%", borderCollapse: "collapse" }}><thead><tr><th>Marital Status</th><th>Count</th></tr></thead><tbody>{Object.keys(map).sort().map(function (k) { return <tr key={k}><td>{k}</td><td>{map[k]}</td></tr>; })}</tbody></table>;
+        })()}
+
+        {printTarget && printTarget.id === "qualification_summary" && (function () {
+          var map = {}; muminData.forEach(function (m) { var q = getVal(m, "qualification", "Qualification").trim() || "Not Specified"; map[q] = (map[q] || 0) + 1; });
+          var keys = Object.keys(map).sort(function (a, b) { return map[b] - map[a]; });
+          return <table style={{ width: "100%", borderCollapse: "collapse" }}><thead><tr><th>Qualification</th><th>Count</th></tr></thead><tbody>{keys.map(function (k) { return <tr key={k}><td>{k}</td><td>{map[k]}</td></tr>; })}</tbody></table>;
+        })()}
+
+        {printTarget && printTarget.id === "organisation_directory" && (function () {
+          var rows = [];
+          organisationsData.forEach(function (org) {
+            membershipsData.filter(function (mo) { return Number(mo.org_id) === Number(org.org_id); }).forEach(function (mo) {
+              var person = muminData.find(function (m) { return Number(m.id) === Number(mo.mumin_id); });
+              rows.push({ org: org.name, person: person ? person.name : "Unknown", its: person ? person.its_number : "—", role: mo.role || "—" });
+            });
+          });
+          if (!rows.length) return <div style={{ padding: 20, color: "#6b7280", fontSize: 13 }}>No organisation memberships synced yet.</div>;
+          return <table style={{ width: "100%", borderCollapse: "collapse" }}><thead><tr><th>Organisation</th><th>Member</th><th>ITS</th><th>Role</th></tr></thead><tbody>{rows.map(function (r, i) { return <tr key={i}><td>{r.org}</td><td>{r.person}</td><td>{r.its}</td><td>{r.role}</td></tr>; })}</tbody></table>;
+        })()}
+
+        {printTarget && printTarget.id === "ashara_mubaraka" && (function () {
+          var buckets = [
+            { label: "No Data", test: function (v) { return v === null; } },
+            { label: "Never Attended (0)", test: function (v) { return v === 0; } },
+            { label: "1 – 5 times", test: function (v) { return v >= 1 && v <= 5; } },
+            { label: "6 – 10 times", test: function (v) { return v >= 6 && v <= 10; } },
+            { label: "11 – 20 times", test: function (v) { return v >= 11 && v <= 20; } },
+            { label: "21+ times", test: function (v) { return v >= 21; } },
+          ];
+          var recorded = muminData.map(ashCount).filter(function (c) { return c !== null; });
+          var avg = recorded.length ? (recorded.reduce(function (s, c) { return s + c; }, 0) / recorded.length).toFixed(1) : "0";
+          return (
+            <div>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead><tr><th>Attendance Range</th><th>Count</th><th>% of Members</th></tr></thead>
+                <tbody>
+                  {buckets.map(function (b) {
+                    var mem = muminData.filter(function (m) { return b.test(ashCount(m)); });
+                    var pct = muminData.length ? ((mem.length / muminData.length) * 100).toFixed(1) : "0.0";
+                    return <tr key={b.label}><td>{b.label}</td><td>{mem.length}</td><td>{pct}%</td></tr>;
+                  })}
+                </tbody>
+              </table>
+              <div style={{ marginTop: 14, fontSize: 13, color: "#6b7280" }}>
+                Average attendance among members with recorded data: <strong style={{ color: "#e2d9c9" }}>{avg}</strong> times ·
+                {" "}Total members: <strong style={{ color: "#e2d9c9" }}>{muminData.length}</strong>
+              </div>
+            </div>
+          );
+        })()}
+
+        {printTarget && printTarget.id === "ashara_mubaraka_top" && (function () {
+          var rows = muminData.filter(function (m) { return ashCount(m) > 0; }).sort(function (a, b) { return ashCount(b) - ashCount(a); });
+          return <table style={{ width: "100%", borderCollapse: "collapse" }}><thead><tr><th>Rank</th><th>ITS</th><th>Name</th><th>Sector</th><th>Times Attended</th></tr></thead><tbody>{rows.map(function (m, i) { return <tr key={m.id}><td>{i + 1}</td><td>{m.its_number}</td><td>{m.name}</td><td>{m.area_sector || "—"}</td><td>{ashCount(m)}</td></tr>; })}</tbody></table>;
+        })()}
+
+        {printTarget && printTarget.id === "import_history" && <table style={{ width: "100%", borderCollapse: "collapse" }}><thead><tr><th>Date</th><th>File</th><th>By</th><th>New</th><th>Updated</th><th>Unchanged</th><th>Conflicts</th><th>Invalid</th></tr></thead><tbody>{importLogData.map(function (l) { return <tr key={l.id}><td>{l.imported_at ? new Date(l.imported_at).toLocaleString() : ""}</td><td>{l.file_name || "—"}</td><td>{l.imported_by || "—"}</td><td>{l.new_count || 0}</td><td>{l.updated_count || 0}</td><td>{l.unchanged_count || 0}</td><td>{l.conflict_count || 0}</td><td>{l.invalid_count || 0}</td></tr>; })}</tbody></table>}
+
+        {printTarget && printTarget.id === "activity_log" && <table style={{ width: "100%", borderCollapse: "collapse" }}><thead><tr><th>Date</th><th>User</th><th>Action</th><th>Entity</th></tr></thead><tbody>{activityLog.map(function (a) { return <tr key={a.id}><td>{a.created_at ? new Date(a.created_at).toLocaleString() : ""}</td><td>{a.user_email}</td><td>{a.action}</td><td>{a.entity_type} — {a.entity_name}</td></tr>; })}</tbody></table>}
+      </div>
+    </div>
+  );
+}
