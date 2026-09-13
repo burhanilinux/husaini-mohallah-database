@@ -20,7 +20,7 @@ export function DataQualityPage() {
       if (!m.dob && (m.age === null || m.age === undefined || m.age === "")) out.push({ type: "missing_age", label: "Missing age/DOB", m: m, detail: "Neither DOB nor age is available." });
       if (!m.phone) out.push({ type: "missing_phone", label: "Missing phone", m: m, detail: "No phone number is recorded." });
 
-      var ext = getExtendedProfile(m);
+      var ext = getExtendedProfile(m); // computed once, reused below
       if (!ext.bloodGroup) out.push({ type: "missing_blood_group", label: "Missing blood group", m: m, detail: "No blood group on record — relevant for emergencies." });
       if (ext.dataVerificationStatus && !ext.isDataVerified) out.push({ type: "not_data_verified", label: "Data not verified", m: m, detail: "Marked \"" + ext.dataVerificationStatus + "\" in the source export." });
       if (ext.photoVerificationStatus && !ext.isPhotoVerified) out.push({ type: "photo_not_verified", label: "Photo not verified", m: m, detail: "Marked \"" + ext.photoVerificationStatus + "\" — affects ID card reliability." });
