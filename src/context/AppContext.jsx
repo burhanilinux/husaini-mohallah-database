@@ -1,11 +1,12 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import {
   sbGet, sbInsert, sbUpdate, sbDelete, sbUpdateWhere, logActivity, uploadStorage,
-  sbSignIn, sbSignOut, sbGetUser,
 } from "../lib/supabase.js";
+import { useAuth } from "./AuthContext.jsx";
 import { UMOOR_TYPES, currentYear } from "../lib/constants.js";
 import { getUmoorPrefix, calcAge, downloadBlob, toXLS } from "../lib/utils.js";
 import { validateMuminForm, validateFileForm, getMuminDuplicateWarnings } from "../lib/validation.js";
+import { buildReportRows } from "../lib/reports.js";
 
 const AppContext = createContext(null);
 
@@ -17,13 +18,20 @@ export function useAppContext() {
 
 export function AppProvider({ children }) {
   // ── Auth / session ──────────────────────────────────────────────
-  const [session, setSession] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true);
-  const [userRole, setUserRole] = useState("admin"); // admin|editor|viewer
-
-  var canEdit   = userRole === "admin" || userRole === "editor";
-  var canDelete = userRole === "admin";
-  var isAdmin   = userRole === "admin";
+  // AppProvider is always rendered inside <AuthProvider> (see App.jsx), so
+  // auth state lives in exactly one place: AuthContext. Previously this
+  // component kept its own copies of session/authLoading/userRole and its
+  // own localStorage bootstrap effect, which ran a second, independent
+  // /auth/v1/user request on every load and could disagree with
+  // AuthContext (it defaulted to "admin" instead of failing closed to
+  // "viewer"). Read everything from useAuth() instead.
+  var auth = useAuth();
+  var session = auth.session;
+  var authLoading = auth.authLoading;
+  var userRole = auth.userRole; // admin|editor|viewer
+  var canEdit = auth.canEdit;
+  var canDelete = auth.canDelete;
+  var isAdmin = auth.isAdmin;
 
   // ── Navigation ────────────────────────────────────────────────
   const [page, setPage] = useState("dashboard");
@@ -36,6 +44,12 @@ export function AppProvider({ children }) {
   const [subSectorsData, setSubSectorsData] = useState([]);
   const [activityLog, setActivityLog] = useState([]);
   const [usersData, setUsersData] = useState([]);
+  // Backing data for the Reports page (Organisation Directory, Import
+  // History) — previously never fetched, so those reports always showed
+  // empty even though the report builder in lib/reports.js expects them.
+  const [organisationsData, setOrganisationsData] = useState([]);
+  const [membershipsData, setMembershipsData] = useState([]);
+  const [importLogData, setImportLogData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [dbError, setDbError] = useState(null);
 
@@ -90,179 +104,22 @@ export function AppProvider({ children }) {
   }
 
   function getUserEmail() {
-    return (session && session.user && session.user.email) || "Unknown";
+    return (auth.user && auth.user.email) || "Unknown";
   }
 
   // ── Report row builder (feeds print previews + Excel export) ──
+  // Delegates to the shared builder in lib/reports.js, which supports
+  // every report id ReportsPage.jsx lists (occupation, blood group,
+  // verification, city, marital status, qualification, organisation,
+  // Ashara Mubaraka, import history, ...). The previous inline version
+  // here only understood a handful of legacy report ids, so "XLS" export
+  // silently produced "No data to export" for most of the reports page.
   function getReportRows(reportId, extra) {
-    if (reportId === "mumin") {
-      return {
-        cols: ["its_number","name","age","gender","phone","address","area_sector","masool","sub_sector","musaid","status"],
-        rows: muminData.map(function (m) {
-          var si = getSectorInfo(m);
-          return {
-            its_number: m.its_number || "", name: m.name || "", age: getMuminAgeLocal(m) || "",
-            gender: m.gender || "", phone: m.phone || "", address: m.address || "",
-            area_sector: m.area_sector || "", masool: si.masoolName || "",
-            sub_sector: si.subSectorName || "", musaid: si.musaidName || "",
-            status: m.status || "",
-          };
-        }),
-        filename: "mumin_directory",
-      };
-    }
-    if (reportId === "files_all") {
-      return {
-        cols: ["file_no","title","umoor_type","year","status","due_date"],
-        rows: filesData.map(function (f) {
-          return {
-            file_no: f.file_no || "", title: f.title || "", umoor_type: f.umoor_type || "",
-            year: f.year || "", status: f.status || "", due_date: f.due_date || "",
-          };
-        }),
-        filename: "umoor_files_all",
-      };
-    }
-    if (reportId === "reminders") {
-      var withDue = filesData.filter(function (f) { return f.due_date; })
-        .sort(function (a, b) { return new Date(a.due_date) - new Date(b.due_date); });
-      return {
-        cols: ["file_no","title","umoor_type","status","due_date"],
-        rows: withDue.map(function (f) {
-          return {
-            file_no: f.file_no || "", title: f.title || "", umoor_type: f.umoor_type || "",
-            status: f.status || "", due_date: f.due_date || "",
-          };
-        }),
-        filename: "reminders_report",
-      };
-    }
-    if (reportId === "families") {
-      var sabilGroups = {};
-      muminData.forEach(function (m) {
-        if (m.sabil_no && String(m.sabil_no).trim()) {
-          var key = String(m.sabil_no).trim();
-          if (!sabilGroups[key]) sabilGroups[key] = [];
-          sabilGroups[key].push(m);
-        }
-      });
-      var sabilKeys = Object.keys(sabilGroups).sort();
-      return {
-        cols: ["sabil_no","members","names"],
-        rows: sabilKeys.map(function (k) {
-          var grp = sabilGroups[k];
-          return { sabil_no: k, members: grp.length, names: grp.map(function (m) { return m.name; }).join(", ") };
-        }),
-        filename: "family_directory_by_sabil",
-      };
-    }
-    if (reportId === "age_groups") {
-      var groups = [
-        { label: "Children (0-15)", min: 0,  max: 15 },
-        { label: "Youth (16-30)",   min: 16, max: 30 },
-        { label: "Adults (31-60)",  min: 31, max: 60 },
-        { label: "Seniors (61+)",   min: 61, max: 999 },
-      ];
-      return {
-        cols: ["age_group","count","male","female","percent"],
-        rows: groups.map(function (g) {
-          var mem = muminData.filter(function (m) { var a = getMuminAgeLocal(m); return a !== null && a >= g.min && a <= g.max; });
-          var male = mem.filter(function (m) { return m.gender === "Male"; }).length;
-          var pct = muminData.length > 0 ? ((mem.length / muminData.length) * 100).toFixed(1) : 0;
-          return { age_group: g.label, count: mem.length, male: male, female: mem.length - male, percent: pct + "%" };
-        }),
-        filename: "age_group_summary",
-      };
-    }
-    if (reportId === "sector_summary") {
-      var rows = areaSectors.map(function (s) {
-        var mem = muminData.filter(function (m) { return m.area_sector === s; });
-        var male = mem.filter(function (m) { return m.gender === "Male"; }).length;
-        var pct = muminData.length > 0 ? ((mem.length / muminData.length) * 100).toFixed(1) : 0;
-        var secObj = sectorsData.find(function (x) { return x.name === s; });
-        var masoolLbl = secObj ? (secObj.masool_its ? (getMuminByIts(secObj.masool_its) ? getMuminByIts(secObj.masool_its).name : secObj.masool_its) : (secObj.masool_name || "")) : "";
-        return { sector: s, masool: masoolLbl, count: mem.length, male: male, female: mem.length - male, percent: pct + "%" };
-      });
-      var noSector = muminData.filter(function (m) { return !m.area_sector || !m.area_sector.trim(); });
-      if (noSector.length > 0) {
-        var maleNS = noSector.filter(function (m) { return m.gender === "Male"; }).length;
-        var pctNS = muminData.length > 0 ? ((noSector.length / muminData.length) * 100).toFixed(1) : 0;
-        rows.push({ sector: "Not Assigned", masool: "", count: noSector.length, male: maleNS, female: noSector.length - maleNS, percent: pctNS + "%" });
-      }
-      return { cols: ["sector","masool","count","male","female","percent"], rows: rows, filename: "sector_summary" };
-    }
-    if (reportId === "sector") {
-      var sectorMembers = muminData.filter(function (m) { return m.area_sector === extra; });
-      return {
-        cols: ["its_number","name","age","gender","phone","address","sub_sector","musaid","status"],
-        rows: sectorMembers.map(function (m) {
-          var si = getSectorInfo(m);
-          return {
-            its_number: m.its_number || "", name: m.name || "", age: getMuminAgeLocal(m) || "",
-            gender: m.gender || "", phone: m.phone || "", address: m.address || "",
-            sub_sector: si.subSectorName || "", musaid: si.musaidName || "", status: m.status || "",
-          };
-        }),
-        filename: "sector_" + (extra || "unknown").replace(/[^a-zA-Z0-9]/g, "_"),
-      };
-    }
-    if (reportId === "umoor") {
-      var umoorFiles = filesData.filter(function (f) { return f.umoor_type === extra; });
-      return {
-        cols: ["file_no","title","year","date","status","due_date"],
-        rows: umoorFiles.map(function (f) {
-          return {
-            file_no: f.file_no || "", title: f.title || "", year: f.year || "",
-            date: f.date || "", status: f.status || "", due_date: f.due_date || "",
-          };
-        }),
-        filename: "umoor_" + (extra || "unknown").replace(/[^a-zA-Z0-9]/g, "_"),
-      };
-    }
-    if (reportId === "masool_directory") {
-      var msRows = [];
-      sectorsData.forEach(function (sec) {
-        var secMasoolName = sec.masool_its
-          ? (getMuminByIts(sec.masool_its) ? getMuminByIts(sec.masool_its).name : sec.masool_its)
-          : (sec.masool_name || "");
-        var subs = getSubSectorsFor(sec.id);
-        if (subs.length === 0) {
-          msRows.push({
-            sector: sec.name, masool: secMasoolName, masool_phone: sec.masool_phone || "",
-            sub_sector: "", musaid: "", musaid_phone: "",
-          });
-        } else {
-          subs.forEach(function (sub) {
-            var subMusaidName = sub.musaid_its
-              ? (getMuminByIts(sub.musaid_its) ? getMuminByIts(sub.musaid_its).name : sub.musaid_its)
-              : (sub.musaid_name || "");
-            msRows.push({
-              sector: sec.name, masool: secMasoolName, masool_phone: sec.masool_phone || "",
-              sub_sector: sub.name, musaid: subMusaidName, musaid_phone: sub.musaid_phone || "",
-            });
-          });
-        }
-      });
-      return {
-        cols: ["sector","masool","masool_phone","sub_sector","musaid","musaid_phone"],
-        rows: msRows,
-        filename: "masool_directory",
-      };
-    }
-    if (reportId === "activity_log") {
-      return {
-        cols: ["created_at","user_email","action","entity_type","entity_name"],
-        rows: activityLog.map(function (a) {
-          return {
-            created_at: a.created_at ? new Date(a.created_at).toLocaleString() : "",
-            user_email: a.user_email || "", action: a.action || "",
-            entity_type: a.entity_type || "", entity_name: a.entity_name || "",
-          };
-        }),
-        filename: "activity_log",
-      };
-    }
-    return { cols: [], rows: [], filename: "report" };
+    return buildReportRows(reportId, extra, {
+      muminData, filesData, sectorsData, activityLog,
+      organisationsData, membershipsData, importLogData,
+      areaSectors, calcAge, getMuminByIts, getSectorInfo, getSubSectorsFor,
+    });
   }
 
   function exportReportXLS(reportId, extra) {
@@ -514,6 +371,9 @@ export function AppProvider({ children }) {
         sbGet("activity_log", "order=id.desc&limit=200"),
         sbGet("sectors", "order=name.asc"),
         sbGet("sub_sectors", "order=name.asc"),
+        sbGet("organisations", "order=org_id.asc"),
+        sbGet("mumineen_organisations", "order=mumin_id.asc"),
+        sbGet("import_log", "order=imported_at.desc&limit=200"),
       ]);
       setMuminData((results[0] || []).filter(function (m) { return !m.deleted_at; }));
       setFilesData((results[1] || []).filter(function (f) { return !f.deleted_at; }));
@@ -521,53 +381,22 @@ export function AppProvider({ children }) {
       setActivityLog(results[3] || []);
       setSectorsData(results[4] || []);
       setSubSectorsData(results[5] || []);
+      setOrganisationsData(results[6] || []);
+      setMembershipsData(results[7] || []);
+      setImportLogData(results[8] || []);
     } catch (e) {
       setDbError(e.message);
     }
     setLoading(false);
   }
 
-  // ── Session bootstrap ──────────────────────────────────────────
+  // Kick off the initial load once auth has resolved to a signed-in session.
+  // (Auth bootstrap itself — reading localStorage, validating the token —
+  // lives entirely in AuthContext now; this just reacts to its result.)
   useEffect(function () {
-    var stored = null;
-    try { stored = localStorage.getItem("hm_session"); } catch (e) {}
-    if (stored) {
-      try {
-        var s = JSON.parse(stored);
-        sbGetUser(s.access_token).then(function (user) {
-          if (user && user.id) {
-            setSession(s);
-            loadAll();
-          } else {
-            try { localStorage.removeItem("hm_session"); } catch (e) {}
-          }
-          setAuthLoading(false);
-        }).catch(function () {
-          try { localStorage.removeItem("hm_session"); } catch (e) {}
-          setAuthLoading(false);
-        });
-      } catch (e) {
-        try { localStorage.removeItem("hm_session"); } catch (e2) {}
-        setAuthLoading(false);
-      }
-    } else {
-      setAuthLoading(false);
-    }
+    if (session) loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  function handleLogin(data) {
-    setSession(data);
-    try { localStorage.setItem("hm_session", JSON.stringify(data)); } catch (e) {}
-    loadAll();
-  }
-
-  function handleSignOut() {
-    sbSignOut(session && session.access_token);
-    setSession(null);
-    setMuminData([]); setFilesData([]); setAttsData([]);
-    try { localStorage.removeItem("hm_session"); } catch (e) {}
-  }
+  }, [session]);
 
   // ── Mumin / File modal helpers ─────────────────────────────────
   function getFileAtts(fileId) {
@@ -731,13 +560,6 @@ export function AppProvider({ children }) {
     showToast("Imported " + ok + " of " + rows.length + " records ☁");
   }
 
-  // ── Local re-export of getMuminAge (avoids extra import wiring below) ──
-  function getMuminAgeLocal(m) {
-    if (!m) return null;
-    var fromDob = calcAge(m.dob);
-    return fromDob !== null ? fromDob : (m.age || null);
-  }
-
   // ── Derived / computed values ──────────────────────────────────
   var areaSectors = (function () {
     var set = {};
@@ -774,13 +596,16 @@ export function AppProvider({ children }) {
 
   // ── Context value ───────────────────────────────────────────────
   var value = {
-    // auth
-    session, authLoading, userRole, setUserRole, canEdit, canDelete, isAdmin,
-    handleLogin, handleSignOut,
+    // auth — sourced from AuthContext, exposed here so existing consumers
+    // (Sidebar, etc.) that read ctx.session / ctx.handleSignOut keep working.
+    // Prefer useAuth() directly in new code.
+    session, authLoading, userRole, canEdit, canDelete, isAdmin,
+    handleSignOut: auth.logout,
     // nav
     page, setPage,
     // data
     muminData, filesData, attsData, sectorsData, subSectorsData, activityLog,
+    organisationsData, membershipsData, importLogData,
     usersData, setUsersData, loading, dbError, loadAll,
     // filters
     selYear, setSelYear, selUmoor, setSelUmoor, selSector, setSelSector,
