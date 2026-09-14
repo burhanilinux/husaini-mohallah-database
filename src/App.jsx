@@ -1,5 +1,4 @@
 import "./App.css";
-import { useEffect } from "react";
 import { AppProvider, useAppContext } from "./context/AppContext.jsx";
 import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
 import { Spinner } from "./components/Shared.jsx";
@@ -42,18 +41,13 @@ function ActivePage() {
   }
 }
 
+// Auth (session, role, login/logout) lives entirely in AuthContext.
+// AppContext reads it via useAuth() internally and loads app data as soon
+// as a session appears — AppShell no longer needs to push role/loadAll
+// into AppContext manually.
 function AppShell() {
   var ctx = useAppContext();
   var auth = useAuth();
-
-  useEffect(function () {
-    if (auth.session) {
-      ctx.setUserRole(auth.userRole);
-      ctx.loadAll();
-    } else {
-      ctx.setUserRole("viewer");
-    }
-  }, [auth.session, auth.userRole]);
 
   if (auth.authLoading) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0d1117", color: "#6b7280", gap: 12, fontSize: 14 }}><Spinner /> Loading…</div>;
   if (!auth.session) return <LoginPage onLogin={auth.login} />;
