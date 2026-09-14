@@ -1,0 +1,71 @@
+name: One-time AppContext reports extraction
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refactor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply extraction
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+          p=Path('src/context/AppContext.jsx')
+          s=p.read_text(encoding='utf-8')
+          if 'import { buildReportRows } from "../lib/reports.js";' not in s:
+              a='import { validateMuminForm, validateFileForm, getMuminDuplicateWarnings } from "../lib/validation.js";\n'
+              if a not in s: raise SystemExit('import anchor not found')
+              s=s.replace(a,a+'import { buildReportRows } from "../lib/reports.js";\n',1)
+          if 'const [organisationsData, setOrganisationsData]' not in s:
+              a='  const [usersData, setUsersData] = useState([]);\n'
+              if a not in s: raise SystemExit('state anchor not found')
+              s=s.replace(a,a+'  const [organisationsData, setOrganisationsData] = useState([]);\n  const [membershipsData, setMembershipsData] = useState([]);\n  const [importLogData, setImportLogData] = useState([]);\n',1)
+          pat=re.compile(r'  // ── Report row builder \(feeds print previews \+ Excel export\) ──\n  function getReportRows\(reportId, extra\) \{.*?\n  \}\n\n  function exportReportXLS',re.S)
+          repl='''  // ── Report row builder (canonical implementation in lib/reports.js) ──
+  function getReportRows(reportId, extra) {
+    return buildReportRows(reportId, extra, {
+      muminData, filesData, sectorsData, activityLog,
+      organisationsData, membershipsData, importLogData,
+      areaSectors, calcAge, getMuminByIts, getSectorInfo, getSubSectorsFor,
+    });
+  }
+
+  function exportReportXLS'''
+          s,n=pat.subn(repl,s,1)
+          if n!=1: raise SystemExit('report block not found')
+          if 'sbGet("organisations", "order=name.asc")' not in s:
+              a='      setSubSectorsData(results[5] || []);\n'
+              if a not in s: raise SystemExit('load anchor not found')
+              s=s.replace(a,a+'''      try {
+        var extras = await Promise.all([
+          sbGet("organisations", "order=name.asc"),
+          sbGet("mumineen_organisations", "order=org_id.asc"),
+          sbGet("import_log", "order=imported_at.desc&limit=100"),
+        ]);
+        setOrganisationsData(extras[0] || []);
+        setMembershipsData(extras[1] || []);
+        setImportLogData(extras[2] || []);
+      } catch (_extraErr) {
+        setOrganisationsData([]); setMembershipsData([]); setImportLogData([]);
+      }
+''',1)
+          p.write_text(s,encoding='utf-8')
+      - name: Build
+        run: |
+          npm ci
+          npm run build
+      - name: Commit
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/context/AppContext.jsx
+          git commit -m "Refactor AppContext report generation" || exit 0
+          git push origin HEAD:main
