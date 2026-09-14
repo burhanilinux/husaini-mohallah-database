@@ -371,9 +371,6 @@ export function AppProvider({ children }) {
         sbGet("activity_log", "order=id.desc&limit=200"),
         sbGet("sectors", "order=name.asc"),
         sbGet("sub_sectors", "order=name.asc"),
-        sbGet("organisations", "order=org_id.asc"),
-        sbGet("mumineen_organisations", "order=mumin_id.asc"),
-        sbGet("import_log", "order=imported_at.desc&limit=200"),
       ]);
       setMuminData((results[0] || []).filter(function (m) { return !m.deleted_at; }));
       setFilesData((results[1] || []).filter(function (f) { return !f.deleted_at; }));
@@ -381,13 +378,31 @@ export function AppProvider({ children }) {
       setActivityLog(results[3] || []);
       setSectorsData(results[4] || []);
       setSubSectorsData(results[5] || []);
-      setOrganisationsData(results[6] || []);
-      setMembershipsData(results[7] || []);
-      setImportLogData(results[8] || []);
     } catch (e) {
       setDbError(e.message);
     }
     setLoading(false);
+
+    // Reports-page-only reference data. Kept out of the Promise.all above and
+    // failed independently: these tables/columns have drifted from what the
+    // migration files describe (see 20260911_extend_mumineen_schema.sql's
+    // CREATE TABLE IF NOT EXISTS comment), so a missing/renamed column here
+    // must never take down mumin_data, sectors, etc. Each report reads these
+    // with `|| []` defaults, so an empty result just means that one report
+    // (Organisation Directory / Import History) shows no data instead of
+    // the whole app failing to load.
+    try {
+      var refResults = await Promise.all([
+        sbGet("organisations", ""),
+        sbGet("mumineen_organisations", ""),
+        sbGet("import_log", "order=imported_at.desc&limit=200"),
+      ]);
+      setOrganisationsData(refResults[0] || []);
+      setMembershipsData(refResults[1] || []);
+      setImportLogData(refResults[2] || []);
+    } catch (e) {
+      console.warn("Organisation/import-log reference data failed to load (non-fatal):", e.message);
+    }
   }
 
   // Kick off the initial load once auth has resolved to a signed-in session.
