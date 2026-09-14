@@ -1,0 +1,119 @@
+name: One-time AppContext reports extraction
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  refactor:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply safe AppContext extraction
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          path = Path('src/context/AppContext.jsx')
+          text = path.read_text(encoding='utf-8')
+          original = text
+
+          # 1. Import the canonical report builder.
+          if 'import { buildReportRows } from "../lib/reports.js";' not in text:
+              needle = 'import { validateMuminForm, validateFileForm, getMuminDuplicateWarnings } from "../lib/validation.js";\n'
+              if needle not in text:
+                  raise SystemExit('Validation import anchor not found')
+              text = text.replace(needle, needle + 'import { buildReportRows } from "../lib/reports.js";\n', 1)
+
+          # 2. Restore the supplementary report data state used by reports.js.
+          state_anchor = '  const [usersData, setUsersData] = useState([]);\n'
+          state_add = (
+              '  const [organisationsData, setOrganisationsData] = useState([]);\n'
+              '  const [membershipsData, setMembershipsData] = useState([]);\n'
+              '  const [importLogData, setImportLogData] = useState([]);\n'
+          )
+          if 'const [organisationsData, setOrganisationsData]' not in text:
+              if state_anchor not in text:
+                  raise SystemExit('User data state anchor not found')
+              text = text.replace(state_anchor, state_anchor + state_add, 1)
+
+          # 3. Replace the large inline report implementation with a thin adapter.
+          pattern = re.compile(
+              r'(  // ── Report row builder \(feeds print previews \+ Excel export\) ──\n)'
+              r'  function getReportRows\(reportId, extra\) \{.*?\n  \}\n\n'
+              r'  function exportReportXLS',
+              re.S,
+          )
+          replacement = (
+              '  // ── Report row builder (canonical implementation in lib/reports.js) ──\n'
+              '  function getReportRows(reportId, extra) {\n'
+              '    return buildReportRows(reportId, extra, {\n'
+              '      muminData, filesData, sectorsData, activityLog,\n'
+              '      organisationsData, membershipsData, importLogData,\n'
+              '      areaSectors, calcAge, getMuminByIts, getSectorInfo, getSubSectorsFor,\n'
+              '    });\n'
+              '  }\n\n'
+              '  function exportReportXLS'
+          )
+          text, count = pattern.subn(replacement, text, count=1)
+          if count != 1:
+              raise SystemExit('Inline getReportRows block not found or matched unexpectedly')
+
+          # 4. Load supplementary report tables without making them mandatory.
+          if 'sbGet("organisations", "order=name.asc")' not in text:
+              load_anchor = '      setSubSectorsData(results[5] || []);\n'
+              extra_load = (
+                  '\n'
+                  '      // Supplementary report data is best-effort so a missing optional\n'
+                  '      // migration never blocks the core application from loading.\n'
+                  '      try {\n'
+                  '        var extras = await Promise.all([\n'
+                  '          sbGet("organisations", "order=name.asc"),\n'
+                  '          sbGet("mumineen_organisations", "order=org_id.asc"),\n'
+                  '          sbGet("import_log", "order=imported_at.desc&limit=100"),\n'
+                  '        ]);\n'
+                  '        setOrganisationsData(extras[0] || []);\n'
+                  '        setMembershipsData(extras[1] || []);\n'
+                  '        setImportLogData(extras[2] || []);\n'
+                  '      } catch (_extraErr) {\n'
+                  '        setOrganisationsData([]);\n'
+                  '        setMembershipsData([]);\n'
+                  '        setImportLogData([]);\n'
+                  '      }\n'
+              )
+              if load_anchor not in text:
+                  raise SystemExit('loadAll anchor not found')
+              text = text.replace(load_anchor, load_anchor + extra_load, 1)
+
+          if text == original:
+              print('No changes needed; AppContext already extracted.')
+          else:
+              path.write_text(text, encoding='utf-8')
+              print('AppContext Phase 1 extraction applied.')
+      
+      - name: Verify build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Commit extraction
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/context/AppContext.jsx
+          git commit -m "Refactor AppContext report generation"
+          git push origin main
