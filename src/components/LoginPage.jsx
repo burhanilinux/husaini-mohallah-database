@@ -19,7 +19,11 @@ export function LoginPage({ onLogin }) {
     <div className="login-page">
       <div className="login-box">
         <div className="login-logo">
-          <div className="login-arabic">حسيني محلّه</div>
+          <img
+            src="/husaini-mohallah-logo.webp"
+            alt="Husaini Mohallah"
+            style={{ width: "150px", height: "150px", objectFit: "contain", display: "block", margin: "0 auto 14px" }}
+          />
           <div className="login-sub">Husaini Mohallah · Database</div>
         </div>
         <div className="login-title">Sign in to continue</div>
