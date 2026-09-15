@@ -1,7 +1,7 @@
 import { useAppContext } from "../context/AppContext.jsx";
 import { GlobalSearch } from "./GlobalSearch.jsx";
 
-const LOGO_URL = "/husaini-mohallah-logo.webp?v=20260915";
+const LOGO_URL = "/husaini-mohallah-logo.svg?v=20260915";
 
 export function Sidebar() {
   var ctx = useAppContext();
@@ -26,11 +26,7 @@ export function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sb-logo" style={{ textAlign: "center" }}>
-        <img
-          src={LOGO_URL}
-          alt="Husaini Mohallah"
-          style={{ width: "118px", height: "118px", objectFit: "contain", display: "block", margin: "0 auto 10px" }}
-        />
+        <img src={LOGO_URL} alt="Husaini Mohallah" style={{ width: "118px", height: "118px", objectFit: "contain", display: "block", margin: "0 auto 10px" }} />
         <div className="sb-sub">Husaini Mohallah · Database</div>
         <div className="cloud-badge">☁ Supabase Cloud</div>
       </div>
