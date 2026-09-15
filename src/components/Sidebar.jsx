@@ -23,8 +23,12 @@ export function Sidebar() {
 
   return (
     <aside className="sidebar">
-      <div className="sb-logo">
-        <div className="sb-arabic">حسيني محلّه</div>
+      <div className="sb-logo" style={{ textAlign: "center" }}>
+        <img
+          src="/husaini-mohallah-logo.webp"
+          alt="Husaini Mohallah"
+          style={{ width: "118px", height: "118px", objectFit: "contain", display: "block", margin: "0 auto 10px" }}
+        />
         <div className="sb-sub">Husaini Mohallah · Database</div>
         <div className="cloud-badge">☁ Supabase Cloud</div>
       </div>
