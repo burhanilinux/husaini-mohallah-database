@@ -1,6 +1,8 @@
 import { useAppContext } from "../context/AppContext.jsx";
 import { GlobalSearch } from "./GlobalSearch.jsx";
 
+const LOGO_URL = "/husaini-mohallah-logo.webp?v=20260915";
+
 export function Sidebar() {
   var ctx = useAppContext();
   var page = ctx.page, setPage = ctx.setPage;
@@ -25,7 +27,7 @@ export function Sidebar() {
     <aside className="sidebar">
       <div className="sb-logo" style={{ textAlign: "center" }}>
         <img
-          src="/husaini-mohallah-logo.webp"
+          src={LOGO_URL}
           alt="Husaini Mohallah"
           style={{ width: "118px", height: "118px", objectFit: "contain", display: "block", margin: "0 auto 10px" }}
         />
