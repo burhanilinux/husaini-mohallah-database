@@ -1,5 +1,7 @@
 import { useState } from "react";
 
+const LOGO_URL = "/husaini-mohallah-logo.webp?v=20260915";
+
 export function LoginPage({ onLogin }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -20,7 +22,7 @@ export function LoginPage({ onLogin }) {
       <div className="login-box">
         <div className="login-logo">
           <img
-            src="/husaini-mohallah-logo.webp"
+            src={LOGO_URL}
             alt="Husaini Mohallah"
             style={{ width: "150px", height: "150px", objectFit: "contain", display: "block", margin: "0 auto 14px" }}
           />
