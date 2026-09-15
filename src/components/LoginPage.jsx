@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-const LOGO_URL = "/husaini-mohallah-logo.webp?v=20260915";
+const LOGO_URL = "/husaini-mohallah-logo.svg?v=20260915";
 
 export function LoginPage({ onLogin }) {
   const [email, setEmail] = useState("");
@@ -21,11 +21,7 @@ export function LoginPage({ onLogin }) {
     <div className="login-page">
       <div className="login-box">
         <div className="login-logo">
-          <img
-            src={LOGO_URL}
-            alt="Husaini Mohallah"
-            style={{ width: "150px", height: "150px", objectFit: "contain", display: "block", margin: "0 auto 14px" }}
-          />
+          <img src={LOGO_URL} alt="Husaini Mohallah" style={{ width: "150px", height: "150px", objectFit: "contain", display: "block", margin: "0 auto 14px" }} />
           <div className="login-sub">Husaini Mohallah · Database</div>
         </div>
         <div className="login-title">Sign in to continue</div>
@@ -33,23 +29,13 @@ export function LoginPage({ onLogin }) {
           {error && <div className="login-err">{error}</div>}
           <div className="login-field">
             <label>Email</label>
-            <input
-              type="text" value={email} onChange={function (e) { setEmail(e.target.value); }}
-              onKeyDown={function (e) { if (e.key === "Enter") doLogin(); }}
-              placeholder="admin@example.com" autoFocus
-            />
+            <input type="text" value={email} onChange={function (e) { setEmail(e.target.value); }} onKeyDown={function (e) { if (e.key === "Enter") doLogin(); }} placeholder="admin@example.com" autoFocus />
           </div>
           <div className="login-field">
             <label>Password</label>
-            <input
-              type="password" value={password} onChange={function (e) { setPassword(e.target.value); }}
-              onKeyDown={function (e) { if (e.key === "Enter") doLogin(); }}
-              placeholder="••••••••"
-            />
+            <input type="password" value={password} onChange={function (e) { setPassword(e.target.value); }} onKeyDown={function (e) { if (e.key === "Enter") doLogin(); }} placeholder="••••••••" />
           </div>
-          <button className="login-btn" onClick={doLogin} disabled={loading}>
-            {loading ? "Signing in…" : "Sign In"}
-          </button>
+          <button className="login-btn" onClick={doLogin} disabled={loading}>{loading ? "Signing in…" : "Sign In"}</button>
         </div>
         <div className="login-footer">Husaini Mohallah © 2026 · Developed by Juzer Dana</div>
       </div>
