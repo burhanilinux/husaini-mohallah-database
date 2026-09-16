@@ -1,0 +1,140 @@
+/* Mobile-first polish for phones and small tablets. Loaded after App.css so these rules safely override desktop layout. */
+
+@media (max-width: 767px) {
+  html, body, #root { min-width: 0; width: 100%; overflow-x: hidden; }
+
+  .layout { display: block; min-height: 100vh; }
+
+  /* Compact bottom navigation: easier thumb access than a desktop sidebar. */
+  .sidebar {
+    position: fixed !important;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    width: 100% !important;
+    height: auto !important;
+    max-height: 78px;
+    border-right: 0 !important;
+    border-top: 1px solid rgba(201,168,76,.18);
+    overflow: hidden !important;
+    flex-direction: row !important;
+    z-index: 90;
+    background: rgba(17,24,32,.98) !important;
+    backdrop-filter: blur(14px);
+  }
+
+  .sb-logo, .user-box, .sb-footer, .nav-lbl, .nav > input[type="file"] { display: none !important; }
+
+  .nav {
+    width: 100%;
+    padding: 6px 5px !important;
+    display: flex !important;
+    align-items: stretch;
+    gap: 3px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    flex: 1 !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .nav::-webkit-scrollbar { display: none; }
+
+  .nav-item {
+    flex: 0 0 auto;
+    min-width: 66px;
+    min-height: 54px;
+    margin: 0 !important;
+    padding: 7px 7px !important;
+    border-radius: 10px;
+    display: flex !important;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 3px;
+    font-size: 10px !important;
+    line-height: 1.1;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .nav-item > span { font-size: 18px; line-height: 1; }
+  .nav-item.active { background: rgba(201,168,76,.12); }
+
+  .main {
+    margin-left: 0 !important;
+    padding: 18px 12px 96px !important;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .page-hdr { margin-bottom: 18px; }
+  .page-title { font-size: 23px; line-height: 1.15; }
+  .page-sub { font-size: 12px; line-height: 1.4; }
+
+  .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 9px !important; margin-bottom: 18px !important; }
+  .stat-card { padding: 13px !important; min-width: 0; }
+  .stat-val { font-size: 25px; }
+  .stat-lbl { font-size: 9px; letter-spacing: 1.2px; }
+  .stat-desc { font-size: 10px; }
+
+  .card { border-radius: 12px; margin-bottom: 14px; max-width: 100%; }
+  .card-hdr { padding: 12px 13px !important; gap: 8px; flex-wrap: wrap; }
+  .card-title { font-size: 13px; }
+  .toolbar { padding: 11px 12px !important; gap: 8px; }
+  .toolbar > * { min-width: 0 !important; width: 100% !important; }
+
+  input, select, textarea { font-size: 16px !important; min-height: 44px; }
+  .btn { min-height: 42px; padding: 9px 12px; }
+  .btn-sm { min-height: 38px; }
+
+  /* Wide data tables remain readable via deliberate horizontal scrolling. */
+  .card:has(table) { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { min-width: 860px; }
+  th { padding: 10px 12px; font-size: 9px; }
+  td { padding: 11px 12px; font-size: 12px; }
+
+  .umoor-grid { grid-template-columns: repeat(2, minmax(0,1fr)) !important; gap: 8px !important; }
+  .umoor-card { padding: 12px; }
+
+  .fam-grid { grid-template-columns: 1fr !important; }
+
+  .form-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
+  .form-grp.full { grid-column: auto !important; }
+
+  .modal-overlay { padding: 8px !important; align-items: flex-end !important; }
+  .modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 94vh !important;
+    border-radius: 18px 18px 10px 10px !important;
+  }
+  .modal-hdr { padding: 16px 16px 13px !important; }
+  .modal-body { padding: 16px !important; }
+  .modal-ftr { padding: 12px 16px !important; flex-wrap: wrap; }
+  .modal-ftr .btn { flex: 1 1 140px; }
+
+  .toast {
+    left: 12px !important;
+    right: 12px !important;
+    bottom: 88px !important;
+    justify-content: center;
+    text-align: center;
+    padding: 12px 14px;
+  }
+
+  .mumin-avatar-sm { width: 34px; height: 34px; }
+  .act-col { gap: 5px; }
+}
+
+@media (min-width: 768px) and (max-width: 1100px) {
+  .main { padding: 24px !important; }
+  .stats-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .umoor-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+
+@media (max-width: 380px) {
+  .nav-item { min-width: 60px; font-size: 9px !important; }
+  .nav-item > span { font-size: 16px; }
+  .main { padding-left: 9px !important; padding-right: 9px !important; }
+  .page-title { font-size: 21px; }
+}
