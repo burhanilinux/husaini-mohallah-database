@@ -4,67 +4,71 @@ import { getMuminAge } from "../lib/utils.js";
 
 export function MuminPage() {
   var ctx = useAppContext();
-  var filteredMumin = ctx.filteredMumin || [], loading = ctx.loading;
+  var muminData = ctx.muminData || [];
+  var loading = ctx.loading;
   var canEdit = ctx.canEdit, canDelete = ctx.canDelete;
   var openModal = ctx.openModal, loadAll = ctx.loadAll;
-  var search = ctx.search, setSearch = ctx.setSearch;
+  var search = ctx.search || "", setSearch = ctx.setSearch;
   var selSector = ctx.selSector, setSelSector = ctx.setSelSector;
   var areaSectors = ctx.areaSectors || [];
   var setMuminPreview = ctx.setMuminPreview, deleteRecord = ctx.deleteRecord;
 
-  // The database's HOF/FAMILY_ID relationship is the source of truth.
-  // Only HOF rows are shown at the top level; their linked members are
-  // displayed underneath them. This removes the separate Families feature
-  // without changing or deleting any underlying family data.
-  var grouped = [];
+  // Build the family tree from the COMPLETE mumin dataset first.
+  // Do not build it from filteredMumin: the global search/sector filter can
+  // remove family members before grouping, which made an HOF appear alone.
   var byFamily = {};
-  var standalone = [];
+  var hofWithoutFamily = [];
 
-  filteredMumin.forEach(function (m) {
-    var source = m.source_data || {};
-    var isHof = String(source.HOF_FM_TYPE || "").toUpperCase() === "HOF";
-    var familyKey = m.family_id === null || m.family_id === undefined || m.family_id === "" ? null : String(m.family_id);
-    if (isHof && familyKey) {
-      byFamily[familyKey] = byFamily[familyKey] || { hof: m, members: [] };
-      byFamily[familyKey].hof = m;
-    } else if (familyKey) {
-      byFamily[familyKey] = byFamily[familyKey] || { hof: null, members: [] };
-      byFamily[familyKey].members.push(m);
-    } else {
-      standalone.push(m);
+  muminData.forEach(function (m) {
+    if (m.deleted_at) return;
+    var key = m.family_id === null || m.family_id === undefined || String(m.family_id).trim() === ""
+      ? null : String(m.family_id).trim();
+    var isHof = String((m.source_data || {}).HOF_FM_TYPE || "").toUpperCase() === "HOF";
+
+    if (!key) {
+      if (isHof) hofWithoutFamily.push({ hof: m, members: [] });
+      return;
     }
+
+    if (!byFamily[key]) byFamily[key] = { hof: null, members: [] };
+    if (isHof) byFamily[key].hof = m;
+    else byFamily[key].members.push(m);
   });
 
-  // A few source exports may not carry HOF_FM_TYPE consistently. In that
-  // case, families with an explicit HOF_ID are still grouped correctly.
-  filteredMumin.forEach(function (m) {
-    var key = m.family_id === null || m.family_id === undefined || m.family_id === "" ? null : String(m.family_id);
-    if (!key || !byFamily[key] || byFamily[key].hof) return;
-    var candidate = filteredMumin.find(function (x) {
-      return String(x.family_id) === key && x.its_id !== m.its_id && String((x.source_data || {}).HOF_FM_TYPE || "").toUpperCase() === "HOF";
-    });
-    if (candidate) {
-      byFamily[key].hof = candidate;
-      byFamily[key].members = byFamily[key].members.filter(function (x) { return x.its_id !== candidate.its_id; });
-    }
-  });
-
-  Object.keys(byFamily).forEach(function (key) {
+  var grouped = Object.keys(byFamily).map(function (key) {
     var group = byFamily[key];
-    if (group.hof) grouped.push(group);
+    return group.hof ? { familyId: key, hof: group.hof, members: group.members } : null;
+  }).filter(Boolean);
+
+  // Keep HOF records with no family_id visible rather than silently dropping them.
+  hofWithoutFamily.forEach(function (g) {
+    grouped.push({ familyId: null, hof: g.hof, members: [] });
   });
 
-  grouped.sort(function (a, b) { return String(a.hof.name || "").localeCompare(String(b.hof.name || "")); });
+  grouped.sort(function (a, b) {
+    return String(a.hof.name || "").localeCompare(String(b.hof.name || ""));
+  });
 
-  function memberMatchesGroup(group) {
-    var q = search.trim().toLowerCase();
+  var q = search.trim().toLowerCase();
+  var visibleGroups = grouped.filter(function (group) {
+    // Sector filtering applies to the HOF. Family members remain visible once
+    // the family is selected, so the tree never gets partially chopped up.
+    if (selSector && group.hof.area_sector !== selSector) return false;
     if (!q) return true;
-    return group.hof.name.toLowerCase().indexOf(q) >= 0 || String(group.hof.its_number || group.hof.its_id).indexOf(q) >= 0 || group.members.some(function (m) {
-      return String(m.name || "").toLowerCase().indexOf(q) >= 0 || String(m.its_number || m.its_id).indexOf(q) >= 0;
-    });
-  }
 
-  var visibleGroups = grouped.filter(memberMatchesGroup);
+    var hof = group.hof;
+    if (String(hof.name || "").toLowerCase().indexOf(q) >= 0 ||
+        String(hof.its_number || hof.its_id || "").indexOf(q) >= 0) return true;
+
+    return group.members.some(function (m) {
+      return String(m.name || "").toLowerCase().indexOf(q) >= 0 ||
+        String(m.its_number || m.its_id || "").indexOf(q) >= 0;
+    });
+  });
+
+  var visibleMemberCount = visibleGroups.reduce(function (total, group) {
+    return total + group.members.length + 1;
+  }, 0);
 
   return (
     <div>
@@ -74,7 +78,7 @@ export function MuminPage() {
       </div>
       <div className="card">
         <div className="card-hdr">
-          <span className="card-title">Families ({visibleGroups.length}) · {filteredMumin.length} records</span>
+          <span className="card-title">Heads of Family ({visibleGroups.length}) · {visibleMemberCount} members</span>
           <div style={{ display: "flex", gap: 10 }}>
             <button className="btn btn-ghost btn-sm" onClick={loadAll}>{loading ? <Spinner /> : "↻"}</button>
             {canEdit && <button className="btn btn-primary" onClick={function () { openModal("mumin", "add"); }}>+ Add Mumin</button>}
@@ -98,7 +102,9 @@ export function MuminPage() {
                   <div style={{ padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, borderBottom: "1px solid rgba(255,255,255,.07)" }}>
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 15 }}>★ {hof.name}</div>
-                      <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 4 }}>HOF · ITS {hof.its_number} · Family {hof.family_id} · {group.members.length + 1} member(s)</div>
+                      <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 4 }}>
+                        HOF · ITS {hof.its_number} · Family {hof.family_id || "—"} · {group.members.length + 1} member(s)
+                      </div>
                     </div>
                     <button className="btn btn-ghost btn-sm" onClick={function () { setMuminPreview(hof); }}>View HOF</button>
                   </div>
