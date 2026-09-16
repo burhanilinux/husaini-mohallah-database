@@ -1,4 +1,5 @@
 import "./App.css";
+import "./mobile.css";
 import { AppProvider, useAppContext } from "./context/AppContext.jsx";
 import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
 import { Spinner } from "./components/Shared.jsx";
