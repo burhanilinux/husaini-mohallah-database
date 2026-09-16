@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useAppContext } from "../context/AppContext.jsx";
 import { GlobalSearch } from "./GlobalSearch.jsx";
 
@@ -10,6 +11,7 @@ export function Sidebar() {
   var setIeModal = ctx.setIeModal, setTrashModal = ctx.setTrashModal, loadTrash = ctx.loadTrash;
   var downloadFullBackup = ctx.downloadFullBackup, restoreFromBackup = ctx.restoreFromBackup;
   var session = ctx.session, handleSignOut = ctx.handleSignOut;
+  var [mobileOpen, setMobileOpen] = useState(false);
 
   var navItems = [
     { id: "dashboard", icon: "◈", label: "Dashboard" },
@@ -20,33 +22,88 @@ export function Sidebar() {
     { id: "masool", icon: "🧭", label: "Masool" },
     { id: "reports", icon: "📄", label: "Reports" },
     { id: "activity", icon: "🕘", label: "Activity Log" },
+    { id: "users", icon: "👥", label: "Users" },
   ];
 
+  function goTo(id) {
+    setPage(id);
+    setSearch("");
+    setMobileOpen(false);
+  }
+
+  function openImport() {
+    setIeModal(true);
+    setMobileOpen(false);
+  }
+
+  function openTrash() {
+    setTrashModal(true);
+    loadTrash();
+    setMobileOpen(false);
+  }
+
+  function backup() {
+    downloadFullBackup();
+    setMobileOpen(false);
+  }
+
+  function restore() {
+    document.getElementById("restore-file-input")?.click();
+    setMobileOpen(false);
+  }
+
   return (
-    <aside className="sidebar">
-      <div className="sb-logo" style={{ textAlign: "center" }}>
-        <img src={LOGO_URL} alt="Husaini Mohallah" style={{ width: "118px", height: "118px", objectFit: "contain", display: "block", margin: "0 auto 10px" }} />
-        <div className="sb-sub">Husaini Mohallah · Database</div>
-        <div className="cloud-badge">☁ Supabase Cloud</div>
-      </div>
-      <nav className="nav">
-        <div className="nav-lbl">Main</div>
-        {navItems.map(function (n) {
-          return <div key={n.id} className={"nav-item" + (page === n.id ? " active" : "")} onClick={function () { setPage(n.id); setSearch(""); }}><span>{n.icon}</span> {n.label}</div>;
-        })}
-        <div className="nav-item" style={{ color: "#c9a84c", borderColor: "rgba(201,168,76,.15)", marginTop: 4 }} onClick={function () { setIeModal(true); }}><span>⇅</span> Import / Export</div>
-        <input id="restore-file-input" type="file" accept=".json" style={{ display: "none" }} onChange={function (e) { if (e.target.files[0]) restoreFromBackup(e.target.files[0]); e.target.value = ""; }} />
-        <div className="nav-item" style={{ color: "#9ca3af", marginTop: 2 }} onClick={function () { setTrashModal(true); loadTrash(); }}><span>🗑</span> Trash</div>
-        <div className="nav-item" style={{ color: "#9ca3af", marginTop: 2 }} onClick={function () { downloadFullBackup(); }}><span>💾</span> Backup All Data</div>
-        <div className="nav-item" style={{ color: "#9ca3af", marginTop: 2 }} onClick={function () { document.getElementById("restore-file-input").click(); }}><span>📤</span> Restore Backup</div>
-        <GlobalSearch />
-      </nav>
-      <div className="user-box">
-        <div className="user-role">● Signed In</div>
-        <div className="user-email">{session && session.user && session.user.email}</div>
-        <button className="signout-btn" onClick={handleSignOut}>Sign Out</button>
-      </div>
-      <div className="sb-footer">Husaini Mohallah © 2026 · Developed by Juzer Dana</div>
-    </aside>
+    <>
+      <button
+        className="mobile-menu-trigger"
+        aria-label="Open navigation menu"
+        aria-expanded={mobileOpen}
+        onClick={function () { setMobileOpen(true); }}
+      >
+        <span>☰</span>
+      </button>
+
+      {mobileOpen && <div className="mobile-nav-backdrop" onClick={function () { setMobileOpen(false); }} />}
+
+      <aside className={"sidebar" + (mobileOpen ? " mobile-open" : "")}>
+        <div className="sb-mobile-header">
+          <div>
+            <div className="sb-mobile-title">Husaini Mohallah</div>
+            <div className="sb-mobile-sub">Database</div>
+          </div>
+          <button className="mobile-menu-close" aria-label="Close navigation menu" onClick={function () { setMobileOpen(false); }}>×</button>
+        </div>
+
+        <div className="sb-logo" style={{ textAlign: "center" }}>
+          <img src={LOGO_URL} alt="Husaini Mohallah" style={{ width: "118px", height: "118px", objectFit: "contain", display: "block", margin: "0 auto 10px" }} />
+          <div className="sb-sub">Husaini Mohallah · Database</div>
+          <div className="cloud-badge">☁ Supabase Cloud</div>
+        </div>
+
+        <nav className="nav">
+          <div className="nav-lbl">Main</div>
+          {navItems.map(function (n) {
+            return <div key={n.id} className={"nav-item" + (page === n.id ? " active" : "")} onClick={function () { goTo(n.id); }}><span>{n.icon}</span> {n.label}</div>;
+          })}
+
+          <div className="nav-lbl nav-lbl-tools">Tools</div>
+          <div className="nav-item" style={{ color: "#c9a84c", borderColor: "rgba(201,168,76,.15)" }} onClick={openImport}><span>⇅</span> Import / Export</div>
+          <input id="restore-file-input" type="file" accept=".json" style={{ display: "none" }} onChange={function (e) { if (e.target.files[0]) restoreFromBackup(e.target.files[0]); e.target.value = ""; }} />
+          <div className="nav-item" style={{ color: "#9ca3af" }} onClick={openTrash}><span>🗑</span> Trash</div>
+          <div className="nav-item" style={{ color: "#9ca3af" }} onClick={backup}><span>💾</span> Backup All Data</div>
+          <div className="nav-item" style={{ color: "#9ca3af" }} onClick={restore}><span>📤</span> Restore Backup</div>
+
+          <div className="nav-lbl nav-lbl-search">Search</div>
+          <GlobalSearch />
+        </nav>
+
+        <div className="user-box">
+          <div className="user-role">● Signed In</div>
+          <div className="user-email">{session && session.user && session.user.email}</div>
+          <button className="signout-btn" onClick={handleSignOut}>Sign Out</button>
+        </div>
+        <div className="sb-footer">Husaini Mohallah © 2026 · Developed by Juzer Dana</div>
+      </aside>
+    </>
   );
 }
