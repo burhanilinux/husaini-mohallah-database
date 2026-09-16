@@ -8,7 +8,6 @@ import { IEModal } from "./components/IEModal.jsx";
 
 import { Dashboard } from "./pages/Dashboard.jsx";
 import { MuminPage } from "./pages/MuminPage.jsx";
-import { FamilyPage } from "./pages/FamilyPage.jsx";
 import { DataQualityPage } from "./pages/DataQualityPage.jsx";
 import { AdvancedSearchPage } from "./pages/AdvancedSearchPage.jsx";
 import { SabilPage } from "./pages/SabilPage.jsx";
@@ -29,7 +28,6 @@ function ActivePage() {
   switch (ctx.page) {
     case "dashboard": return <Dashboard />;
     case "mumin": return <MuminPage />;
-    case "families": return <FamilyPage />;
     case "data-quality": return <DataQualityPage />;
     case "advanced-search": return <AdvancedSearchPage />;
     case "sabil": return <SabilPage />;
@@ -41,10 +39,6 @@ function ActivePage() {
   }
 }
 
-// Auth (session, role, login/logout) lives entirely in AuthContext.
-// AppContext reads it via useAuth() internally and loads app data as soon
-// as a session appears — AppShell no longer needs to push role/loadAll
-// into AppContext manually.
 function AppShell() {
   var ctx = useAppContext();
   var auth = useAuth();
