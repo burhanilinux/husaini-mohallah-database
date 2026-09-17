@@ -1,0 +1,184 @@
+/* Print-only presentation layer.
+   Keep screen styling untouched and make every browser print render as a clean report. */
+@media print {
+  /* Remove the application chrome completely. */
+  .sidebar,
+  .toolbar,
+  .nav,
+  .sb-footer,
+  .sb-logo,
+  .user-box,
+  .cloud-badge,
+  .gsearch-wrap,
+  .dash-search-results,
+  .act-col,
+  .btn,
+  button,
+  .modal-overlay,
+  .preview-overlay,
+  .lightbox,
+  .no-print,
+  .year-tabs,
+  .page-hdr button,
+  .toast {
+    display: none !important;
+  }
+
+  /* Break the screen layout and use the complete printable page. */
+  html,
+  body,
+  #root,
+  .layout,
+  .main {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .main {
+    display: block !important;
+    position: static !important;
+    overflow: visible !important;
+  }
+
+  /* Remove dark theme/tinted surfaces, gradients and shadows from reports. */
+  .card,
+  .stat-card,
+  .fam-card,
+  .umoor-card,
+  .reminder-card,
+  .upload-zone,
+  .imp-preview,
+  .att-item,
+  .att-viewer-item,
+  .preview-field,
+  .preview-family-chip,
+  .file-meta-item,
+  .masool-badge,
+  .masool-subsectors,
+  .gsearch-results {
+    background: #fff !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    color: #000 !important;
+  }
+
+  .card,
+  .fam-card,
+  .stat-card,
+  .umoor-card {
+    border-color: #ccc !important;
+  }
+
+  .stat-card::before,
+  .umoor-card:hover,
+  .reminder-card:hover,
+  tr:hover td,
+  .clickable-row:hover td {
+    background: transparent !important;
+    background-image: none !important;
+  }
+
+  /* Force readable print colors regardless of the dark-mode classes. */
+  .page-title,
+  .card-title,
+  .fam-name,
+  .fam-member-name,
+  .umoor-name,
+  .umoor-num,
+  .stat-val,
+  .file-no,
+  .preview-name,
+  .masool-sector-name,
+  .masool-badge-name,
+  .print-header h2,
+  .print-header p,
+  label,
+  th,
+  td,
+  p,
+  span,
+  div {
+    text-shadow: none !important;
+  }
+
+  .page-title,
+  .card-title,
+  .fam-name,
+  .umoor-num,
+  .file-no,
+  .print-header h2 {
+    color: #222 !important;
+  }
+
+  .page-sub,
+  .fam-meta,
+  .umoor-count,
+  .stat-lbl,
+  .stat-desc,
+  .print-header p,
+  .masool-sector-meta,
+  .masool-subsector-name,
+  .activity-meta {
+    color: #555 !important;
+  }
+
+  /* Tables should be plain, full-width report tables. */
+  table {
+    width: 100% !important;
+    max-width: none !important;
+    border-collapse: collapse !important;
+    background: #fff !important;
+  }
+
+  thead,
+  tbody,
+  tr,
+  th,
+  td {
+    background: #fff !important;
+  }
+
+  th {
+    color: #222 !important;
+    border-bottom: 1px solid #999 !important;
+    font-weight: 700 !important;
+  }
+
+  td {
+    color: #111 !important;
+    border-bottom: 1px solid #ddd !important;
+  }
+
+  .badge {
+    background: #fff !important;
+    color: #222 !important;
+    border: 1px solid #999 !important;
+  }
+
+  .print-header {
+    display: block !important;
+    background: #fff !important;
+    color: #000 !important;
+    border-bottom-color: #999 !important;
+  }
+
+  /* Avoid clipped/floating UI when a report spans multiple pages. */
+  .card,
+  table,
+  tr,
+  .fam-card,
+  .stat-card {
+    break-inside: avoid;
+  }
+
+  @page {
+    margin: 12mm;
+  }
+}
