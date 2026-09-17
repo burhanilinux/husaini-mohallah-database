@@ -13,34 +13,56 @@ export function MuminPage() {
   var areaSectors = ctx.areaSectors || [];
   var setMuminPreview = ctx.setMuminPreview, deleteRecord = ctx.deleteRecord;
 
-  // Build the family tree from the COMPLETE mumin dataset first.
-  // Do not build it from filteredMumin: the global search/sector filter can
-  // remove family members before grouping, which made an HOF appear alone.
-  var byFamily = {};
+  // Build family trees from the source HOF_ID, not family_id.
+  // The imported dataset can contain a member's Family_ID that differs from
+  // the HOF's Family_ID, while HOF_ID remains the authoritative family link.
+  // Example: Mustafa bhai Alihusain bhai Chechatwala (30313998) has
+  // Family_ID 30313998 but HOF_ID 30313997 (Hafiza bai).
+  var byHof = {};
   var hofWithoutFamily = [];
+  var hofByIts = {};
 
   muminData.forEach(function (m) {
     if (m.deleted_at) return;
-    var key = m.family_id === null || m.family_id === undefined || String(m.family_id).trim() === ""
-      ? null : String(m.family_id).trim();
-    var isHof = String((m.source_data || {}).HOF_FM_TYPE || "").toUpperCase() === "HOF";
+    hofByIts[String(m.its_id || m.its_number || "")] = m;
+  });
+
+  muminData.forEach(function (m) {
+    if (m.deleted_at) return;
+    var source = m.source_data || {};
+    var hofId = String(source.HOF_ID || "").trim();
+    var isHof = String(source.HOF_FM_TYPE || "").toUpperCase() === "HOF";
+
+    // Prefer the source HOF_ID. Fall back to family_id for older/manual records.
+    var key = hofId || (m.family_id === null || m.family_id === undefined || String(m.family_id).trim() === ""
+      ? "" : String(m.family_id).trim());
 
     if (!key) {
       if (isHof) hofWithoutFamily.push({ hof: m, members: [] });
       return;
     }
 
-    if (!byFamily[key]) byFamily[key] = { hof: null, members: [] };
-    if (isHof) byFamily[key].hof = m;
-    else byFamily[key].members.push(m);
+    if (!byHof[key]) byHof[key] = { hof: null, members: [] };
+    if (isHof || String(m.its_id || m.its_number) === key) {
+      byHof[key].hof = m;
+    } else {
+      byHof[key].members.push(m);
+    }
   });
 
-  var grouped = Object.keys(byFamily).map(function (key) {
-    var group = byFamily[key];
-    return group.hof ? { familyId: key, hof: group.hof, members: group.members } : null;
+  // Resolve the HOF directly by HOF_ID when the HOF record is stored with a
+  // different family_id from its members.
+  Object.keys(byHof).forEach(function (key) {
+    if (!byHof[key].hof && hofByIts[key]) {
+      byHof[key].hof = hofByIts[key];
+    }
+  });
+
+  var grouped = Object.keys(byHof).map(function (key) {
+    var group = byHof[key];
+    return group.hof ? { familyId: group.hof.family_id || key, hof: group.hof, members: group.members } : null;
   }).filter(Boolean);
 
-  // Keep HOF records with no family_id visible rather than silently dropping them.
   hofWithoutFamily.forEach(function (g) {
     grouped.push({ familyId: null, hof: g.hof, members: [] });
   });
@@ -51,8 +73,9 @@ export function MuminPage() {
 
   var q = search.trim().toLowerCase();
   var visibleGroups = grouped.filter(function (group) {
-    // Sector filtering applies to the HOF. Family members remain visible once
-    // the family is selected, so the tree never gets partially chopped up.
+    // Sector filtering is based on the HOF. Searching a family member still
+    // returns the complete HOF family tree, so members are never hidden because
+    // their own Family_ID differs from the HOF's Family_ID.
     if (selSector && group.hof.area_sector !== selSector) return false;
     if (!q) return true;
 
