@@ -1,5 +1,16 @@
 /* Mobile-first polish for phones and small tablets. Loaded after App.css so these rules safely override desktop layout. */
 
+/* Applies at every viewport size — cheap, native-feeling touch polish. */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+body {
+  overscroll-behavior-y: contain; /* stop the whole page rubber-banding/pull-to-refresh inside the PWA shell */
+}
+.btn, .nav-item, .clickable-row, .umoor-card, .fam-card, input, select, textarea {
+  touch-action: manipulation; /* removes the ~300ms tap delay on older mobile browsers */
+}
+
 .mobile-menu-trigger,
 .mobile-nav-backdrop,
 .sb-mobile-header { display: none; }
@@ -145,7 +156,7 @@
 
   .main {
     margin-left: 0 !important;
-    padding: calc(70px + env(safe-area-inset-top)) 12px 24px !important;
+    padding: calc(70px + env(safe-area-inset-top)) 12px calc(24px + env(safe-area-inset-bottom)) !important;
     width: 100%;
     min-width: 0;
   }
@@ -167,8 +178,22 @@
   input, select, textarea { font-size: 16px !important; min-height: 44px; }
   .btn { min-height: 42px; padding: 9px 12px; }
   .btn-sm { min-height: 38px; }
+
+  /* Any table, wrapped in a .card or not (e.g. the report tables in
+     ReportsPage, which render in a plain div), scrolls horizontally on its
+     own instead of being silently clipped by the page-level overflow-x:
+     hidden above. Setting the <table> itself to display:block turns it
+     into its own scroll container while thead/tbody/tr/td keep their
+     table-* display values, so columns still line up. */
   .card:has(table) { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  table { min-width: 860px; }
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    min-width: 0;
+    max-width: 100%;
+  }
+  table thead, table tbody { display: table; width: 100%; min-width: 860px; }
   th { padding: 10px 12px; font-size: 9px; }
   td { padding: 11px 12px; font-size: 12px; }
   .umoor-grid { grid-template-columns: repeat(2, minmax(0,1fr)) !important; gap: 8px !important; }
@@ -181,9 +206,9 @@
   .modal { width: 100% !important; max-width: 100% !important; max-height: 94vh !important; border-radius: 18px 18px 10px 10px !important; }
   .modal-hdr { padding: 16px 16px 13px !important; }
   .modal-body { padding: 16px !important; }
-  .modal-ftr { padding: 12px 16px !important; flex-wrap: wrap; }
+  .modal-ftr { padding: 12px 16px calc(12px + env(safe-area-inset-bottom)) !important; flex-wrap: wrap; }
   .modal-ftr .btn { flex: 1 1 140px; }
-  .toast { left: 12px !important; right: 12px !important; bottom: 12px !important; justify-content: center; text-align: center; padding: 12px 14px; }
+  .toast { left: 12px !important; right: 12px !important; bottom: max(12px, env(safe-area-inset-bottom)) !important; justify-content: center; text-align: center; padding: 12px 14px; }
   .mumin-avatar-sm { width: 34px; height: 34px; }
   .act-col { gap: 5px; }
 }
