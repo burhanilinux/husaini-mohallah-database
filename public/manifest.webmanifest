@@ -13,6 +13,6 @@
   "categories": ["utilities", "productivity"],
   "prefer_related_applications": false,
   "icons": [
-    { "src": "/favicon.svg?v=20260918", "sizes": "64x64", "type": "image/svg+xml", "purpose": "any maskable" }
+    { "src": "/husaini-mohallah-icon-1024.webp?v=20260918", "sizes": "1024x1023", "type": "image/webp", "purpose": "any maskable" }
   ]
 }
