@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-const LOGO_URL = "/favicon.svg?v=20260918";
+const LOGO_URL = "/husaini-mohallah-icon-1024.webp?v=20260918";
 
 export function LoginPage({ onLogin }) {
   const [email, setEmail] = useState("");
