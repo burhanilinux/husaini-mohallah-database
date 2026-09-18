@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAppContext } from "../context/AppContext.jsx";
 import { GlobalSearch } from "./GlobalSearch.jsx";
 
-const LOGO_URL = "/husaini-mohallah-icon-1024.webp?v=20260918";
+const LOGO_URL = "/husaini-mohallah-icon-1024.webp?v=20260919";
 
 export function Sidebar() {
   var ctx = useAppContext();
