@@ -1,5 +1,5 @@
-const CACHE_NAME = "husaini-mohallah-v5";
-const APP_SHELL = ["/", "/manifest.webmanifest", "/icon-512.png"];
+const CACHE_NAME = "husaini-mohallah-v6";
+const APP_SHELL = ["/", "/manifest.webmanifest", "/husaini-mohallah-icon-1024.webp"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
