@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-const LOGO_URL = "/husaini-mohallah-icon-1024.webp?v=20260919";
+const LOGO_URL = "/husaini-mohallah-icon-1024.webp?v=20260920";
 
 export function LoginPage({ onLogin }) {
   const [email, setEmail] = useState("");
