@@ -38,6 +38,7 @@ export function Sidebar() {
     { id: "sabil", icon: "🏠", label: "Sabil Groups" },
     { id: "masool", icon: "🧭", label: "Masool" },
     { id: "reports", icon: "📄", label: "Reports" },
+    { id: "report-builder", icon: "🧰", label: "Advanced Report Builder" },
     { id: "activity", icon: "🕘", label: "Activity Log" },
     { id: "users", icon: "👥", label: "Users" },
   ];
