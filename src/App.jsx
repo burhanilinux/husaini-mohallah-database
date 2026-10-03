@@ -15,6 +15,7 @@ import { AdvancedSearchPage } from "./pages/AdvancedSearchPage.jsx";
 import { SabilPage, RelationshipManagerPage } from "./pages/SabilPage.jsx";
 import { MasoolPage } from "./pages/MasoolPage.jsx";
 import { ReportsPage } from "./pages/ReportsPage.jsx";
+import { ReportBuilderPage } from "./pages/ReportBuilderPage.jsx";
 import { ActivityPage } from "./pages/ActivityPage.jsx";
 import { UsersPage } from "./pages/UsersPage.jsx";
 
@@ -36,6 +37,7 @@ function ActivePage() {
     case "relationships": return <RelationshipManagerPage />;
     case "masool": return <MasoolPage />;
     case "reports": return <ReportsPage />;
+    case "report-builder": return <ReportBuilderPage />;
     case "activity": return <ActivityPage />;
     case "users": return <UsersPage />;
     default: return <Dashboard />;
