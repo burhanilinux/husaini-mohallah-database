@@ -4,11 +4,11 @@ import { getMuminAge, toXLS } from "../lib/utils.js";
 
 function v(m,key,sourceKey){var a=m&&m[key];if(a!==undefined&&a!==null&&String(a).trim()!=="")return a;var s=m&&m.source_data;return s&&s[sourceKey||key]!==undefined?s[sourceKey||key]:"";}
 var STORAGE="husaini_saved_reports_v1";
-function loadSaved(){try{return JSON.parse(localStorage.getItem(STORAGE)||"[]");}catch(e){return [];}}
+function loadSaved(){try{return JSON.parse(window.localStorage.getItem(STORAGE)||"[]");}catch(e){return [];}}
 export function ReportBuilderPage(){
   var ctx=useAppContext(),data=(ctx.muminData||[]).filter(function(m){return !m.deleted_at;});
   var [search,setSearch]=useState(""),[startAge,setStartAge]=useState(""),[endAge,setEndAge]=useState(""),[sector,setSector]=useState(""),[gender,setGender]=useState(""),[status,setStatus]=useState(""),[hofOnly,setHofOnly]=useState(false),[hasPhone,setHasPhone]=useState(false);
-  var [saved,setSaved]=useState(loadSaved),[savedName,setSavedName]=useState("");
+  var [saved,setSaved]=useState(function(){return loadSaved();}),[savedName,setSavedName]=useState("");
   var [template,setTemplate]=useState("detailed");
   var sectors=useMemo(function(){return Array.from(new Set(data.map(function(m){return String(m.area_sector||"").trim();}).filter(Boolean))).sort();},[data]);
   var rows=useMemo(function(){var q=search.trim().toLowerCase(),lo=startAge===""?null:Number(startAge),hi=endAge===""?null:Number(endAge);return data.filter(function(m){
@@ -19,7 +19,7 @@ export function ReportBuilderPage(){
   });},[data,search,startAge,endAge,sector,gender,status,hofOnly,hasPhone,template]);
   function filters(){return {search:search,startAge:startAge,endAge:endAge,sector:sector,gender:gender,status:status,hofOnly:hofOnly,hasPhone:hasPhone,template:template};}
   function apply(f){setSearch(f.search||"");setStartAge(f.startAge||"");setEndAge(f.endAge||"");setSector(f.sector||"");setGender(f.gender||"");setStatus(f.status||"");setHofOnly(!!f.hofOnly);setHasPhone(!!f.hasPhone);setTemplate(f.template||"detailed");}
-  function saveReport(){var name=savedName.trim();if(!name){alert("Enter a report name.");return;}var next=saved.filter(function(x){return x.name.toLowerCase()!==name.toLowerCase();});next.unshift({name:name,filters:filters(),updatedAt:new Date().toISOString()});next=next.slice(0,20);localStorage.setItem(STORAGE,JSON.stringify(next));setSaved(next);setSavedName("");}
+  function saveReport(){var name=savedName.trim();if(!name){alert("Enter a report name.");return;}var next=saved.filter(function(x){return x.name.toLowerCase()!==name.toLowerCase();});next.unshift({name:name,filters:filters(),updatedAt:new Date().toISOString()});next=next.slice(0,20);window.localStorage.setItem(STORAGE,JSON.stringify(next));setSaved(next);setSavedName("");}
   function removeReport(name){var next=saved.filter(function(x){return x.name!==name;});localStorage.setItem(STORAGE,JSON.stringify(next));setSaved(next);}
   function reset(){apply({});}
   function printReport(){window.print();}
