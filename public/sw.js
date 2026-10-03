@@ -1,5 +1,5 @@
-const CACHE_NAME = "husaini-mohallah-v6";
-const APP_SHELL = [
+const CACHE_NAME = "husaini-mohallah-v7";
+const OFFLINE_URL = "/";\n\nconst APP_SHELL = [
   "/",
   "/manifest.webmanifest",
   "/favicon.svg?v=20260920",
