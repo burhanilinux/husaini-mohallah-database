@@ -1,22 +1,27 @@
-const CACHE_NAME = "husaini-mohallah-v4";
+const CACHE_NAME = "husaini-mohallah-v5";
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",
   "/favicon.svg?v=20260920",
   "/icon-192.png?v=20260920",
   "/icon-512.png?v=20260920",
+  "/icon-maskable-512.png?v=20260920"
 ];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(APP_SHELL))
+      .then(() => self.skipWaiting())
   );
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
+      .then((keys) => Promise.all(
+        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+      ))
       .then(() => self.clients.claim())
   );
 });
@@ -28,14 +33,17 @@ function isStaticAsset(url) {
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   const url = new URL(req.url);
+
   if (req.method !== "GET" || url.origin !== self.location.origin) return;
 
   if (req.mode === "navigate") {
     event.respondWith(
       fetch(req)
         .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put("/", copy));
+          if (response && response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put("/", copy));
+          }
           return response;
         })
         .catch(() => caches.match("/"))
@@ -57,16 +65,5 @@ self.addEventListener("fetch", (event) => {
         })
       )
     );
-    return;
   }
-
-  event.respondWith(
-    fetch(req)
-      .then((response) => {
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
-        return response;
-      })
-      .catch(() => caches.match(req))
-  );
 });
