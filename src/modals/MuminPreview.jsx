@@ -18,10 +18,32 @@ export function MuminPreview() {
   useEffect(function () {
     var cancelled = false;
     setFamilyRecord(null);
-    if (!muminPreview || muminPreview.family_id === null || muminPreview.family_id === undefined || muminPreview.family_id === "") return function () {};
-    sbGet("families", "family_id=eq." + encodeURIComponent(muminPreview.family_id) + "&limit=1")
-      .then(function (rows) { if (!cancelled) setFamilyRecord((rows || [])[0] || null); })
+    if (!muminPreview) return function () {};
+
+    var familyId = muminPreview.family_id;
+    var its = muminPreview.its_id || muminPreview.its_number;
+    var hofId = muminPreview.source_data && muminPreview.source_data.HOF_ID;
+
+    // Resolve the household from either Family ID or authoritative HOF_ID.
+    // This keeps the 360 profile usable for legacy rows where one field is missing.
+    var requests = [];
+    if (familyId !== null && familyId !== undefined && String(familyId).trim() !== "") {
+      requests.push(sbGet("families", "family_id=eq." + encodeURIComponent(familyId) + "&limit=1"));
+    } else if (hofId) {
+      requests.push(sbGet("families", "hof_its_id=eq." + encodeURIComponent(hofId) + "&limit=1"));
+    } else if (its && muminPreview.source_data && String(muminPreview.source_data.HOF_FM_TYPE || "").toUpperCase() === "HOF") {
+      requests.push(sbGet("families", "hof_its_id=eq." + encodeURIComponent(its) + "&limit=1"));
+    }
+
+    Promise.all(requests)
+      .then(function (all) {
+        if (!cancelled) {
+          var rows = all.reduce(function (acc, part) { return acc.concat(part || []); }, []);
+          setFamilyRecord(rows[0] || null);
+        }
+      })
       .catch(function () { if (!cancelled) setFamilyRecord(null); });
+
     return function () { cancelled = true; };
   }, [muminPreview]);
 
@@ -30,16 +52,33 @@ export function MuminPreview() {
   if (!muminPreview) return null;
 
   var m = muminPreview;
-  var sabilFamily = m.sabil_no ? getFamilyBySabil(m.sabil_no).filter(function (o) { return o.id !== m.id; }) : [];
-  var familyMembers = m.sabil_no ? getFamilyBySabil(m.sabil_no) : [];
-  if (familyRecord && familyRecord.family_id) {
-    var familyIdMembers = (ctx.muminData || []).filter(function (o) { return String(o.family_id) === String(familyRecord.family_id); });
-    if (familyIdMembers.length) familyMembers = familyIdMembers;
+  var allMembers = (ctx.muminData || []).filter(function (o) { return !o.deleted_at; });
+  var mIts = String(m.its_id || m.its_number || "").trim();
+  var mHofId = String((m.source_data && m.source_data.HOF_ID) || "").trim();
+  var mFamilyId = String(m.family_id || (familyRecord && familyRecord.family_id) || "").trim();
+
+  // HOF_ID is authoritative for family membership. Family ID and Sabil remain
+  // fallbacks for older/manual records that do not carry HOF_ID.
+  var familyMembers = [];
+  if (mHofId) {
+    familyMembers = allMembers.filter(function (o) {
+      var oHofId = String((o.source_data && o.source_data.HOF_ID) || "").trim();
+      return oHofId === mHofId || String(o.its_id || o.its_number || "").trim() === mHofId;
+    });
   }
+  if (!familyMembers.length && mFamilyId) {
+    familyMembers = allMembers.filter(function (o) { return String(o.family_id || "").trim() === mFamilyId; });
+  }
+  if (!familyMembers.length && m.sabil_no) {
+    familyMembers = getFamilyBySabil(m.sabil_no);
+  }
+  if (mIts && !familyMembers.some(function (o) { return String(o.id) === String(m.id); })) familyMembers.unshift(m);
+
+  var sabilFamily = familyMembers.filter(function (o) { return String(o.id) !== String(m.id); });
   var sectorInfo = getSectorInfo(m) || {};
-  var hof = familyRecord && familyRecord.hof_its_id
-    ? (ctx.getMuminByIts ? ctx.getMuminByIts(familyRecord.hof_its_id) : null)
-    : null;
+  var familyHofIts = familyRecord && familyRecord.hof_its_id ? String(familyRecord.hof_its_id).trim() : mHofId;
+  var hof = familyHofIts && ctx.getMuminByIts ? ctx.getMuminByIts(familyHofIts) : null;
+  if (!hof && mIts && String((m.source_data && m.source_data.HOF_FM_TYPE) || "").toUpperCase() === "HOF") hof = m;
   var age = getMuminAge(m);
   var initials = (m.name || "?").trim().charAt(0).toUpperCase();
   var ext = getExtendedProfile(m);
@@ -67,6 +106,7 @@ export function MuminPreview() {
             </div>
             <div style={{ minWidth: 0 }}>
               <div className="preview-name" style={{ fontSize: 22 }}>{m.name || "Unnamed Mumin"}</div>
+              <div style={{ fontSize: 10, color: "#c9a84c", letterSpacing: 1.5, textTransform: "uppercase", marginTop: 3 }}>Mumin 360° Profile</div>
               <div className="preview-its">ITS: {m.its_number || "—"}{m.family_id ? "  •  Family: " + m.family_id : ""}</div>
               <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginTop: 7 }}>
                 <span className={"badge badge-" + (m.status || "").toLowerCase()}>{m.status || "Status not set"}</span>
@@ -100,13 +140,20 @@ export function MuminPreview() {
             </div></div>
           </div>
 
-          <div className="preview-section"><div className="preview-sec-title">Family & HOF</div>
+          <div className="preview-section"><div className="preview-sec-title">Family & HOF · 360° Household View</div>
             <div style={{ display: "grid", gridTemplateColumns: "minmax(120px,.6fr) minmax(180px,1fr) minmax(180px,1.4fr)", gap: 10, marginBottom: 10 }}>
               <div className="preview-field"><div className="preview-field-label">Family ID</div><div className="preview-field-val">{m.family_id || "—"}</div></div>
               <div className="preview-field"><div className="preview-field-label">Sabil No.</div><div className="preview-field-val">{(familyRecord && familyRecord.sabil_no) || m.sabil_no || "—"}</div></div>
               <div className="preview-field"><div className="preview-field-label">Head of Family</div><div className="preview-field-val">{hof ? hof.name + " • " + hof.its_number : (familyRecord && familyRecord.hof_its_id ? "ITS " + familyRecord.hof_its_id : "Not assigned")}</div></div>
             </div>
-            {sabilFamily.length > 0 ? <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(210px,1fr))", gap: 7 }}>{sabilFamily.map(function (o) { var isHof = familyRecord && familyRecord.hof_its_id && (String(o.its_id) === String(familyRecord.hof_its_id) || String(o.its_number) === String(familyRecord.hof_its_id)); return <div className="preview-family-chip" key={o.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }} onClick={function () { openSibling(o); }}><span>{isHof ? "👑 " : "🏠 "}{o.name}</span><span style={{ color: "#6b7280", fontSize: 11 }}>{o.its_number || "—"}</span></div>; })}</div> : <div style={{ color: "#777", fontSize: 12 }}>No other family members found.</div>}
+            {sabilFamily.length > 0 ? <div>
+              <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 7 }}>{sabilFamily.length} linked member{sabilFamily.length === 1 ? "" : "s"} · HOF relationship resolved from database linkage</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(210px,1fr))", gap: 7 }}>{sabilFamily.map(function (o) {
+                var oIts = String(o.its_id || o.its_number || "").trim();
+                var isHof = hof && String(hof.id) === String(o.id);
+                return <div className="preview-family-chip" key={o.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }} onClick={function () { openSibling(o); }}><span>{isHof ? "👑 " : "🏠 "}{o.name}</span><span style={{ color: "#6b7280", fontSize: 11 }}>{oIts || "—"}</span></div>;
+              })}</div>
+            </div> : <div style={{ color: "#777", fontSize: 12 }}>No linked family members found.</div>}
           </div>
 
           {ext.hasSourceData && (
