@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAppContext } from "../context/AppContext.jsx";
 import { GlobalSearch } from "./GlobalSearch.jsx";
 
@@ -12,6 +12,22 @@ export function Sidebar() {
   var downloadFullBackup = ctx.downloadFullBackup, restoreFromBackup = ctx.restoreFromBackup;
   var session = ctx.session, handleSignOut = ctx.handleSignOut;
   var [mobileOpen, setMobileOpen] = useState(false);
+  var [installPrompt, setInstallPrompt] = useState(null);
+
+  useEffect(function () {
+    function onBeforeInstallPrompt(event) {
+      event.preventDefault();
+      setInstallPrompt(event);
+    }
+    window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+    return function () { window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt); };
+  }, []);
+
+  function installApp() {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    installPrompt.userChoice.finally(function () { setInstallPrompt(null); });
+  }
 
   var navItems = [
     { id: "dashboard", icon: "◈", label: "Dashboard" },
@@ -92,6 +108,8 @@ export function Sidebar() {
           <div className="nav-item" style={{ color: "#9ca3af" }} onClick={openTrash}><span>🗑</span> Trash</div>
           <div className="nav-item" style={{ color: "#9ca3af" }} onClick={backup}><span>💾</span> Backup All Data</div>
           <div className="nav-item" style={{ color: "#9ca3af" }} onClick={restore}><span>📤</span> Restore Backup</div>
+
+          {installPrompt && <div className="nav-item pwa-install-item" onClick={installApp}><span>📲</span> Install App</div>}
 
           <div className="nav-lbl nav-lbl-search">Search</div>
           <GlobalSearch />
