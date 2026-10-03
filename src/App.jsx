@@ -12,7 +12,7 @@ import { Dashboard } from "./pages/Dashboard.jsx";
 import { MuminPage } from "./pages/MuminPage.jsx";
 import { DataQualityPage } from "./pages/DataQualityPage.jsx";
 import { AdvancedSearchPage } from "./pages/AdvancedSearchPage.jsx";
-import { SabilPage } from "./pages/SabilPage.jsx";
+import { SabilPage, RelationshipManagerPage } from "./pages/SabilPage.jsx";
 import { MasoolPage } from "./pages/MasoolPage.jsx";
 import { ReportsPage } from "./pages/ReportsPage.jsx";
 import { ActivityPage } from "./pages/ActivityPage.jsx";
@@ -33,6 +33,7 @@ function ActivePage() {
     case "data-quality": return <DataQualityPage />;
     case "advanced-search": return <AdvancedSearchPage />;
     case "sabil": return <SabilPage />;
+    case "relationships": return <RelationshipManagerPage />;
     case "masool": return <MasoolPage />;
     case "reports": return <ReportsPage />;
     case "activity": return <ActivityPage />;
