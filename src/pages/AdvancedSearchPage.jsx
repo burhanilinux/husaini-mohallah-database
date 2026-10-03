@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useAppContext } from "../context/AppContext.jsx";
 import { getMuminAge } from "../lib/utils.js";
 import { getExtendedProfile } from "../lib/muminProfile.js";
+import * as XLSX from "xlsx";
 
 export function AdvancedSearchPage() {
   var ctx = useAppContext();
@@ -42,6 +43,37 @@ export function AdvancedSearchPage() {
     });
   }, [muminData, query, sector, gender, status, ageGroup, hasPhone, hasSabil]);
 
+  function downloadExcel() {
+    if (!results.length) return;
+    var rows = results.map(function (m) {
+      return {
+        "ITS": m.its_number || "",
+        "Name": m.name || "",
+        "Age": getMuminAge(m) ?? "",
+        "Gender": m.gender || "",
+        "Phone": m.phone || "",
+        "Email": m.email || "",
+        "Sabil": m.sabil_no || "",
+        "Sector": m.area_sector || "",
+        "Status": m.status || "",
+        "Address": m.address || "",
+        "Occupation": getExtendedProfile(m).occupation || "",
+        "City": getExtendedProfile(m).city || "",
+        "Organisation": getExtendedProfile(m).organisation || ""
+      };
+    });
+    var worksheet = XLSX.utils.json_to_sheet(rows);
+    worksheet["!cols"] = [
+      { wch: 14 }, { wch: 28 }, { wch: 8 }, { wch: 12 }, { wch: 18 },
+      { wch: 28 }, { wch: 14 }, { wch: 24 }, { wch: 12 }, { wch: 40 },
+      { wch: 24 }, { wch: 20 }, { wch: 28 }
+    ];
+    var workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Advanced Search");
+    var stamp = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(workbook, "Husaini-Mohallah-Advanced-Search-" + stamp + ".xlsx");
+  }
+
   function clearFilters() {
     setQuery(""); setSector(""); setGender(""); setStatus("");
     setAgeGroup(""); setHasPhone(""); setHasSabil("");
@@ -66,7 +98,7 @@ export function AdvancedSearchPage() {
         </div>
       </div>
       <div className="card">
-        <div className="card-hdr"><span className="card-title">Results ({results.length})</span><span style={{ fontSize: 12, color: "#6b7280" }}>Click a member for Mumin 360</span></div>
+        <div className="card-hdr"><span className="card-title">Results ({results.length})</span><div style={{ display: "flex", alignItems: "center", gap: 10 }}><span style={{ fontSize: 12, color: "#6b7280" }}>Click a member for Mumin 360</span><button className="btn btn-primary btn-sm" onClick={downloadExcel} disabled={!results.length}>Download Excel</button></div></div>
         {results.length === 0 ? <div className="empty"><div className="empty-icon">🔎</div><div>No members match these filters</div></div> : (
           <div style={{ overflowX: "auto" }}><table><thead><tr><th>ITS</th><th>Name</th><th>Age</th><th>Gender</th><th>Phone</th><th>Sabil</th><th>Sector</th><th>Status</th><th></th></tr></thead>
             <tbody>{results.map(function (m) { return <tr key={m.id} className="clickable-row" onClick={function () { setMuminPreview(m); }}>
