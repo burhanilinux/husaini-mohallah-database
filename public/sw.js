@@ -1,4 +1,4 @@
-const CACHE_NAME = "husaini-mohallah-v5";
+const CACHE_NAME = "husaini-mohallah-v6";
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",
@@ -16,7 +16,7 @@ self.addEventListener("install", (event) => {
   );
 });
 
-self.addEventListener("activate", (event) => {
+self.addEventListener("message", (event) => {\n  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();\n});\n\nself.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys()
       .then((keys) => Promise.all(
