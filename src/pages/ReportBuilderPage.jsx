@@ -2,100 +2,43 @@ import { useMemo, useState } from "react";
 import { useAppContext } from "../context/AppContext.jsx";
 import { getMuminAge, toXLS } from "../lib/utils.js";
 
-function v(m, key, sourceKey) {
-  var a = m && m[key];
-  if (a !== undefined && a !== null && String(a).trim() !== "") return a;
-  var s = m && m.source_data;
-  return s && s[sourceKey || key] !== undefined ? s[sourceKey || key] : "";
-}
-
-export function ReportBuilderPage() {
-  var ctx = useAppContext();
-  var data = (ctx.muminData || []).filter(function (m) { return !m.deleted_at; });
-  var [search, setSearch] = useState("");
-  var [startAge, setStartAge] = useState("");
-  var [endAge, setEndAge] = useState("");
-  var [sector, setSector] = useState("");
-  var [gender, setGender] = useState("");
-  var [status, setStatus] = useState("");
-  var [hofOnly, setHofOnly] = useState(false);
-  var [hasPhone, setHasPhone] = useState(false);
-
-  var sectors = useMemo(function () {
-    return Array.from(new Set(data.map(function (m) { return String(m.area_sector || "").trim(); }).filter(Boolean))).sort();
-  }, [data]);
-
-  var rows = useMemo(function () {
-    var q = search.trim().toLowerCase();
-    var lo = startAge === "" ? null : Number(startAge);
-    var hi = endAge === "" ? null : Number(endAge);
-    return data.filter(function (m) {
-      var age = getMuminAge(m);
-      var source = m.source_data || {};
-      var its = String(m.its_number || m.its_id || "").trim();
-      var text = (its + " " + (m.name || "") + " " + (m.phone || "")).toLowerCase();
-      if (q && text.indexOf(q) < 0) return false;
-      if (lo !== null && (age === null || age < lo)) return false;
-      if (hi !== null && (age === null || age > hi)) return false;
-      if (sector && m.area_sector !== sector) return false;
-      if (gender && m.gender !== gender) return false;
-      if (status && m.status !== status) return false;
-      if (hofOnly && String(source.HOF_FM_TYPE || "").toUpperCase() !== "HOF") return false;
-      if (hasPhone && !String(m.phone || "").trim()) return false;
-      return true;
-    });
-  }, [data, search, startAge, endAge, sector, gender, status, hofOnly, hasPhone]);
-
-  function reset() {
-    setSearch(""); setStartAge(""); setEndAge(""); setSector(""); setGender(""); setStatus(""); setHofOnly(false); setHasPhone(false);
-  }
-
-  function exportExcel() {
-    var out = rows.map(function (m) {
-      var source = m.source_data || {};
-      return {
-        "ITS": m.its_number || m.its_id || "",
-        "Name": m.name || "",
-        "Age": getMuminAge(m) === null ? "" : getMuminAge(m),
-        "Gender": m.gender || "",
-        "Phone": m.phone || "",
-        "Sector": m.area_sector || "",
-        "HOF ITS": source.HOF_ID || "",
-        "HOF Name": (data.find(function (x) { return String(x.its_number || x.its_id || "") === String(source.HOF_ID || ""); }) || {}).name || "",
-        "Status": m.status || ""
-      };
-    });
-    toXLS(out, ["ITS","Name","Age","Gender","Phone","Sector","HOF ITS","HOF Name","Status"], "advanced_report");
-  }
-
+function v(m,key,sourceKey){var a=m&&m[key];if(a!==undefined&&a!==null&&String(a).trim()!=="")return a;var s=m&&m.source_data;return s&&s[sourceKey||key]!==undefined?s[sourceKey||key]:"";}
+var STORAGE="husaini_saved_reports_v1";
+function loadSaved(){try{return JSON.parse(localStorage.getItem(STORAGE)||"[]");}catch(e){return [];}}
+export function ReportBuilderPage(){
+  var ctx=useAppContext(),data=(ctx.muminData||[]).filter(function(m){return !m.deleted_at;});
+  var [search,setSearch]=useState(""),[startAge,setStartAge]=useState(""),[endAge,setEndAge]=useState(""),[sector,setSector]=useState(""),[gender,setGender]=useState(""),[status,setStatus]=useState(""),[hofOnly,setHofOnly]=useState(false),[hasPhone,setHasPhone]=useState(false);
+  var [saved,setSaved]=useState(loadSaved),[savedName,setSavedName]=useState("");
+  var sectors=useMemo(function(){return Array.from(new Set(data.map(function(m){return String(m.area_sector||"").trim();}).filter(Boolean))).sort();},[data]);
+  var rows=useMemo(function(){var q=search.trim().toLowerCase(),lo=startAge===""?null:Number(startAge),hi=endAge===""?null:Number(endAge);return data.filter(function(m){
+    var age=getMuminAge(m),source=m.source_data||{},its=String(m.its_number||m.its_id||"").trim(),text=(its+" "+(m.name||"")+" "+(m.phone||"")).toLowerCase();
+    if(q&&text.indexOf(q)<0)return false;if(lo!==null&&(age===null||age<lo))return false;if(hi!==null&&(age===null||age>hi))return false;
+    if(sector&&m.area_sector!==sector)return false;if(gender&&m.gender!==gender)return false;if(status&&m.status!==status)return false;
+    if(hofOnly&&String(source.HOF_FM_TYPE||"").toUpperCase()!=="HOF")return false;if(hasPhone&&!String(m.phone||"").trim())return false;return true;
+  });},[data,search,startAge,endAge,sector,gender,status,hofOnly,hasPhone]);
+  function filters(){return {search:search,startAge:startAge,endAge:endAge,sector:sector,gender:gender,status:status,hofOnly:hofOnly,hasPhone:hasPhone};}
+  function apply(f){setSearch(f.search||"");setStartAge(f.startAge||"");setEndAge(f.endAge||"");setSector(f.sector||"");setGender(f.gender||"");setStatus(f.status||"");setHofOnly(!!f.hofOnly);setHasPhone(!!f.hasPhone);}
+  function saveReport(){var name=savedName.trim();if(!name){alert("Enter a report name.");return;}var next=saved.filter(function(x){return x.name.toLowerCase()!==name.toLowerCase();});next.unshift({name:name,filters:filters(),updatedAt:new Date().toISOString()});next=next.slice(0,20);localStorage.setItem(STORAGE,JSON.stringify(next));setSaved(next);setSavedName("");}
+  function removeReport(name){var next=saved.filter(function(x){return x.name!==name;});localStorage.setItem(STORAGE,JSON.stringify(next));setSaved(next);}
+  function reset(){apply({});}
+  function exportExcel(){var out=rows.map(function(m){var source=m.source_data||{},hof=data.find(function(x){return String(x.its_number||x.its_id||"")===String(source.HOF_ID||"");});return {"ITS":m.its_number||m.its_id||"","Name":m.name||"","Age":getMuminAge(m)===null?"":getMuminAge(m),"Gender":m.gender||"","Phone":m.phone||"","Sector":m.area_sector||"","HOF ITS":source.HOF_ID||"","HOF Name":hof?hof.name:"","Status":m.status||""};});toXLS(out,["ITS","Name","Age","Gender","Phone","Sector","HOF ITS","HOF Name","Status"],"advanced_report");}
   return <div>
-    <div className="page-hdr">
-      <div className="page-title">Advanced Report Builder</div>
-      <div className="page-sub">Build a filtered Mumin report with an age range and export it to Excel.</div>
+    <div className="page-hdr"><div className="page-title">Advanced Report Builder</div><div className="page-sub">Build, save and export filtered Mumin reports.</div></div>
+    <div className="card"><div className="advanced-search-filters">
+      <input className="input" placeholder="Search ITS or name" value={search} onChange={function(e){setSearch(e.target.value);}}/>
+      <input className="input" type="number" min="0" placeholder="Start Age" value={startAge} onChange={function(e){setStartAge(e.target.value);}}/>
+      <input className="input" type="number" min="0" placeholder="End Age" value={endAge} onChange={function(e){setEndAge(e.target.value);}}/>
+      <select className="input" value={sector} onChange={function(e){setSector(e.target.value);}}><option value="">All Sectors</option>{sectors.map(function(s){return <option key={s}>{s}</option>;})}</select>
+      <select className="input" value={gender} onChange={function(e){setGender(e.target.value);}}><option value="">All Gender</option><option>Male</option><option>Female</option></select>
+      <select className="input" value={status} onChange={function(e){setStatus(e.target.value);}}><option value="">All Status</option><option>Active</option><option>Inactive</option></select>
+    </div><div style={{display:"flex",gap:14,flexWrap:"wrap",marginTop:12}}>
+      <label><input type="checkbox" checked={hofOnly} onChange={function(e){setHofOnly(e.target.checked);}}/> HOF only</label><label><input type="checkbox" checked={hasPhone} onChange={function(e){setHasPhone(e.target.checked);}}/> Has phone</label>
+      <button className="btn btn-ghost btn-sm" onClick={reset}>Reset Filters</button><button className="btn btn-primary btn-sm" onClick={exportExcel}>📊 Export Excel ({rows.length})</button>
+    </div></div>
+    <div className="card" style={{marginTop:16}}><div className="card-hdr"><span className="card-title">Saved Reports</span><span style={{fontSize:11,color:"#6b7280"}}>{saved.length}/20</span></div>
+      <div style={{padding:14,display:"flex",gap:8,flexWrap:"wrap"}}><input className="input" style={{maxWidth:320}} placeholder="Report name, e.g. Seniors - Sector A" value={savedName} onChange={function(e){setSavedName(e.target.value);}} onKeyDown={function(e){if(e.key==="Enter")saveReport();}}/><button className="btn btn-gold btn-sm" onClick={saveReport}>Save Current Report</button></div>
+      {saved.length>0&&<div style={{padding:"0 14px 14px",display:"flex",gap:8,flexWrap:"wrap"}}>{saved.map(function(r){return <div key={r.name} style={{display:"flex",alignItems:"center",gap:6,border:"1px solid rgba(255,255,255,.08)",borderRadius:8,padding:"7px 9px"}}><button className="btn btn-ghost btn-sm" onClick={function(){apply(r.filters);}}>{r.name}</button><button className="btn btn-ghost btn-sm" title="Delete saved report" onClick={function(){removeReport(r.name);}}>×</button></div>;})}</div>}
     </div>
-    <div className="card">
-      <div className="advanced-search-filters">
-        <input className="input" placeholder="Search ITS or name" value={search} onChange={function(e){setSearch(e.target.value);}} />
-        <input className="input" type="number" min="0" placeholder="Start Age" value={startAge} onChange={function(e){setStartAge(e.target.value);}} />
-        <input className="input" type="number" min="0" placeholder="End Age" value={endAge} onChange={function(e){setEndAge(e.target.value);}} />
-        <select className="input" value={sector} onChange={function(e){setSector(e.target.value);}}><option value="">All Sectors</option>{sectors.map(function(s){return <option key={s}>{s}</option>;})}</select>
-        <select className="input" value={gender} onChange={function(e){setGender(e.target.value);}}><option value="">All Gender</option><option>Male</option><option>Female</option></select>
-        <select className="input" value={status} onChange={function(e){setStatus(e.target.value);}}><option value="">All Status</option><option>Active</option><option>Inactive</option></select>
-      </div>
-      <div style={{display:"flex",gap:14,flexWrap:"wrap",marginTop:12}}>
-        <label><input type="checkbox" checked={hofOnly} onChange={function(e){setHofOnly(e.target.checked);}} /> HOF only</label>
-        <label><input type="checkbox" checked={hasPhone} onChange={function(e){setHasPhone(e.target.checked);}} /> Has phone</label>
-        <button className="btn btn-ghost btn-sm" onClick={reset}>Reset Filters</button>
-        <button className="btn btn-primary btn-sm" onClick={exportExcel}>📊 Export Excel ({rows.length})</button>
-      </div>
-    </div>
-    <div className="card" style={{marginTop:16}}>
-      <div className="card-hdr"><span className="card-title">Results ({rows.length})</span></div>
-      <div style={{overflowX:"auto"}}>
-        <table><thead><tr><th>ITS</th><th>Name</th><th>Age</th><th>Gender</th><th>Sector</th><th>HOF ITS</th><th>HOF Name</th><th>Phone</th></tr></thead>
-        <tbody>{rows.slice(0,1000).map(function(m){var source=m.source_data||{};var hof=data.find(function(x){return String(x.its_number||x.its_id||"")===String(source.HOF_ID||"");});return <tr key={m.id}><td>{m.its_number||m.its_id||"—"}</td><td>{m.name||"—"}</td><td>{getMuminAge(m)===null?"—":getMuminAge(m)}</td><td>{m.gender||"—"}</td><td>{m.area_sector||"—"}</td><td>{source.HOF_ID||"—"}</td><td>{hof?hof.name:"—"}</td><td>{m.phone||"—"}</td></tr>;})}</tbody></table>
-      </div>
-      {rows.length>1000 && <div className="muted" style={{padding:12}}>Showing first 1,000 rows. Excel export includes all {rows.length} results.</div>}
-    </div>
+    <div className="card" style={{marginTop:16}}><div className="card-hdr"><span className="card-title">Results ({rows.length})</span></div><div style={{overflowX:"auto"}}><table><thead><tr><th>ITS</th><th>Name</th><th>Age</th><th>Gender</th><th>Sector</th><th>HOF ITS</th><th>HOF Name</th><th>Phone</th></tr></thead><tbody>{rows.slice(0,1000).map(function(m){var source=m.source_data||{},hof=data.find(function(x){return String(x.its_number||x.its_id||"")===String(source.HOF_ID||"");});return <tr key={m.id}><td>{m.its_number||m.its_id||"—"}</td><td>{m.name||"—"}</td><td>{getMuminAge(m)===null?"—":getMuminAge(m)}</td><td>{m.gender||"—"}</td><td>{m.area_sector||"—"}</td><td>{source.HOF_ID||"—"}</td><td>{hof?hof.name:"—"}</td><td>{m.phone||"—"}</td></tr>;})}</tbody></table></div>{rows.length>1000&&<div className="muted" style={{padding:12}}>Showing first 1,000 rows. Excel export includes all {rows.length} results.</div>}</div>
   </div>;
 }
