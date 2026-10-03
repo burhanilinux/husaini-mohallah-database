@@ -43,10 +43,10 @@ function ActivePage() {
     default: return <Dashboard />;
   }
 }
-function AppShell() {
+function NetworkStatus(){\n  var [online,setOnline]=useState(function(){return navigator.onLine;});\n  useEffect(function(){function on(){setOnline(true);}function off(){setOnline(false);}window.addEventListener("online",on);window.addEventListener("offline",off);return function(){window.removeEventListener("online",on);window.removeEventListener("offline",off);};},[]);\n  return <div className={"network-status "+(online?"network-online":"network-offline")} role="status"><span className="network-dot"/> {online?"Online":"Offline"}{!online&&<span className="network-hint"> · Changes need an internet connection</span>}</div>;\n}\n\nfunction AppShell() {
   var ctx = useAppContext(), auth = useAuth();
   if (auth.authLoading) return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#0d1117",color:"#6b7280",gap:12,fontSize:14}}><Spinner /> Loading…</div>;
   if (!auth.session) return <LoginPage onLogin={auth.login} />;
-  return <div className="layout"><Sidebar /><main className="main">{ctx.dbError && <div className="err-banner">⚠ {ctx.dbError}<button className="btn btn-ghost btn-sm" onClick={ctx.loadAll} style={{marginLeft:8}}>Retry</button></div>}<ActivePage /></main><MuminModal /><SectorModal /><SubSectorModal />{ctx.ieModal && <IEModal onClose={function(){ctx.setIeModal(false);}} muminData={ctx.muminData} filesData={[]} onImportMumin={ctx.handleImportMumin} onImportFiles={function(){}} importing={ctx.importing} />}<TrashModal /><MuminPreview /><Lightbox />{ctx.toast && <div className={"toast toast-"+ctx.toast.type}>{ctx.toast.type==="success"?"✓":"⚠"} {ctx.toast.msg}</div>}</div>;
+  return <div className="layout"><NetworkStatus /><Sidebar /><main className="main">{ctx.dbError && <div className="err-banner">⚠ {ctx.dbError}<button className="btn btn-ghost btn-sm" onClick={ctx.loadAll} style={{marginLeft:8}}>Retry</button></div>}<ActivePage /></main><MuminModal /><SectorModal /><SubSectorModal />{ctx.ieModal && <IEModal onClose={function(){ctx.setIeModal(false);}} muminData={ctx.muminData} filesData={[]} onImportMumin={ctx.handleImportMumin} onImportFiles={function(){}} importing={ctx.importing} />}<TrashModal /><MuminPreview /><Lightbox />{ctx.toast && <div className={"toast toast-"+ctx.toast.type}>{ctx.toast.type==="success"?"✓":"⚠"} {ctx.toast.msg}</div>}</div>;
 }
 export default function App() { return <AuthProvider><AppProvider><AppShell /></AppProvider></AuthProvider>; }
