@@ -34,6 +34,7 @@ export function Sidebar() {
     { id: "mumin", icon: "👤", label: "Mumin Data" },
     { id: "advanced-search", icon: "🔎", label: "Advanced Search" },
     { id: "data-quality", icon: "✓", label: "Data Quality" },
+    { id: "relationships", icon: "👨‍👩‍👧", label: "Family Relationships" },
     { id: "sabil", icon: "🏠", label: "Sabil Groups" },
     { id: "masool", icon: "🧭", label: "Masool" },
     { id: "reports", icon: "📄", label: "Reports" },
