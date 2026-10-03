@@ -120,9 +120,9 @@ export function MuminPage() {
             {canEdit && <button className="btn btn-primary" onClick={function () { openModal("mumin", "add"); }}>+ Add Mumin</button>}
           </div>
         </div>
-        <div className="toolbar">
-          <input style={{ width: 260 }} placeholder="Search HOF or family member…" value={search} onChange={function (e) { setSearch(e.target.value); }} />
-          <select value={selSector || ""} onChange={function (e) { setSelSector(e.target.value || null); }} style={{ width: 200 }}>
+        <div className="toolbar mumin-toolbar">
+          <input className="mumin-toolbar-search" placeholder="Search HOF or family member…" value={search} onChange={function (e) { setSearch(e.target.value); }} />
+          <select value={selSector || ""} onChange={function (e) { setSelSector(e.target.value || null); }} className="mumin-toolbar-sector">
             <option value="">All Sectors</option>
             {areaSectors.map(function (s) { return <option key={s} value={s}>{s}</option>; })}
           </select>
