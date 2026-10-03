@@ -111,7 +111,7 @@ export function AdvancedSearchPage() {
       </div>
       <div className="card" style={{ marginBottom: 18 }}>
         <div className="card-hdr"><span className="card-title">Search & Filters</span><button className="btn btn-ghost btn-sm" onClick={clearFilters}>Clear All</button></div>
-        <div style={{ padding: 18, display: "grid", gridTemplateColumns: "2fr repeat(3,1fr)", gap: 12 }}>
+        <div className="advanced-search-filters">
           <input placeholder="Name, ITS, phone, email, occupation, city, Sabil or address…" value={query} onChange={function (e) { setQuery(e.target.value); }} />
           <select value={sector} onChange={function (e) { setSector(e.target.value); }}><option value="">All Sectors</option>{areaSectors.map(function (s) { return <option key={s} value={s}>{s}</option>; })}</select>
           <select value={gender} onChange={function (e) { setGender(e.target.value); }}><option value="">All Genders</option><option value="Male">Male</option><option value="Female">Female</option></select>
@@ -124,7 +124,7 @@ export function AdvancedSearchPage() {
         </div>
       </div>
       <div className="card">
-        <div className="card-hdr"><span className="card-title">Results ({results.length})</span><div style={{ display: "flex", alignItems: "center", gap: 10 }}><span style={{ fontSize: 12, color: "#6b7280" }}>Click a member for Mumin 360</span><button className="btn btn-primary btn-sm" onClick={downloadExcel} disabled={!results.length}>Download Excel</button></div></div>
+        <div className="card-hdr"><span className="card-title">Results ({results.length})</span><div className="results-toolbar"><span className="results-hint" style={{ fontSize: 12, color: "#6b7280" }}>Click a member for Mumin 360</span><button className="btn btn-primary btn-sm" onClick={downloadExcel} disabled={!results.length}>Download Excel</button></div></div>
         {results.length === 0 ? <div className="empty"><div className="empty-icon">🔎</div><div>No members match these filters</div></div> : (
           <div style={{ overflowX: "auto" }}><table><thead><tr><th>ITS</th><th>Name</th><th>Age</th><th>Gender</th><th>Phone</th><th>Sabil</th><th>Sector</th><th>Status</th><th></th></tr></thead>
             <tbody>{results.map(function (m) { return <tr key={m.id} className="clickable-row" onClick={function () { setMuminPreview(m); }}>
