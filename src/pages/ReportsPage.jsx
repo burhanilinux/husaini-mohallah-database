@@ -19,7 +19,7 @@ export function ReportsPage() {
 
   var reports = [
     { id: "mumin", icon: "👤", label: "Mumin Directory", desc: "Full list of registered members", data: muminData.length + " members" },
-    { id: "families", icon: "🏠", label: "Family Directory", desc: "Members grouped by Sabil No.", data: muminData.filter(function (m) { return m.sabil_no && String(m.sabil_no).trim(); }).length + " members" },
+    { id: "families", icon: "🏠", label: "HOF names", desc: "Members grouped by Sabil No.", data: muminData.filter(function (m) { return m.sabil_no && String(m.sabil_no).trim(); }).length + " members" },
     { id: "age_groups", icon: "📊", label: "Age Group Summary", desc: "Members by age group", data: muminData.length + " members" },
     { id: "sector_summary", icon: "📍", label: "Sector Summary", desc: "Member breakdown by area sector", data: areaSectors.length + " sectors" },
     { id: "masool_directory", icon: "🧭", label: "Masool Directory", desc: "Sectors, Masool & Musaid contacts", data: sectorsData.length + " sectors" },
