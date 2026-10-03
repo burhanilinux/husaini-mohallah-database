@@ -26,6 +26,8 @@ export function AdvancedSearchPage() {
   var [gender, setGender] = useState("");
   var [status, setStatus] = useState("");
   var [ageGroup, setAgeGroup] = useState("");
+  var [startAge, setStartAge] = useState("");
+  var [endAge, setEndAge] = useState("");
   var [hasPhone, setHasPhone] = useState("");
   var [hasSabil, setHasSabil] = useState("");
 
@@ -44,6 +46,12 @@ export function AdvancedSearchPage() {
       if (hasPhone === "no" && (m.phone || "").trim()) return false;
       if (hasSabil === "yes" && !(m.sabil_no || "").trim()) return false;
       if (hasSabil === "no" && (m.sabil_no || "").trim()) return false;
+      if (startAge !== "" || endAge !== "") {
+        var age = getMuminAge(m);
+        if (age === null || age === undefined) return false;
+        if (startAge !== "" && age < Number(startAge)) return false;
+        if (endAge !== "" && age > Number(endAge)) return false;
+      }
       if (ageGroup) {
         var age = getMuminAge(m);
         if (age === null || age === undefined) return false;
@@ -54,7 +62,7 @@ export function AdvancedSearchPage() {
       }
       return true;
     });
-  }, [muminData, query, sector, gender, status, ageGroup, hasPhone, hasSabil]);
+  }, [muminData, query, sector, gender, status, ageGroup, startAge, endAge, hasPhone, hasSabil]);
 
   function downloadExcel() {
     if (!results.length) return;
@@ -92,7 +100,7 @@ export function AdvancedSearchPage() {
 
   function clearFilters() {
     setQuery(""); setSector(""); setGender(""); setStatus("");
-    setAgeGroup(""); setHasPhone(""); setHasSabil("");
+    setAgeGroup(""); setStartAge(""); setEndAge(""); setHasPhone(""); setHasSabil("");
   }
 
   return (
@@ -108,7 +116,9 @@ export function AdvancedSearchPage() {
           <select value={sector} onChange={function (e) { setSector(e.target.value); }}><option value="">All Sectors</option>{areaSectors.map(function (s) { return <option key={s} value={s}>{s}</option>; })}</select>
           <select value={gender} onChange={function (e) { setGender(e.target.value); }}><option value="">All Genders</option><option value="Male">Male</option><option value="Female">Female</option></select>
           <select value={status} onChange={function (e) { setStatus(e.target.value); }}><option value="">All Status</option><option value="Active">Active</option><option value="Inactive">Inactive</option></select>
-          <select value={ageGroup} onChange={function (e) { setAgeGroup(e.target.value); }}><option value="">All Ages</option><option value="child">Children 0–15</option><option value="youth">Youth 16–30</option><option value="adult">Adults 31–60</option><option value="senior">Seniors 61+</option></select>
+          <select value={ageGroup} onChange={function (e) { setAgeGroup(e.target.value); }}><option value="">Age Group</option><option value="child">Children 0–15</option><option value="youth">Youth 16–30</option><option value="adult">Adults 31–60</option><option value="senior">Seniors 61+</option></select>
+          <input type="number" min="0" max="120" placeholder="Start Age" value={startAge} onChange={function (e) { setStartAge(e.target.value); }} />
+          <input type="number" min="0" max="120" placeholder="End Age" value={endAge} onChange={function (e) { setEndAge(e.target.value); }} />
           <select value={hasPhone} onChange={function (e) { setHasPhone(e.target.value); }}><option value="">Phone: Any</option><option value="yes">Has Phone</option><option value="no">Missing Phone</option></select>
           <select value={hasSabil} onChange={function (e) { setHasSabil(e.target.value); }}><option value="">Sabil: Any</option><option value="yes">Assigned Sabil</option><option value="no">No Sabil</option></select>
         </div>
