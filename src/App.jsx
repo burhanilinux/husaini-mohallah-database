@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import "./App.css";
 import "./mobile.css";
 import "./print.css";
@@ -43,7 +44,13 @@ function ActivePage() {
     default: return <Dashboard />;
   }
 }
-function NetworkStatus(){\n  var [online,setOnline]=useState(function(){return navigator.onLine;});\n  useEffect(function(){function on(){setOnline(true);}function off(){setOnline(false);}window.addEventListener("online",on);window.addEventListener("offline",off);return function(){window.removeEventListener("online",on);window.removeEventListener("offline",off);};},[]);\n  return <div className={"network-status "+(online?"network-online":"network-offline")} role="status"><span className="network-dot"/> {online?"Online":"Offline"}{!online&&<span className="network-hint"> · Changes need an internet connection</span>}</div>;\n}\n\nfunction AppShell() {
+function NetworkStatus(){
+  var [online,setOnline]=useState(function(){return navigator.onLine;});
+  useEffect(function(){function on(){setOnline(true);}function off(){setOnline(false);}window.addEventListener("online",on);window.addEventListener("offline",off);return function(){window.removeEventListener("online",on);window.removeEventListener("offline",off);};},[]);
+  return <div className={"network-status "+(online?"network-online":"network-offline")} role="status"><span className="network-dot"/> {online?"Online":"Offline"}{!online&&<span className="network-hint"> · Changes need an internet connection</span>}</div>;
+}
+
+function AppShell() {
   var ctx = useAppContext(), auth = useAuth();
   if (auth.authLoading) return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#0d1117",color:"#6b7280",gap:12,fontSize:14}}><Spinner /> Loading…</div>;
   if (!auth.session) return <LoginPage onLogin={auth.login} />;
