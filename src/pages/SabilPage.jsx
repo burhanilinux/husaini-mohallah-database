@@ -1,6 +1,7 @@
 import { useAppContext } from "../context/AppContext.jsx";
 import { Spinner } from "../components/Shared.jsx";
 import { useState } from "react";
+import { sbUpdate } from "../lib/supabase.js";
 
 export function SabilPage() {
   var ctx = useAppContext();
@@ -113,9 +114,7 @@ export function RelationshipManagerPage() {
     var nextSource = Object.assign({}, oldSource, { HOF_ID: its(hof) });
     setSaving(true);
     try {
-      await import("../lib/supabase.js").then(function (mod) {
-        return mod.sbUpdate("mumin_data", member.id, { source_data: nextSource });
-      });
+      await sbUpdate("mumin_data", member.id, { source_data: nextSource });
       await ctx.loadAll();
       ctx.showToast("Family relationship updated");
     } catch (e) {
@@ -165,9 +164,10 @@ export function RelationshipManagerPage() {
               return (
                 <div key={m.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "10px 12px", border: "1px solid var(--border, #263241)", borderRadius: 10, flexWrap: "wrap" }}>
                   <div><strong>{name(m)}</strong><div className="muted">ITS {its(m)} {isHof ? "· HOF" : ""}</div></div>
-                  <button className="btn btn-ghost btn-sm" disabled={!canEdit || saving || isHof} onClick={function () { linkMember(m, selectedHof); }}>
-                    {isHof ? "HOF" : "Link to HOF"}
-                  </button>
+                  <select className="input" style={{ width: 240, minWidth: 190 }} disabled={!canEdit || saving || isHof} value={isHof ? its(m) : (relHofId(m) || "")} onChange={function (e) { var h = data.find(function (x) { return its(x) === e.target.value; }); if (h) linkMember(m, h); }}>
+                    {!isHof && <option value="">Not linked</option>}
+                    {data.map(function (h) { return <option key={h.id} value={its(h)}>{its(h)} · {name(h)}</option>; })}
+                  </select>
                 </div>
               );
             })}
