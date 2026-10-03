@@ -1,13 +1,26 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAppContext } from "../context/AppContext.jsx";
 import { getMuminAge } from "../lib/utils.js";
 import { getExtendedProfile } from "../lib/muminProfile.js";
 import * as XLSX from "xlsx";
+import { sbGet } from "../lib/supabase.js";
 
 export function AdvancedSearchPage() {
   var ctx = useAppContext();
   var muminData = ctx.muminData, areaSectors = ctx.areaSectors;
   var setMuminPreview = ctx.setMuminPreview;
+  var [families, setFamilies] = useState([]);
+
+  useEffect(function () {
+    sbGet("families", "order=family_id.asc").then(setFamilies).catch(function () { setFamilies([]); });
+  }, []);
+
+  function getHofForMumin(m) {
+    if (m.family_id === null || m.family_id === undefined || m.family_id === "") return null;
+    var family = families.find(function (f) { return String(f.family_id) === String(m.family_id); });
+    if (!family || !family.hof_its_id) return null;
+    return muminData.find(function (member) { return String(member.its_id) === String(family.hof_its_id); }) || null;
+  }
   var [query, setQuery] = useState("");
   var [sector, setSector] = useState("");
   var [gender, setGender] = useState("");
@@ -46,7 +59,10 @@ export function AdvancedSearchPage() {
   function downloadExcel() {
     if (!results.length) return;
     var rows = results.map(function (m) {
+      var hof = getHofForMumin(m);
       return {
+        "HOF ITS": hof ? (hof.its_number || hof.its_id || "") : "",
+        "HOF Name": hof ? (hof.name || "") : "",
         "ITS": m.its_number || "",
         "Name": m.name || "",
         "Age": getMuminAge(m) ?? "",
@@ -64,7 +80,7 @@ export function AdvancedSearchPage() {
     });
     var worksheet = XLSX.utils.json_to_sheet(rows);
     worksheet["!cols"] = [
-      { wch: 14 }, { wch: 28 }, { wch: 8 }, { wch: 12 }, { wch: 18 },
+      { wch: 14 }, { wch: 28 }, { wch: 14 }, { wch: 28 }, { wch: 8 }, { wch: 12 }, { wch: 18 },
       { wch: 28 }, { wch: 14 }, { wch: 24 }, { wch: 12 }, { wch: 40 },
       { wch: 24 }, { wch: 20 }, { wch: 28 }
     ];
