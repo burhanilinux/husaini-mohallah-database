@@ -19,6 +19,7 @@ import { ReportsPage } from "./pages/ReportsPage.jsx";
 import { ReportBuilderPage } from "./pages/ReportBuilderPage.jsx";
 import { ActivityPage } from "./pages/ActivityPage.jsx";
 import { UsersPage } from "./pages/UsersPage.jsx";
+import { MohallahSurveyPage } from "./pages/MohallahSurveyPage.jsx";
 import { MuminModal } from "./modals/MuminModal.jsx";
 import { SectorModal } from "./modals/SectorModal.jsx";
 import { SubSectorModal } from "./modals/SubSectorModal.jsx";
@@ -41,6 +42,7 @@ function ActivePage() {
     case "report-builder": return <ReportBuilderPage />;
     case "activity": return <ActivityPage />;
     case "users": return <UsersPage />;
+    case "mohallah-survey": return <MohallahSurveyPage />;
     default: return <Dashboard />;
   }
 }
