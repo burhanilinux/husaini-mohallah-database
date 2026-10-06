@@ -1,9 +1,14 @@
 import { useEffect } from "react";
+import { SUPABASE_URL, SUPABASE_ANON, getToken } from "../lib/supabase.js";
 
 export function MohallahSurveyPage() {
   useEffect(function () {
+    window.__HM_SURVEY_CONFIG = { url: SUPABASE_URL, key: SUPABASE_ANON, token: getToken() };
     document.title = "Husaini Mohallah - Unified Survey";
-    return function () { document.title = "Husaini Mohallah Database"; };
+    return function () {
+      delete window.__HM_SURVEY_CONFIG;
+      document.title = "Husaini Mohallah Database";
+    };
   }, []);
 
   return (
