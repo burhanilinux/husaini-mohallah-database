@@ -26,6 +26,7 @@ import { SubSectorModal } from "./modals/SubSectorModal.jsx";
 import { TrashModal } from "./modals/TrashModal.jsx";
 import { MuminPreview } from "./modals/MuminPreview.jsx";
 import { Lightbox } from "./modals/Lightbox.jsx";
+import { ReceptionPage } from "./pages/ReceptionPage.jsx";
 
 function ActivePage() {
   var ctx = useAppContext();
@@ -41,6 +42,7 @@ function ActivePage() {
     case "reports": return <ReportsPage />;
     case "report-builder": return <ReportBuilderPage />;
     case "activity": return <ActivityPage />;
+    case "reception": return <ReceptionPage />;
     case "users": return <UsersPage />;
     case "mohallah-survey": return <MohallahSurveyPage />;
     default: return <Dashboard />;
