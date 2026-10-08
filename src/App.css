@@ -660,3 +660,25 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280
   .nav-item{min-width:60px;font-size:10px;padding:6px 4px}
   .att-viewer-grid{grid-template-columns:repeat(2,1fr) !important}
 }
+
+
+/* Umoor Dakheliyah Reception */
+.reception-page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.reception-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.reception-card{margin-bottom:0}
+.reception-body{padding:20px}
+.reception-lookup{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+.reception-lookup .btn{white-space:nowrap}
+.reception-msg{margin:12px 20px 0}
+.reception-mumin-card{margin:16px 20px 20px;padding:16px;background:rgba(255,255,255,.02);border:1px solid rgba(201,168,76,.12);border-radius:10px;line-height:1.9;color:#d1c9bb;font-size:13px}
+.reception-mumin-card h3{font-size:17px;color:#c9a84c;margin-bottom:6px}
+.reception-mumin-card b{color:#e2d9c9;font-weight:500}
+.reception-other{margin-top:10px}
+.reception-remarks{margin-top:14px}
+.reception-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.reception-table-actions{flex-wrap:nowrap}
+.reception-activity{margin-top:16px}
+.reception-activity .card-hdr select{width:auto;min-width:150px}
+.reception-activity .page-sub{margin-top:3px}
+.reception-activity table{min-width:980px}
+@media(max-width:900px){.reception-grid{grid-template-columns:1fr}}
