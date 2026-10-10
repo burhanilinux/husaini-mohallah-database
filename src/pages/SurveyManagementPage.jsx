@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAppContext } from "../context/AppContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { sbDelete, sbGet, sbInsert, sbUpdate, logActivity } from "../lib/supabase.js";
+import { SurveyVisitEntry } from "./SurveyVisitEntry.jsx";
 
 var QUESTION_TYPES = [
   { value: "text", label: "Short text" },
