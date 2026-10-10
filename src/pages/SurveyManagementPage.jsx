@@ -44,6 +44,13 @@ export function SurveyManagementPage() {
   var [subSectorFilter, setSubSectorFilter] = useState("");
   var [householdSearch, setHouseholdSearch] = useState("");
   var [activeAssignment, setActiveAssignment] = useState(null);
+  var [reportVisits, setReportVisits] = useState([]);
+  var [reportResponses, setReportResponses] = useState([]);
+  var [reportLoaded, setReportLoaded] = useState(false);
+  var [reportLoading, setReportLoading] = useState(false);
+  var [reportFrom, setReportFrom] = useState("");
+  var [reportTo, setReportTo] = useState("");
+  var [reportSector, setReportSector] = useState("");
 
   var selectedSurvey = surveys.find(function (s) { return s.id === selectedId; }) || null;
   var sectorOptions = ctx.sectorsData || [];
@@ -188,6 +195,66 @@ export function SurveyManagementPage() {
     finally { setSaving(false); }
   }
 
+  async function loadReport() {
+    if (!selectedSurvey) return;
+    setReportLoading(true); setError(""); setNotice("");
+    try {
+      var visits = await sbGet("survey_visits", "survey_id=eq." + encodeURIComponent(selectedSurvey.id) + "&select=*&order=visit_date.desc,created_at.desc");
+      visits = Array.isArray(visits) ? visits : [];
+      var responses = [];
+      for (var i = 0; i < visits.length; i += 50) {
+        var batch = visits.slice(i, i + 50);
+        if (!batch.length) continue;
+        var ids = batch.map(function (v) { return v.id; }).filter(Boolean);
+        if (ids.length) {
+          var rows = await sbGet("survey_responses", "visit_id=in.(" + ids.join(",") + ")&select=*&order=created_at.asc");
+          if (Array.isArray(rows)) responses = responses.concat(rows);
+        }
+      }
+      setReportVisits(visits); setReportResponses(responses); setReportLoaded(true);
+      setNotice("Report refreshed: " + visits.length + " visit record(s) loaded.");
+    } catch (e) { setError("Could not load survey report. " + (e.message || "Please retry.")); }
+    finally { setReportLoading(false); }
+  }
+
+  var reportRows = reportVisits.filter(function (v) {
+    if (reportFrom && v.visit_date < reportFrom) return false;
+    if (reportTo && v.visit_date > reportTo) return false;
+    var a = assignments.find(function (x) { return x.id === v.assignment_id; });
+    if (reportSector && String(a && a.sector_id || "") !== String(reportSector)) return false;
+    return true;
+  }).map(function (v) {
+    var a = assignments.find(function (x) { return x.id === v.assignment_id; });
+    var h = householdRows.find(function (x) { return String(x.family.hof_its_id) === String(a && a.hof_its_id); });
+    var answerMap = {};
+    reportResponses.filter(function (r) { return r.visit_id === v.id; }).forEach(function (r) { answerMap[r.question_id] = r.answer; });
+    return { visit:v, assignment:a, hof:h, answerMap:answerMap };
+  });
+
+  function exportReport() {
+    if (!reportRows.length || !selectedSurvey) return;
+    var headers = ["Survey", "Visit Date", "HOF Name", "HOF ITS", "Sector", "Sub-sector", "Surveyor", "Visit Status", "Remarks"].concat(questions.map(function (q) { return q.question_text; }));
+    function csvCell(value) {
+      var text = value === null || value === undefined ? "" : (typeof value === "object" ? JSON.stringify(value) : String(value));
+      if (/^[\\s]*[=+@\\-\\t\\r]/.test(text)) text = "'" + text;
+      return '"' + text.replace(/"/g, '""') + '"';
+    }
+    var lines = [headers].concat(reportRows.map(function (r) {
+      return [selectedSurvey.title, r.visit.visit_date, r.hof && r.hof.mumin.name || "", r.assignment && r.assignment.hof_its_id || "", r.hof && r.hof.sector && r.hof.sector.name || "", r.hof && r.hof.subSector && r.hof.subSector.name || "", r.visit.surveyor || "", r.visit.status || "", r.visit.remarks || ""].concat(questions.map(function (q) { return r.answerMap[q.id] === undefined ? "" : r.answerMap[q.id]; }));
+    }));
+    var csv = "\\ufeff" + lines.map(function (row) { return row.map(csvCell).join(","); }).join("\\r\\n");
+    var blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a"); a.href = url;
+    a.download = (selectedSurvey.title || "survey").replace(/[^a-z0-9_-]+/gi,"_") + "_report.csv";
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  }
+
+  function printReport() {
+    if (!reportRows.length) return;
+    window.print();
+  }
+
   var counts = assignments.reduce(function (a, x) { a[x.status] = (a[x.status] || 0) + 1; return a; }, {});
   var stats = [
     { label: "Surveys", value: surveys.length },
@@ -239,6 +306,20 @@ export function SurveyManagementPage() {
             <div className="survey-assignment-status">{["pending","in_progress","completed","not_available"].map(function (key) { return <span key={key}><b>{counts[key] || 0}</b> {key.replace("_", " ")}</span>; })}</div>
             <div className="survey-assigned-list">{assignments.filter(function (a) { return householdRows.some(function (h) { return String(h.family.hof_its_id) === String(a.hof_its_id); }); }).slice(0,200).map(function (a) { var h = householdRows.find(function (x) { return String(x.family.hof_its_id) === String(a.hof_its_id); }); return <div className="survey-assigned-row" key={a.id}><div className="survey-assigned-person"><strong>{h && h.mumin.name || "HOF"}</strong><small>ITS {a.hof_its_id}{h && h.sector ? " · " + h.sector.name : ""}{h && h.subSector ? " / " + h.subSector.name : ""}</small></div><span className={"survey-status status-" + (a.status === "completed" ? "active" : "draft")}>{a.status.replace("_", " ")}</span><button className="btn btn-secondary btn-sm" disabled={!canEdit || saving || selectedSurvey.status === "closed"} onClick={function () { setActiveAssignment(a); }}>Record visit</button></div>; })}</div>
             <p className="survey-note">Assignments are added without duplicating HOFs already assigned to this survey. Repeat household visits are supported separately; old survey records are not modified.</p>
+          </div>
+          <div className="survey-section survey-report-section">
+            <div className="survey-section-head"><div><h3>4. Survey reports & export</h3><p>Review date-wise household visits, answers and sector progress. Reports only include the selected survey.</p></div><span className="survey-count">{reportRows.length} visits</span></div>
+            <div className="survey-report-filters">
+              <label>From date<input type="date" value={reportFrom} onChange={function(e){setReportFrom(e.target.value);}} /></label>
+              <label>To date<input type="date" value={reportTo} onChange={function(e){setReportTo(e.target.value);}} /></label>
+              <label>Sector<select value={reportSector} onChange={function(e){setReportSector(e.target.value);}}><option value="">All sectors</option>{sectorOptions.map(function(s){return <option key={s.id} value={s.id}>{s.name}</option>;})}</select></label>
+              <button className="btn btn-secondary" disabled={reportLoading} onClick={loadReport}>{reportLoading ? "Loading…" : reportLoaded ? "Refresh report" : "Load report"}</button>
+            </div>
+            {reportLoaded && <><div className="survey-report-summary"><div><strong>{reportRows.length}</strong><span>Visits in filter</span></div><div><strong>{reportRows.filter(function(r){return r.visit.status==="submitted";}).length}</strong><span>Submitted</span></div><div><strong>{new Set(reportRows.map(function(r){return r.assignment && r.assignment.hof_its_id;}).filter(Boolean)).size}</strong><span>HOFs visited</span></div><div><strong>{new Set(reportRows.filter(function(r){return r.hof && r.hof.sector;}).map(function(r){return r.hof.sector.id;})).size}</strong><span>Sectors reached</span></div></div>
+              <div className="survey-report-actions"><button className="btn btn-secondary" disabled={!reportRows.length} onClick={exportReport}>Export Excel-compatible CSV</button><button className="btn btn-ghost" disabled={!reportRows.length} onClick={printReport}>Print report</button></div>
+              <div className="survey-report-table-wrap"><table className="survey-report-table"><thead><tr><th>Date</th><th>HOF</th><th>ITS</th><th>Sector / Sub-sector</th><th>Surveyor</th><th>Status</th><th>Remarks</th>{questions.map(function(q){return <th key={q.id}>{q.question_text}</th>;})}</tr></thead><tbody>{reportRows.map(function(r){return <tr key={r.visit.id}><td>{dateLabel(r.visit.visit_date)}</td><td>{r.hof && r.hof.mumin.name || "HOF"}</td><td>{r.assignment && r.assignment.hof_its_id || "—"}</td><td>{r.hof && r.hof.sector && r.hof.sector.name || "—"}{r.hof && r.hof.subSector ? " / "+r.hof.subSector.name : ""}</td><td>{r.visit.surveyor || "—"}</td><td>{r.visit.status || "—"}</td><td>{r.visit.remarks || "—"}</td>{questions.map(function(q){var value=r.answerMap[q.id];return <td key={q.id}>{value===undefined||value===null?"—":Array.isArray(value)?value.join(", "):typeof value==="object"?JSON.stringify(value):String(value)}</td>;})}</tr>;})}</tbody></table>{!reportRows.length && <p className="survey-note">No visits match the selected date and sector filters.</p>}</div>
+            </>}
+            {!reportLoaded && <p className="survey-note">Load the report to fetch visit records and answers for this survey.</p>}
           </div>
           {activeAssignment && <SurveyVisitEntry key={activeAssignment.id} survey={selectedSurvey} assignment={activeAssignment} hofLabel={(householdRows.find(function (h) { return String(h.family.hof_its_id) === String(activeAssignment.hof_its_id); }) || {}).mumin?.name ? (householdRows.find(function (h) { return String(h.family.hof_its_id) === String(activeAssignment.hof_its_id); }).mumin.name + " · ITS " + activeAssignment.hof_its_id) : "ITS " + activeAssignment.hof_its_id} questions={questions} user={auth.user} canEdit={canEdit} onClose={function () { setActiveAssignment(null); }} onChanged={function () { return reload(selectedId); }} />}
 
