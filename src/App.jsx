@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import "./App.css";
 import "./mobile.css";
 import "./print.css";
@@ -8,26 +8,27 @@ import { Spinner } from "./components/Shared.jsx";
 import { LoginPage } from "./components/LoginPage.jsx";
 import { Sidebar } from "./components/Sidebar.jsx";
 import { IEModal } from "./components/IEModal.jsx";
-import { Dashboard } from "./pages/Dashboard.jsx";
-import { StatisticsPage } from "./pages/StatisticsPage.jsx";
-import { MuminPage } from "./pages/MuminPage.jsx";
-import { DataQualityPage } from "./pages/DataQualityPage.jsx";
-import { AdvancedSearchPage } from "./pages/AdvancedSearchPage.jsx";
-import { SabilPage, RelationshipManagerPage } from "./pages/SabilPage.jsx";
-import { MasoolPage } from "./pages/MasoolPage.jsx";
-import { ReportsPage } from "./pages/ReportsPage.jsx";
-import { ReportBuilderPage } from "./pages/ReportBuilderPage.jsx";
-import { ActivityPage } from "./pages/ActivityPage.jsx";
-import { UsersPage } from "./pages/UsersPage.jsx";
-import { MohallahSurveyPage } from "./pages/MohallahSurveyPage.jsx";
-import { SurveyManagementPage } from "./pages/SurveyManagementPage.jsx";
+const Dashboard = lazy(() => import("./pages/Dashboard.jsx").then((module) => ({ default: module.Dashboard })));
+const StatisticsPage = lazy(() => import("./pages/StatisticsPage.jsx").then((module) => ({ default: module.StatisticsPage })));
+const MuminPage = lazy(() => import("./pages/MuminPage.jsx").then((module) => ({ default: module.MuminPage })));
+const DataQualityPage = lazy(() => import("./pages/DataQualityPage.jsx").then((module) => ({ default: module.DataQualityPage })));
+const AdvancedSearchPage = lazy(() => import("./pages/AdvancedSearchPage.jsx").then((module) => ({ default: module.AdvancedSearchPage })));
+const SabilPage = lazy(() => import("./pages/SabilPage.jsx").then((module) => ({ default: module.SabilPage })));
+const RelationshipManagerPage = lazy(() => import("./pages/SabilPage.jsx").then((module) => ({ default: module.RelationshipManagerPage })));
+const MasoolPage = lazy(() => import("./pages/MasoolPage.jsx").then((module) => ({ default: module.MasoolPage })));
+const ReportsPage = lazy(() => import("./pages/ReportsPage.jsx").then((module) => ({ default: module.ReportsPage })));
+const ReportBuilderPage = lazy(() => import("./pages/ReportBuilderPage.jsx").then((module) => ({ default: module.ReportBuilderPage })));
+const ActivityPage = lazy(() => import("./pages/ActivityPage.jsx").then((module) => ({ default: module.ActivityPage })));
+const UsersPage = lazy(() => import("./pages/UsersPage.jsx").then((module) => ({ default: module.UsersPage })));
+const MohallahSurveyPage = lazy(() => import("./pages/MohallahSurveyPage.jsx").then((module) => ({ default: module.MohallahSurveyPage })));
+const SurveyManagementPage = lazy(() => import("./pages/SurveyManagementPage.jsx").then((module) => ({ default: module.SurveyManagementPage })));
 import { MuminModal } from "./modals/MuminModal.jsx";
 import { SectorModal } from "./modals/SectorModal.jsx";
 import { SubSectorModal } from "./modals/SubSectorModal.jsx";
 import { TrashModal } from "./modals/TrashModal.jsx";
 import { MuminPreview } from "./modals/MuminPreview.jsx";
 import { Lightbox } from "./modals/Lightbox.jsx";
-import { ReceptionPage } from "./pages/ReceptionPage.jsx";
+const ReceptionPage = lazy(() => import("./pages/ReceptionPage.jsx").then((module) => ({ default: module.ReceptionPage })));
 
 function ActivePage() {
   var ctx = useAppContext();
@@ -60,6 +61,6 @@ function AppShell() {
   var ctx = useAppContext(), auth = useAuth();
   if (auth.authLoading) return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#0d1117",color:"#6b7280",gap:12,fontSize:14}}><Spinner /> Loading…</div>;
   if (!auth.session) return <LoginPage onLogin={auth.login} />;
-  return <div className="layout"><NetworkStatus /><Sidebar /><main className="main">{ctx.dbError && <div className="err-banner">⚠ {ctx.dbError}<button className="btn btn-ghost btn-sm" onClick={ctx.loadAll} style={{marginLeft:8}}>Retry</button></div>}<ActivePage /></main><MuminModal /><SectorModal /><SubSectorModal />{ctx.ieModal && <IEModal onClose={function(){ctx.setIeModal(false);}} muminData={ctx.muminData} filesData={[]} onImportMumin={ctx.handleImportMumin} onImportFiles={function(){}} importing={ctx.importing} />}<TrashModal /><MuminPreview /><Lightbox />{ctx.toast && <div className={"toast toast-"+ctx.toast.type}>{ctx.toast.type==="success"?"✓":"⚠"} {ctx.toast.msg}</div>}</div>;
+  return <div className="layout"><NetworkStatus /><Sidebar /><main className="main">{ctx.dbError && <div className="err-banner">⚠ {ctx.dbError}<button className="btn btn-ghost btn-sm" onClick={ctx.loadAll} style={{marginLeft:8}}>Retry</button></div>}<Suspense fallback={<div className="card" role="status" style={{ padding: 24, color: "#9ca3af" }}>Loading module…</div>}><ActivePage /></Suspense></main><MuminModal /><SectorModal /><SubSectorModal />{ctx.ieModal && <IEModal onClose={function(){ctx.setIeModal(false);}} muminData={ctx.muminData} filesData={[]} onImportMumin={ctx.handleImportMumin} onImportFiles={function(){}} importing={ctx.importing} />}<TrashModal /><MuminPreview /><Lightbox />{ctx.toast && <div className={"toast toast-"+ctx.toast.type}>{ctx.toast.type==="success"?"✓":"⚠"} {ctx.toast.msg}</div>}</div>;
 }
 export default function App() { return <AuthProvider><AppProvider><AppShell /></AppProvider></AuthProvider>; }
