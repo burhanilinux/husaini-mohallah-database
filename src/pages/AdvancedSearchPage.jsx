@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useAppContext } from "../context/AppContext.jsx";
 import { getMuminAge } from "../lib/utils.js";
 import { getExtendedProfile } from "../lib/muminProfile.js";
-import * as XLSX from "xlsx";
 import { sbGet } from "../lib/supabase.js";
 
 export function AdvancedSearchPage() {
@@ -64,8 +63,9 @@ export function AdvancedSearchPage() {
     });
   }, [muminData, query, sector, gender, status, ageGroup, startAge, endAge, hasPhone, hasSabil]);
 
-  function downloadExcel() {
+  async function downloadExcel() {
     if (!results.length) return;
+    var XLSX = await import("xlsx");
     var rows = results.map(function (m) {
       var hof = getHofForMumin(m);
       return {
