@@ -242,7 +242,7 @@ export function SurveyManagementPage() {
     var lines = [headers].concat(reportRows.map(function (r) {
       return [selectedSurvey.title, r.visit.visit_date, r.hof && r.hof.mumin.name || "", r.assignment && r.assignment.hof_its_id || "", r.hof && r.hof.sector && r.hof.sector.name || "", r.hof && r.hof.subSector && r.hof.subSector.name || "", r.visit.surveyor || "", r.visit.status || "", r.visit.remarks || ""].concat(questions.map(function (q) { return r.answerMap[q.id] === undefined ? "" : r.answerMap[q.id]; }));
     }));
-    var csv = "\\ufeff" + lines.map(function (row) { return row.map(csvCell).join(","); }).join("\\r\\n");
+    var csv = "\ufeff" + lines.map(function (row) { return row.map(csvCell).join(","); }).join("\r\n");
     var blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
     var url = URL.createObjectURL(blob);
     var a = document.createElement("a"); a.href = url;
