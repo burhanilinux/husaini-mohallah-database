@@ -20,11 +20,10 @@ export function SurveyVisitEntry({ survey, assignment, hofLabel, questions, user
   const [isOnline, setIsOnline] = useState(typeof navigator === "undefined" ? true : navigator.onLine);
   const [hydratedKey, setHydratedKey] = useState("");
   const syncedSnapshot = useRef("");
-  const cacheKey = "hm_survey_offline_v1:" + survey.id + ":" + assignment.id;
+  const cacheKey = "hm_survey_offline_v1:" + survey.id + ":" + assignment.id + ":" + (visit?.id || "new");
 
   useEffect(() => {
     setHydratedKey("");
-    syncedSnapshot.current = "";
     try {
       const raw = localStorage.getItem(cacheKey);
       const cached = raw ? JSON.parse(raw) : null;
@@ -76,6 +75,7 @@ export function SurveyVisitEntry({ survey, assignment, hofLabel, questions, user
       const rows = await sbGet("survey_responses", "visit_id=eq." + encodeURIComponent(row.id) + "&select=*&order=created_at.asc");
       const next = {};
       (Array.isArray(rows) ? rows : []).forEach(r => { next[r.question_id] = r.answer; });
+      syncedSnapshot.current = JSON.stringify({date:row.visit_date || "", surveyor:row.surveyor || "", remarks:row.remarks || "", answers:next});
       setAnswers(next);
     } catch (e) { setError("Could not load answers: " + e.message); }
   }
