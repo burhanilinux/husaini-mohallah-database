@@ -24,7 +24,7 @@ function openA4(title, html) {
     ".name{font-size:18pt;font-weight:700;margin-bottom:4px}.meta{font-size:9pt;color:#555}.badge{display:inline-block;border:1px solid #cfcfcf;border-radius:12px;padding:2px 8px;font-size:8pt;margin-left:5px}",
     ".section{margin-top:10px}.section-title{font-size:8pt;text-transform:uppercase;letter-spacing:1.5px;color:#8a681d;font-weight:700;border-bottom:1px solid #eadfbe;padding-bottom:4px;margin-bottom:6px}",
     ".grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px}.field{border:1px solid #e1e1e1;border-radius:4px;padding:6px 8px;min-height:35px}.field.full{grid-column:1/-1}.label{font-size:7pt;color:#777;text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px}.value{font-size:9.5pt;font-weight:600;word-break:break-word}",
-    ".family{border:1px solid #e7dcc0;border-radius:5px;overflow:hidden}.family-head{display:grid;grid-template-columns:1fr 26mm 27mm;background:#faf7ef;font-size:7pt;text-transform:uppercase;color:#777;padding:5px 7px}.member{display:grid;grid-template-columns:1fr 26mm 27mm;padding:5px 7px;border-top:1px solid #eee;font-size:8.5pt}.member.hof{font-weight:700}.role{color:#8a681d;font-size:7.5pt}",
+    ".family{border:1px solid #e7dcc0;border-radius:5px;overflow:hidden}.family-head{display:grid;grid-template-columns:1fr 26mm 14mm 27mm;background:#faf7ef;font-size:7pt;text-transform:uppercase;color:#777;padding:5px 7px}.member{display:grid;grid-template-columns:1fr 26mm 14mm 27mm;padding:5px 7px;border-top:1px solid #eee;font-size:8.5pt}.member.hof{font-weight:700}.role{color:#8a681d;font-size:7.5pt}",
     ".quality{border:1px solid #e3c66d;background:#fffaf0;border-radius:5px;padding:7px 9px;font-size:8pt;color:#674e12;line-height:1.45}",
     ".footer{margin-top:12px;padding-top:6px;border-top:1px solid #ddd;display:flex;justify-content:space-between;font-size:7pt;color:#888}",
     ".no-print{display:none!important}",
@@ -72,10 +72,11 @@ export function printMuminA4(m, familyRecord, familyMembers, sectorInfo) {
   h += "<div class='field'><div class='label'>Family ID</div><div class='value'>" + esc(m.family_id || "—") + "</div></div>";
   h += "<div class='field'><div class='label'>Head of Family ITS</div><div class='value'>" + esc(familyRecord && familyRecord.hof_its_id || "—") + "</div></div></div>";
   if (familyMembers && familyMembers.length) {
-    h += "<div class='family' style='margin-top:6px'><div class='family-head'><span>Family Member</span><span>ITS</span><span>Role</span></div>";
+    h += "<div class='family' style='margin-top:6px'><div class='family-head'><span>Family Member</span><span>ITS</span><span>Age</span><span>Role</span></div>";
     familyMembers.forEach(function (member) {
       var isHof = familyRecord && familyRecord.hof_its_id && (String(member.its_id) === String(familyRecord.hof_its_id) || String(member.its_number) === String(familyRecord.hof_its_id));
-      h += "<div class='member" + (isHof ? " hof" : "") + "'><span>" + (isHof ? "★ " : "") + esc(member.name || "—") + "</span><span>" + esc(member.its_number || "—") + "</span><span class='role'>" + (isHof ? "Head of Family" : "Family Member") + "</span></div>";
+      var memberAge = getMuminAge(member);
+      h += "<div class='member" + (isHof ? " hof" : "") + "'><span>" + (isHof ? "★ " : "") + esc(member.name || "—") + "</span><span>" + esc(member.its_number || "—") + "</span><span>" + esc(memberAge == null ? "—" : memberAge) + "</span><span class='role'>" + (isHof ? "Head of Family" : "Family Member") + "</span></div>";
     });
     h += "</div>";
   }
