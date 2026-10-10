@@ -3,7 +3,6 @@ import { useAppContext } from "../context/AppContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { sbDelete, sbGet, sbInsert, sbUpdate, logActivity } from "../lib/supabase.js";
 import { SurveyVisitEntry } from "./SurveyVisitEntry.jsx";
-import * as XLSX from "xlsx";
 
 var QUESTION_TYPES = [
   { value: "text", label: "Short text" },
@@ -238,8 +237,9 @@ export function SurveyManagementPage() {
     return { visit:v, assignment:a, hof:h, answerMap:answerMap };
   });
 
-  function exportReport() {
+  async function exportReport() {
     if (!reportRows.length || !selectedSurvey) return;
+    var XLSX = await import("xlsx");
     var headers = ["Survey", "Visit Date", "HOF Name", "HOF ITS", "Sector", "Sub-sector", "Surveyor", "Visit Status", "Remarks"].concat(questions.map(function (q) { return q.question_text; }));
     function safeCell(value) {
       var text = value === null || value === undefined ? "" : (typeof value === "object" ? JSON.stringify(value) : String(value));
