@@ -3,6 +3,7 @@ import { useAppContext } from "../context/AppContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { sbDelete, sbGet, sbInsert, sbUpdate, logActivity } from "../lib/supabase.js";
 import { SurveyVisitEntry } from "./SurveyVisitEntry.jsx";
+import * as XLSX from "xlsx";
 
 var QUESTION_TYPES = [
   { value: "text", label: "Short text" },
@@ -234,20 +235,19 @@ export function SurveyManagementPage() {
   function exportReport() {
     if (!reportRows.length || !selectedSurvey) return;
     var headers = ["Survey", "Visit Date", "HOF Name", "HOF ITS", "Sector", "Sub-sector", "Surveyor", "Visit Status", "Remarks"].concat(questions.map(function (q) { return q.question_text; }));
-    function csvCell(value) {
+    function safeCell(value) {
       var text = value === null || value === undefined ? "" : (typeof value === "object" ? JSON.stringify(value) : String(value));
-      if (/^[\\s]*[=+@\\-\\t\\r]/.test(text)) text = "'" + text;
-      return '"' + text.replace(/"/g, '""') + '"';
+      return /^[\\s]*[=+@\\-\\t\\r]/.test(text) ? "'" + text : text;
     }
-    var lines = [headers].concat(reportRows.map(function (r) {
-      return [selectedSurvey.title, r.visit.visit_date, r.hof && r.hof.mumin.name || "", r.assignment && r.assignment.hof_its_id || "", r.hof && r.hof.sector && r.hof.sector.name || "", r.hof && r.hof.subSector && r.hof.subSector.name || "", r.visit.surveyor || "", r.visit.status || "", r.visit.remarks || ""].concat(questions.map(function (q) { return r.answerMap[q.id] === undefined ? "" : r.answerMap[q.id]; }));
-    }));
-    var csv = "\ufeff" + lines.map(function (row) { return row.map(csvCell).join(","); }).join("\r\n");
-    var blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a"); a.href = url;
-    a.download = (selectedSurvey.title || "survey").replace(/[^a-z0-9_-]+/gi,"_") + "_report.csv";
-    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    var rows = reportRows.map(function (r) {
+      return [selectedSurvey.title, r.visit.visit_date, r.hof && r.hof.mumin.name || "", r.assignment && r.assignment.hof_its_id || "", r.hof && r.hof.sector && r.hof.sector.name || "", r.hof && r.hof.subSector && r.hof.subSector.name || "", r.visit.surveyor || "", r.visit.status || "", r.visit.remarks || ""].concat(questions.map(function (q) { return r.answerMap[q.id] === undefined ? "" : r.answerMap[q.id]; })).map(safeCell);
+    });
+    var sheet = XLSX.utils.aoa_to_sheet([headers].concat(rows));
+    sheet["!cols"] = headers.map(function (h) { return { wch: Math.min(36, Math.max(12, String(h).length + 2)) }; });
+    sheet["!autofilter"] = { ref: XLSX.utils.encode_range({s:{r:0,c:0},e:{r:rows.length,c:headers.length-1}}) };
+    var book = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(book, sheet, "Survey Visits");
+    XLSX.writeFile(book, (selectedSurvey.title || "survey").replace(/[^a-z0-9_-]+/gi,"_") + "_report.xlsx");
   }
 
   function printReport() {
@@ -316,7 +316,7 @@ export function SurveyManagementPage() {
               <button className="btn btn-secondary" disabled={reportLoading} onClick={loadReport}>{reportLoading ? "Loading…" : reportLoaded ? "Refresh report" : "Load report"}</button>
             </div>
             {reportLoaded && <><div className="survey-report-summary"><div><strong>{reportRows.length}</strong><span>Visits in filter</span></div><div><strong>{reportRows.filter(function(r){return r.visit.status==="submitted";}).length}</strong><span>Submitted</span></div><div><strong>{new Set(reportRows.map(function(r){return r.assignment && r.assignment.hof_its_id;}).filter(Boolean)).size}</strong><span>HOFs visited</span></div><div><strong>{new Set(reportRows.filter(function(r){return r.hof && r.hof.sector;}).map(function(r){return r.hof.sector.id;})).size}</strong><span>Sectors reached</span></div></div>
-              <div className="survey-report-actions"><button className="btn btn-secondary" disabled={!reportRows.length} onClick={exportReport}>Export Excel-compatible CSV</button><button className="btn btn-ghost" disabled={!reportRows.length} onClick={printReport}>Print report</button></div>
+              <div className="survey-report-actions"><button className="btn btn-secondary" disabled={!reportRows.length} onClick={exportReport}>Export Excel (.xlsx)</button><button className="btn btn-ghost" disabled={!reportRows.length} onClick={printReport}>Print report</button></div>
               <div className="survey-report-table-wrap"><table className="survey-report-table"><thead><tr><th>Date</th><th>HOF</th><th>ITS</th><th>Sector / Sub-sector</th><th>Surveyor</th><th>Status</th><th>Remarks</th>{questions.map(function(q){return <th key={q.id}>{q.question_text}</th>;})}</tr></thead><tbody>{reportRows.map(function(r){return <tr key={r.visit.id}><td>{dateLabel(r.visit.visit_date)}</td><td>{r.hof && r.hof.mumin.name || "HOF"}</td><td>{r.assignment && r.assignment.hof_its_id || "—"}</td><td>{r.hof && r.hof.sector && r.hof.sector.name || "—"}{r.hof && r.hof.subSector ? " / "+r.hof.subSector.name : ""}</td><td>{r.visit.surveyor || "—"}</td><td>{r.visit.status || "—"}</td><td>{r.visit.remarks || "—"}</td>{questions.map(function(q){var value=r.answerMap[q.id];return <td key={q.id}>{value===undefined||value===null?"—":Array.isArray(value)?value.join(", "):typeof value==="object"?JSON.stringify(value):String(value)}</td>;})}</tr>;})}</tbody></table>{!reportRows.length && <p className="survey-note">No visits match the selected date and sector filters.</p>}</div>
             </>}
             {!reportLoaded && <p className="survey-note">Load the report to fetch visit records and answers for this survey.</p>}
