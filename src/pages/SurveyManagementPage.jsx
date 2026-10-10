@@ -113,6 +113,7 @@ export function SurveyManagementPage() {
     e.preventDefault();
     if (!canEdit) return;
     if (!title.trim()) { setError("Enter a survey name first."); return; }
+    if (startDate && endDate && endDate < startDate) { setError("End date cannot be earlier than the start date."); return; }
     setSaving(true); setError(""); setNotice("");
     try {
       var rows = await sbInsert("surveys", {
@@ -145,7 +146,7 @@ export function SurveyManagementPage() {
     e.preventDefault();
     if (!canEdit || !selectedSurvey) return;
     if (!questionText.trim()) { setError("Enter a question."); return; }
-    var opts = questionOptions.split("\n").map(function (x) { return x.trim(); }).filter(Boolean);
+    var opts = Array.from(new Set(questionOptions.split("\n").map(function (x) { return x.trim(); }).filter(Boolean)));
     if ((questionType === "single_choice" || questionType === "multiple_choice") && opts.length < 2) {
       setError("Choice questions need at least two options, one per line."); return;
     }
@@ -256,11 +257,26 @@ export function SurveyManagementPage() {
   }
 
   var counts = assignments.reduce(function (a, x) { a[x.status] = (a[x.status] || 0) + 1; return a; }, {});
+  var completionRate = assignments.length ? Math.round(((counts.completed || 0) / assignments.length) * 100) : 0;
+  var sectorProgress = assignments.reduce(function (acc, assignment) {
+    var sector = sectorOptions.find(function (item) { return String(item.id) === String(assignment.sector_id); });
+    var name = sector ? sector.name : "Sector not assigned";
+    if (!acc[name]) acc[name] = {name:name,total:0,completed:0,inProgress:0,pending:0,notAvailable:0};
+    acc[name].total += 1;
+    if (assignment.status === "completed") acc[name].completed += 1;
+    else if (assignment.status === "in_progress") acc[name].inProgress += 1;
+    else if (assignment.status === "not_available") acc[name].notAvailable += 1;
+    else acc[name].pending += 1;
+    return acc;
+  }, {});
+  var sectorProgressRows = Object.keys(sectorProgress).map(function (key) { return sectorProgress[key]; }).sort(function (a,b) { return a.name.localeCompare(b.name); });
   var stats = [
     { label: "Surveys", value: surveys.length },
     { label: "Active surveys", value: surveys.filter(function (s) { return s.status === "active"; }).length },
     { label: "HOFs assigned", value: assignments.length },
     { label: "Completed", value: counts.completed || 0 },
+    { label: "Still pending", value: (counts.pending || 0) + (counts.in_progress || 0) },
+    { label: "Completion rate", value: completionRate + "%" },
   ];
 
   return <div className="page survey-mgmt">
@@ -270,6 +286,12 @@ export function SurveyManagementPage() {
     {error && <div className="survey-alert survey-alert-error" role="alert">{error}<button onClick={function () { setError(""); }} aria-label="Dismiss error">×</button></div>}
     {notice && <div className="survey-alert survey-alert-success" role="status">{notice}<button onClick={function () { setNotice(""); }} aria-label="Dismiss message">×</button></div>}
     <div className="survey-stat-grid">{stats.map(function (s) { return <div className="survey-stat" key={s.label}><span>{s.label}</span><strong>{s.value}</strong></div>; })}</div>
+    <section className="survey-progress-panel" aria-label="Survey completion dashboard">
+      <div className="survey-progress-heading"><div><h2>Completion dashboard</h2><p>{selectedSurvey ? selectedSurvey.title : "Select a survey to view its progress"}</p></div><strong>{completionRate}%</strong></div>
+      <div className="survey-progress-track" role="progressbar" aria-label="HOF assignments completed" aria-valuemin={0} aria-valuemax={100} aria-valuenow={completionRate}><span style={{width:completionRate + "%"}} /></div>
+      <div className="survey-progress-legend"><span><i className="progress-completed" />{counts.completed || 0} completed</span><span><i className="progress-inprogress" />{counts.in_progress || 0} in progress</span><span><i className="progress-pending" />{counts.pending || 0} pending</span><span><i className="progress-unavailable" />{counts.not_available || 0} not available</span></div>
+      {sectorProgressRows.length ? <div className="survey-sector-progress"><div className="survey-sector-progress-title">Sector-wise progress</div>{sectorProgressRows.map(function (row) { var pct = row.total ? Math.round(row.completed / row.total * 100) : 0; return <div className="survey-sector-progress-row" key={row.name}><div className="survey-sector-progress-label"><strong>{row.name}</strong><small>{row.completed}/{row.total} completed · {row.pending} pending · {row.inProgress} in progress</small></div><div className="survey-sector-progress-track"><span style={{width:pct + "%"}} /></div><b>{pct}%</b></div>; })}</div> : <p className="survey-note">Assign HOF households to start tracking completion and sector coverage.</p>}
+    </section>
     <div className="survey-layout">
       <section className="survey-panel">
         <div className="survey-panel-title"><div><h2>Surveys</h2><p>Keep each survey separate by year or purpose.</p></div><button className="btn btn-ghost btn-sm" onClick={function () { reload(selectedId); }} disabled={loading}>↻ Refresh</button></div>
