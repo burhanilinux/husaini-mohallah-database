@@ -46,6 +46,11 @@ export function SurveyVisitEntry({ survey, assignment, hofLabel, questions, user
     if (hydratedKey !== cacheKey || !canEdit || survey.status === "closed") return;
     const snapshot = JSON.stringify({date, surveyor, remarks, answers});
     if (snapshot === syncedSnapshot.current) return;
+    const hasAnswers = Object.values(answers).some(function (value) {
+      return Array.isArray(value) ? value.length > 0 : value != null && String(value).trim() !== "";
+    });
+    const hasContent = !!(surveyor.trim() || remarks.trim() || hasAnswers || date !== new Date().toISOString().slice(0,10));
+    if (!hasContent && !localDraft) return;
     const payload = { date, surveyor, remarks, answers, updatedAt: new Date().toISOString(), synced: false };
     try {
       localStorage.setItem(cacheKey, JSON.stringify(payload));
@@ -53,7 +58,7 @@ export function SurveyVisitEntry({ survey, assignment, hofLabel, questions, user
     } catch (_e) {
       setError("This browser could not store a local draft. Check device storage space or privacy settings.");
     }
-  }, [cacheKey, date, surveyor, remarks, answers, hydratedKey, canEdit, survey.status]);
+  }, [cacheKey, date, surveyor, remarks, answers, hydratedKey, canEdit, survey.status, localDraft]);
 
   async function loadHistory() {
     const rows = await sbGet("survey_visits", "assignment_id=eq." + encodeURIComponent(assignment.id) + "&select=*&order=visit_date.desc,created_at.desc");
@@ -106,6 +111,15 @@ export function SurveyVisitEntry({ survey, assignment, hofLabel, questions, user
     });
     if (submit && missing) { setError("Please answer the required question: " + missing.question_text); return; }
     if (!date) { setError("Select a visit date."); return; }
+    const invalidChoice = questions.find(function (q) {
+      const answer = val(q);
+      if (q.question_type === "yes_no" && answer && !["Yes","No"].includes(answer)) return true;
+      if (q.question_type === "single_choice" && answer && !(q.options || []).includes(answer)) return true;
+      if (q.question_type === "multiple_choice" && Array.isArray(answer) && answer.some(function (item) { return !(q.options || []).includes(item); })) return true;
+      if (q.question_type === "number" && answer !== "" && !Number.isFinite(Number(answer))) return true;
+      return false;
+    });
+    if (invalidChoice) { setError("Please review the answer for: " + invalidChoice.question_text); return; }
     setBusy(true); setError(""); setNotice("");
     try {
       const payload = {survey_id:survey.id, assignment_id:assignment.id, visit_date:date, surveyor:surveyor.trim(), remarks:remarks.trim(), status:submit?"submitted":"draft", created_by:user?.id || null};
