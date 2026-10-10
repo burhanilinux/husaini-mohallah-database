@@ -88,16 +88,15 @@ export function SurveyManagementPage() {
   useEffect(function () { reload(""); }, []);
 
   useEffect(function () {
-    if (!selectedId) { setQuestions([]); setAssignments([]); setVisitRows([]); return; }
+    if (!selectedId) { setQuestions([]); setAssignments([]); return; }
     var active = true;
     Promise.all([
       sbGet("survey_questions", "survey_id=eq." + encodeURIComponent(selectedId) + "&select=*&order=sort_order.asc,created_at.asc"),
       sbGet("survey_assignments", "survey_id=eq." + encodeURIComponent(selectedId) + "&select=*&order=assigned_at.desc"),
-      sbGet("survey_visits", "survey_id=eq." + encodeURIComponent(selectedId) + "&select=*&order=visit_date.desc,created_at.desc"),
     ]).then(function (result) {
       if (!active) return;
       setQuestions(Array.isArray(result[0]) ? result[0] : []);
-      setAssignments(Array.isArray(result[1]) ? result[1] : []);\n      setVisitRows(Array.isArray(result[2]) ? result[2] : []);
+      setAssignments(Array.isArray(result[1]) ? result[1] : []);
     }).catch(function (e) { if (active) setError("Could not load survey questions or assignments. " + e.message); });
     return function () { active = false; };
   }, [selectedId]);
