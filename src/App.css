@@ -775,3 +775,27 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280
 .survey-connection-dot.is-online{background:#34d399}
 .survey-connection-dot.is-offline{background:#f87171}
 @media(max-width:700px){.survey-offline-status{padding:10px}.survey-offline-status small{font-size:11px}}
+
+
+/* Survey Management Phase 5: completion and sector analytics */
+.survey-stat-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
+.survey-progress-panel{margin:16px 0 20px;padding:18px;border:1px solid rgba(201,168,76,.18);border-radius:12px;background:rgba(255,255,255,.018)}
+.survey-progress-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.survey-progress-heading h2{margin:0;color:#e8d7a5;font-size:14px}
+.survey-progress-heading p{margin:5px 0 0;color:#9ca3af;font-size:11px}
+.survey-progress-heading>strong{font-size:26px;color:#e8d7a5}
+.survey-progress-track,.survey-sector-progress-track{height:8px;overflow:hidden;border-radius:99px;background:rgba(255,255,255,.08)}
+.survey-progress-track span,.survey-sector-progress-track span{display:block;height:100%;border-radius:99px;background:#c9a84c;transition:width .2s ease}
+.survey-progress-legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin:12px 0 18px}
+.survey-progress-legend span{display:flex;align-items:center;gap:6px;color:#aeb4bf;font-size:10px}
+.survey-progress-legend i{display:inline-block;width:7px;height:7px;border-radius:50%;background:#c9a84c}
+.survey-progress-legend .progress-completed{background:#34d399}.survey-progress-legend .progress-inprogress{background:#60a5fa}.survey-progress-legend .progress-pending{background:#fbbf24}.survey-progress-legend .progress-unavailable{background:#9ca3af}
+.survey-sector-progress-title{margin-bottom:10px;color:#e6dfd2;font-size:11px;font-weight:650}
+.survey-sector-progress{display:flex;flex-direction:column;gap:12px}
+.survey-sector-progress-row{display:grid;grid-template-columns:minmax(120px,1.2fr) minmax(90px,2fr) 40px;align-items:center;gap:12px}
+.survey-sector-progress-label{display:flex;flex-direction:column;gap:4px;min-width:0}
+.survey-sector-progress-label strong{font-size:11px;color:#e6dfd2;overflow-wrap:anywhere}
+.survey-sector-progress-label small{font-size:10px;color:#9ca3af;line-height:1.4}
+.survey-sector-progress-row>b{text-align:right;font-size:11px;color:#e8d7a5}
+@media(max-width:1000px){.survey-stat-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:700px){.survey-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.survey-progress-panel{padding:13px}.survey-sector-progress-row{grid-template-columns:minmax(0,1fr) 36px;gap:7px}.survey-sector-progress-label{grid-column:1 / -1}.survey-sector-progress-track{grid-column:1}.survey-sector-progress-row>b{grid-column:2;grid-row:2}}
