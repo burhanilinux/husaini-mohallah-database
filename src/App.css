@@ -764,3 +764,14 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280
   .survey-report-table{width:100%!important;min-width:0!important;font-size:8px!important}
   .survey-report-table th,.survey-report-table td{position:static!important;background:white!important;color:black!important;border:1px solid #999!important;padding:4px!important}
 }
+
+
+/* Survey Management Phase 4: offline field-work recovery */
+.survey-offline-status{display:flex;align-items:flex-start;gap:10px;padding:11px 13px;margin:10px 0 14px;border:1px solid rgba(201,168,76,.18);border-radius:9px;background:rgba(255,255,255,.025)}
+.survey-offline-status>div{display:flex;flex-direction:column;gap:4px;min-width:0}
+.survey-offline-status strong{font-size:11px;color:#e8d7a5}
+.survey-offline-status small{font-size:10px;color:#a5aab4;line-height:1.5}
+.survey-connection-dot{width:9px;height:9px;flex:0 0 9px;border-radius:50%;margin-top:3px;background:#f59e0b}
+.survey-connection-dot.is-online{background:#34d399}
+.survey-connection-dot.is-offline{background:#f87171}
+@media(max-width:700px){.survey-offline-status{padding:10px}.survey-offline-status small{font-size:11px}}
