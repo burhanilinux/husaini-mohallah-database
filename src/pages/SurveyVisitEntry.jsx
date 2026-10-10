@@ -17,12 +17,12 @@ export function SurveyVisitEntry({ survey, assignment, hofLabel, questions, user
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [localDraft, setLocalDraft] = useState(false);
-  const [hydrated, setHydrated] = useState(false);
+  const [hydratedKey, setHydratedKey] = useState("");
   const skipCacheWrite = useRef(false);
   const cacheKey = "hm_survey_offline_v1:" + survey.id + ":" + assignment.id + ":" + (visit?.id || "new");
 
   useEffect(() => {
-    setHydrated(false);
+    setHydratedKey("");
     try {
       const raw = localStorage.getItem(cacheKey);
       const cached = raw ? JSON.parse(raw) : null;
@@ -37,11 +37,11 @@ export function SurveyVisitEntry({ survey, assignment, hofLabel, questions, user
         setLocalDraft(false);
       }
     } catch (_e) { setLocalDraft(false); }
-    setHydrated(true);
+    setHydratedKey(cacheKey);
   }, [cacheKey]);
 
   useEffect(() => {
-    if (!hydrated || !canEdit || survey.status === "closed") return;
+    if (hydratedKey !== cacheKey || !canEdit || survey.status === "closed") return;
     const payload = { date, surveyor, remarks, answers, updatedAt: new Date().toISOString(), synced: false };
     try {
       if (skipCacheWrite.current) {
@@ -53,7 +53,7 @@ export function SurveyVisitEntry({ survey, assignment, hofLabel, questions, user
     } catch (_e) {
       setError("This browser could not store a local draft. Check device storage space or privacy settings.");
     }
-  }, [cacheKey, date, surveyor, remarks, answers, hydrated, canEdit, survey.status]);
+  }, [cacheKey, date, surveyor, remarks, answers, hydratedKey, canEdit, survey.status]);
 
   async function loadHistory() {
     const rows = await sbGet("survey_visits", "assignment_id=eq." + encodeURIComponent(assignment.id) + "&select=*&order=visit_date.desc,created_at.desc");
