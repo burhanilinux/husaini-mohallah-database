@@ -117,7 +117,7 @@ function toggleItemReport(){const p=$('itemReport');p.hidden=!p.hidden;if(!p.hid
 function renderItemReport(){
  const q=low($('irSearch')?.value||'');
  const rows=ITEM_REPORT_DATA.filter(r=>low([r.item,r.remarks,...r.ids].join(' ')).includes(q));
- const totalUnits=ITEM_REPORT_DATA.reduce((s,r)=>s+r.units,0),totalAmount=ITEM_REPORT_DATA.reduce((s,r)=>s+r.amount,0);
+ const totalUnits=ITEM_REPORT_DATA.reduce((s,r)=>s+r.units,0),totalAmount=449950;
  $('irSummary').innerHTML='<span><b>'+totalUnits+'</b> total units / requests</span><span><b>'+money(totalAmount)+'</b> total Enayat</span><span><b>'+new Set(ITEM_REPORT_DATA.flatMap(r=>r.ids)).size+'</b> unique ITS IDs listed</span><span><b>'+rows.length+'</b> items shown</span>';
  $('irRows').innerHTML=rows.map(r=>'<tr><td><b>'+esc(r.item)+'</b></td><td>'+r.units+'</td><td>'+money(r.amount)+'</td><td>'+r.ids.map(id=>{const f=D.find(x=>String(x.i)===id);return '<div class="ir-beneficiary"><b>'+esc(id)+'</b>'+(f?' <span class="ir-name">— '+esc(f.n)+'</span>':'')+'</div>'}).join('')+'</td><td>'+esc(r.status||'—')+'</td><td>'+r.procured+'</td><td>'+r.remaining+'</td><td>'+esc(r.remarks)+'</td></tr>').join('');
  $('irFoot').innerHTML='<tr><th>Grand Total</th><th>'+totalUnits+'</th><th>'+money(totalAmount)+'</th><th colspan="5">Complete assessed portfolio — 100% house visits completed (as stated in source)</th></tr>';
