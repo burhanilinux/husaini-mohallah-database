@@ -132,6 +132,10 @@ export function SurveyVisitEntry({ survey, assignment, hofLabel, questions, user
         saved = Array.isArray(rows) ? rows[0] : rows;
         if (!saved?.id) throw new Error("Database did not return the saved visit.");
       }
+      // Remember the visit ID as soon as the row exists so a later retry updates
+      // this record instead of accidentally creating a duplicate visit.
+      try { localStorage.removeItem(cacheKey); } catch (_e) {}
+      setVisit(saved);
       const responseRows = questions.map(q => {
         const answer = val(q);
         return {visit_id:saved.id,question_id:q.id,answer:(answer === "" || answer == null || (Array.isArray(answer) && !answer.length)) ? null : answer};
@@ -141,7 +145,10 @@ export function SurveyVisitEntry({ survey, assignment, hofLabel, questions, user
       else await sbUpdate("survey_assignments",assignment.id,{status:"in_progress"});
       await logActivity(submit?"Submitted survey visit":"Saved survey visit draft","survey",survey.title+" · ITS "+assignment.hof_its_id,user?.email);
       syncedSnapshot.current = JSON.stringify({date, surveyor, remarks, answers});
-      try { localStorage.removeItem(cacheKey); } catch (_e) {}
+      try {
+        localStorage.removeItem(cacheKey);
+        localStorage.removeItem("hm_survey_offline_v1:" + survey.id + ":" + assignment.id + ":" + saved.id);
+      } catch (_e) {}
       setLocalDraft(false);
       setVisit(saved); await loadHistory(); if (onChanged) await onChanged();
       setNotice(submit ? "Visit submitted and synced. Previous visits remain in history." : "Draft saved online. A local recovery copy is also kept on this device.");
