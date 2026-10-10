@@ -20,6 +20,7 @@ import { ReportBuilderPage } from "./pages/ReportBuilderPage.jsx";
 import { ActivityPage } from "./pages/ActivityPage.jsx";
 import { UsersPage } from "./pages/UsersPage.jsx";
 import { MohallahSurveyPage } from "./pages/MohallahSurveyPage.jsx";
+import { SurveyManagementPage } from "./pages/SurveyManagementPage.jsx";
 import { MuminModal } from "./modals/MuminModal.jsx";
 import { SectorModal } from "./modals/SectorModal.jsx";
 import { SubSectorModal } from "./modals/SubSectorModal.jsx";
@@ -45,6 +46,7 @@ function ActivePage() {
     case "reception": return <ReceptionPage />;
     case "users": return <UsersPage />;
     case "mohallah-survey": return <MohallahSurveyPage />;
+    case "survey-management": return <SurveyManagementPage />;
     default: return <Dashboard />;
   }
 }
