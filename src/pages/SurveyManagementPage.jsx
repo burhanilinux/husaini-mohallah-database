@@ -133,6 +133,7 @@ export function SurveyManagementPage() {
 
   async function changeStatus(nextStatus) {
     if (!selectedSurvey || !canEdit) return;
+    if (!["draft","active","closed"].includes(nextStatus)) { setError("Invalid survey status."); return; }
     setSaving(true); setError(""); setNotice("");
     try {
       await sbUpdate("surveys", selectedSurvey.id, { status: nextStatus, updated_at: new Date().toISOString() });
@@ -146,6 +147,9 @@ export function SurveyManagementPage() {
     e.preventDefault();
     if (!canEdit || !selectedSurvey) return;
     if (!questionText.trim()) { setError("Enter a question."); return; }
+    if (questions.some(function (q) { return String(q.question_text || "").trim().toLowerCase() === questionText.trim().toLowerCase(); })) {
+      setError("This survey already has a question with the same text."); return;
+    }
     var opts = Array.from(new Set(questionOptions.split("\n").map(function (x) { return x.trim(); }).filter(Boolean)));
     if ((questionType === "single_choice" || questionType === "multiple_choice") && opts.length < 2) {
       setError("Choice questions need at least two options, one per line."); return;
@@ -199,6 +203,7 @@ export function SurveyManagementPage() {
 
   async function loadReport() {
     if (!selectedSurvey) return;
+    if (reportFrom && reportTo && reportTo < reportFrom) { setError("Report end date cannot be earlier than the start date."); return; }
     setReportLoading(true); setError(""); setNotice("");
     try {
       var visits = await sbGet("survey_visits", "survey_id=eq." + encodeURIComponent(selectedSurvey.id) + "&select=*&order=visit_date.desc,created_at.desc");
