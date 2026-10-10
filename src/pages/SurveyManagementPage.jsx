@@ -42,6 +42,7 @@ export function SurveyManagementPage() {
   var [sectorFilter, setSectorFilter] = useState("");
   var [subSectorFilter, setSubSectorFilter] = useState("");
   var [householdSearch, setHouseholdSearch] = useState("");
+  var [activeAssignment, setActiveAssignment] = useState(null);
   var [visitRows, setVisitRows] = useState([]);
   var [activeAssignment, setActiveAssignment] = useState(null);
   var [activeVisit, setActiveVisit] = useState(null);
@@ -337,8 +338,11 @@ export function SurveyManagementPage() {
             <div className="survey-filter-grid"><label>Sector<select value={sectorFilter} onChange={function (e) { setSectorFilter(e.target.value); setSubSectorFilter(""); }}><option value="">All sectors</option>{sectorOptions.map(function (s) { return <option key={s.id} value={s.id}>{s.name}</option>; })}</select></label><label>Sub-sector<select value={subSectorFilter} onChange={function (e) { setSubSectorFilter(e.target.value); }}><option value="">All sub-sectors</option>{subSectorOptions.map(function (s) { return <option key={s.id} value={s.id}>{s.name}</option>; })}</select></label><label>Find HOF<input value={householdSearch} onChange={function (e) { setHouseholdSearch(e.target.value); }} placeholder="Name or ITS number" /></label></div>
             <div className="survey-assignment-summary"><div><strong>{householdRows.length}</strong><span>HOFs match filters</span></div><div><strong>{householdRows.filter(function (h) { return !assignments.some(function (a) { return String(a.hof_its_id) === String(h.family.hof_its_id); }); }).length}</strong><span>Not yet assigned</span></div><button className="btn btn-primary" onClick={assignHouseholds} disabled={!canEdit || saving || selectedSurvey.status === "closed" || !householdRows.length}>{saving ? "Saving…" : "Assign matching HOFs"}</button></div>
             <div className="survey-assignment-status">{["pending","in_progress","completed","not_available"].map(function (key) { return <span key={key}><b>{counts[key] || 0}</b> {key.replace("_", " ")}</span>; })}</div>
+            <div className="survey-assigned-list">{assignments.filter(function (a) { return householdRows.some(function (h) { return String(h.family.hof_its_id) === String(a.hof_its_id); }); }).slice(0,200).map(function (a) { var h = householdRows.find(function (x) { return String(x.family.hof_its_id) === String(a.hof_its_id); }); return <div className="survey-assigned-row" key={a.id}><div className="survey-assigned-person"><strong>{h && h.mumin.name || "HOF"}</strong><small>ITS {a.hof_its_id}{h && h.sector ? " · " + h.sector.name : ""}{h && h.subSector ? " / " + h.subSector.name : ""}</small></div><span className={"survey-status status-" + (a.status === "completed" ? "active" : "draft")}>{a.status.replace("_", " ")}</span><button className="btn btn-secondary btn-sm" disabled={!canEdit || saving || selectedSurvey.status === "closed"} onClick={function () { setActiveAssignment(a); }}>Record visit</button></div>; })}</div>
             <p className="survey-note">Assignments are added without duplicating HOFs already assigned to this survey. Repeat household visits are supported separately; old survey records are not modified.</p>
           </div>
+          {activeAssignment && <SurveyVisitEntry key={activeAssignment.id} survey={selectedSurvey} assignment={activeAssignment} hofLabel={(householdRows.find(function (h) { return String(h.family.hof_its_id) === String(activeAssignment.hof_its_id); }) || {}).mumin?.name ? (householdRows.find(function (h) { return String(h.family.hof_its_id) === String(activeAssignment.hof_its_id); }).mumin.name + " · ITS " + activeAssignment.hof_its_id) : "ITS " + activeAssignment.hof_its_id} questions={questions} user={auth.user} canEdit={canEdit} onClose={function () { setActiveAssignment(null); }} onChanged={function () { return reload(selectedId); }} />}
+
         </>}
       </section>
     </div>
