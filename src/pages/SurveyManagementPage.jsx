@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAppContext } from "../context/AppContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
-import { sbDelete, sbGet, sbInsert, sbUpdate, sbUpsert, logActivity } from "../lib/supabase.js";
+import { sbDelete, sbGet, sbInsert, sbUpdate, logActivity } from "../lib/supabase.js";
 
 var QUESTION_TYPES = [
   { value: "text", label: "Short text" },
@@ -43,16 +43,6 @@ export function SurveyManagementPage() {
   var [subSectorFilter, setSubSectorFilter] = useState("");
   var [householdSearch, setHouseholdSearch] = useState("");
   var [activeAssignment, setActiveAssignment] = useState(null);
-  var [visitRows, setVisitRows] = useState([]);
-  var [activeAssignment, setActiveAssignment] = useState(null);
-  var [activeVisit, setActiveVisit] = useState(null);
-  var [answers, setAnswers] = useState({});
-  var [visitDate, setVisitDate] = useState(new Date().toISOString().slice(0, 10));
-  var [surveyor, setSurveyor] = useState("");
-  var [visitRemarks, setVisitRemarks] = useState("");
-  var [visitBusy, setVisitBusy] = useState(false);
-  var [visitHistory, setVisitHistory] = useState([]);
-  var [visitHofLabel, setVisitHofLabel] = useState("");
 
   var selectedSurvey = surveys.find(function (s) { return s.id === selectedId; }) || null;
   var sectorOptions = ctx.sectorsData || [];
@@ -196,97 +186,6 @@ export function SurveyManagementPage() {
       setNotice(pending.length + " HOF household(s) assigned. Previous assignments and survey history were preserved.");
     } catch (e) { setError("Assignment stopped: " + (e.message || "database error") + ". Refresh and retry; already saved assignments are retained."); }
     finally { setSaving(false); }
-  }
-
-  async function openVisit(assignment, existingVisit) {
-    setError(""); setNotice(""); setActiveAssignment(assignment); setActiveVisit(null); setAnswers({});
-    setVisitDate(new Date().toISOString().slice(0, 10)); setSurveyor(""); setVisitRemarks("");
-    var m = (ctx.muminData || []).find(function (x) { return String(x.its_id || x.its_number || "") === String(assignment.hof_its_id); });
-    setVisitHofLabel((m && m.name ? m.name + " · " : "") + "ITS " + assignment.hof_its_id);
-    try {
-      var history = await sbGet("survey_visits", "assignment_id=eq." + encodeURIComponent(assignment.id) + "&select=*&order=visit_date.desc,created_at.desc");
-      setVisitHistory(Array.isArray(history) ? history : []);
-      if (existingVisit) await selectVisit(assignment, existingVisit);
-    } catch (e) { setError("Could not load visit history: " + e.message); }
-  }
-
-  async function selectVisit(assignment, visit) {
-    setActiveAssignment(assignment); setActiveVisit(visit); setVisitDate(visit.visit_date || new Date().toISOString().slice(0, 10));
-    setSurveyor(visit.surveyor || ""); setVisitRemarks(visit.remarks || ""); setError(""); setNotice("");
-    try {
-      var rows = await sbGet("survey_responses", "visit_id=eq." + encodeURIComponent(visit.id) + "&select=*&order=created_at.asc");
-      var next = {};
-      (Array.isArray(rows) ? rows : []).forEach(function (r) { next[r.question_id] = r.answer; });
-      setAnswers(next);
-    } catch (e) { setError("Could not load saved answers: " + e.message); }
-  }
-
-  function answerValue(question) {
-    var value = answers[question.id];
-    if (value === undefined || value === null) return question.question_type === "multiple_choice" ? [] : "";
-    return value;
-  }
-
-  async function saveVisit(submit) {
-    if (!canEdit || !activeAssignment || !selectedSurvey) return;
-    if (selectedSurvey.status === "closed") { setError("This survey is closed. Reopen it before recording visits."); return; }
-    var missing = questions.find(function (q) {
-      var value = answerValue(q);
-      return q.is_required && (value === "" || value === null || (Array.isArray(value) && !value.length));
-    });
-    if (submit && missing) { setError("Please answer the required question: " + missing.question_text); return; }
-    setVisitBusy(true); setError(""); setNotice("");
-    try {
-      var visitPayload = {
-        survey_id: selectedSurvey.id, assignment_id: activeAssignment.id,
-        visit_date: visitDate, surveyor: surveyor.trim(), remarks: visitRemarks.trim(),
-        status: submit ? "submitted" : "draft",
-        created_by: auth.user && auth.user.id || null
-      };
-      var savedVisit = activeVisit;
-      if (savedVisit) {
-        var updated = await sbUpdate("survey_visits", savedVisit.id, {
-          visit_date: visitPayload.visit_date, surveyor: visitPayload.surveyor,
-          remarks: visitPayload.remarks, status: visitPayload.status
-        });
-        savedVisit = Array.isArray(updated) ? updated[0] : updated;
-        if (!savedVisit || !savedVisit.id) savedVisit = Object.assign({}, activeVisit, visitPayload);
-      } else {
-        var inserted = await sbInsert("survey_visits", visitPayload);
-        savedVisit = Array.isArray(inserted) ? inserted[0] : inserted;
-        if (!savedVisit || !savedVisit.id) throw new Error("The visit could not be saved by the database.");
-      }
-      var payload = questions.map(function (q) {
-        var v = answers[q.id];
-        if (v === undefined || v === "") v = null;
-        return { visit_id: savedVisit.id, question_id: q.id, answer: v === null ? null : v };
-      });
-      if (payload.length) await sbUpsert("survey_responses", payload, "visit_id,question_id");
-      if (submit) {
-        await sbUpdate("survey_assignments", activeAssignment.id, { status: "completed" });
-        setAssignments(function (old) { return old.map(function (a) { return a.id === activeAssignment.id ? Object.assign({}, a, { status: "completed" }) : a; }); });
-      } else if (activeAssignment.status === "pending") {
-        await sbUpdate("survey_assignments", activeAssignment.id, { status: "in_progress" });
-        setAssignments(function (old) { return old.map(function (a) { return a.id === activeAssignment.id ? Object.assign({}, a, { status: "in_progress" }) : a; }); });
-      }
-      await logActivity(submit ? "Submitted survey visit" : "Saved survey visit draft", "survey", selectedSurvey.title + " · ITS " + activeAssignment.hof_its_id, auth.user && auth.user.email);
-      setActiveVisit(Object.assign({}, savedVisit, { status: submit ? "submitted" : "draft" }));
-      var history = await sbGet("survey_visits", "assignment_id=eq." + encodeURIComponent(activeAssignment.id) + "&select=*&order=visit_date.desc,created_at.desc");
-      setVisitHistory(Array.isArray(history) ? history : []);
-      var allVisits = await sbGet("survey_visits", "survey_id=eq." + encodeURIComponent(selectedSurvey.id) + "&select=*&order=visit_date.desc,created_at.desc");
-      setVisitRows(Array.isArray(allVisits) ? allVisits : []);
-      setNotice(submit ? "Visit submitted. Its date-wise history has been retained." : "Draft saved. You can reopen this visit and continue later.");
-    } catch (e) { setError("Visit was not fully saved: " + (e.message || "database error") + ". Please refresh and verify before retrying."); }
-    finally { setVisitBusy(false); }
-  }
-
-  function renderAnswerField(q) {
-    var value = answerValue(q);
-    if (q.question_type === "yes_no") return <select value={value} onChange={function (e) { setAnswers(function (old) { var n = Object.assign({}, old); n[q.id] = e.target.value; return n; }); }}><option value="">Choose…</option><option value="yes">Yes</option><option value="no">No</option></select>;
-    if (q.question_type === "single_choice") return <select value={value} onChange={function (e) { setAnswers(function (old) { var n = Object.assign({}, old); n[q.id] = e.target.value; return n; }); }}><option value="">Choose…</option>{(q.options || []).map(function (o) { return <option key={o} value={o}>{o}</option>; })}</select>;
-    if (q.question_type === "multiple_choice") return <div className="survey-multi-options">{(q.options || []).map(function (o) { var checked = Array.isArray(value) && value.includes(o); return <label key={o} className="survey-option-check"><input type="checkbox" checked={checked} onChange={function (e) { setAnswers(function (old) { var n = Object.assign({}, old); var vals = Array.isArray(n[q.id]) ? n[q.id].slice() : []; n[q.id] = e.target.checked ? vals.concat([o]) : vals.filter(function (v) { return v !== o; }); return n; }); }} /> {o}</label>; })}</div>;
-    var type = q.question_type === "number" ? "number" : q.question_type === "date" ? "date" : "text";
-    return <input type={type} value={value} onChange={function (e) { setAnswers(function (old) { var n = Object.assign({}, old); n[q.id] = type === "number" && e.target.value !== "" ? Number(e.target.value) : e.target.value; return n; }); }} maxLength={q.question_type === "text" ? 2000 : undefined} />;
   }
 
   var counts = assignments.reduce(function (a, x) { a[x.status] = (a[x.status] || 0) + 1; return a; }, {});
