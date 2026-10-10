@@ -17,12 +17,14 @@ export function SurveyVisitEntry({ survey, assignment, hofLabel, questions, user
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [localDraft, setLocalDraft] = useState(false);
+  const [isOnline, setIsOnline] = useState(typeof navigator === "undefined" ? true : navigator.onLine);
   const [hydratedKey, setHydratedKey] = useState("");
-  const skipCacheWrite = useRef(false);
-  const cacheKey = "hm_survey_offline_v1:" + survey.id + ":" + assignment.id + ":" + (visit?.id || "new");
+  const syncedSnapshot = useRef("");
+  const cacheKey = "hm_survey_offline_v1:" + survey.id + ":" + assignment.id;
 
   useEffect(() => {
     setHydratedKey("");
+    syncedSnapshot.current = "";
     try {
       const raw = localStorage.getItem(cacheKey);
       const cached = raw ? JSON.parse(raw) : null;
@@ -35,6 +37,7 @@ export function SurveyVisitEntry({ survey, assignment, hofLabel, questions, user
         setNotice("Recovered an unsynced local draft. Save it online when connected.");
       } else {
         setLocalDraft(false);
+        if (cached && cached.synced) syncedSnapshot.current = JSON.stringify({date:cached.date || "", surveyor:cached.surveyor || "", remarks:cached.remarks || "", answers:cached.answers || {}});
       }
     } catch (_e) { setLocalDraft(false); }
     setHydratedKey(cacheKey);
@@ -42,14 +45,12 @@ export function SurveyVisitEntry({ survey, assignment, hofLabel, questions, user
 
   useEffect(() => {
     if (hydratedKey !== cacheKey || !canEdit || survey.status === "closed") return;
+    const snapshot = JSON.stringify({date, surveyor, remarks, answers});
+    if (snapshot === syncedSnapshot.current) return;
     const payload = { date, surveyor, remarks, answers, updatedAt: new Date().toISOString(), synced: false };
     try {
-      if (skipCacheWrite.current) {
-        payload.synced = true;
-        skipCacheWrite.current = false;
-      }
       localStorage.setItem(cacheKey, JSON.stringify(payload));
-      setLocalDraft(!payload.synced);
+      setLocalDraft(true);
     } catch (_e) {
       setError("This browser could not store a local draft. Check device storage space or privacy settings.");
     }
@@ -60,6 +61,13 @@ export function SurveyVisitEntry({ survey, assignment, hofLabel, questions, user
     setHistory(Array.isArray(rows) ? rows : []);
   }
   useEffect(() => { loadHistory().catch(e => setError(e.message)); }, [assignment.id]);
+  useEffect(() => {
+    const online = () => setIsOnline(true);
+    const offline = () => setIsOnline(false);
+    window.addEventListener("online", online);
+    window.addEventListener("offline", offline);
+    return () => { window.removeEventListener("online", online); window.removeEventListener("offline", offline); };
+  }, []);
 
   async function openExisting(row) {
     setError(""); setNotice(""); setVisit(row); setDate(row.visit_date || "");
@@ -92,7 +100,10 @@ export function SurveyVisitEntry({ survey, assignment, hofLabel, questions, user
   }
   async function save(submit) {
     if (!canEdit || survey.status === "closed") return;
-    const missing = questions.find(q => q.is_required && (val(q)==="" || val(q)===null || (Array.isArray(val(q)) && !val(q).length)));
+    const missing = questions.find(q => {
+      const answer = val(q);
+      return q.is_required && (answer == null || (typeof answer === "string" && !answer.trim()) || (Array.isArray(answer) && !answer.length));
+    });
     if (submit && missing) { setError("Please answer the required question: " + missing.question_text); return; }
     if (!date) { setError("Select a visit date."); return; }
     setBusy(true); setError(""); setNotice("");
@@ -107,15 +118,16 @@ export function SurveyVisitEntry({ survey, assignment, hofLabel, questions, user
         saved = Array.isArray(rows) ? rows[0] : rows;
         if (!saved?.id) throw new Error("Database did not return the saved visit.");
       }
-      const responseRows = questions.map(q => ({visit_id:saved.id,question_id:q.id,answer:val(q)===""?null:val(q)}));
+      const responseRows = questions.map(q => {
+        const answer = val(q);
+        return {visit_id:saved.id,question_id:q.id,answer:(answer === "" || answer == null || (Array.isArray(answer) && !answer.length)) ? null : answer};
+      });
       if (responseRows.length) await sbUpsert("survey_responses",responseRows,"visit_id,question_id");
       if (submit) await sbUpdate("survey_assignments",assignment.id,{status:"completed"});
       else await sbUpdate("survey_assignments",assignment.id,{status:"in_progress"});
       await logActivity(submit?"Submitted survey visit":"Saved survey visit draft","survey",survey.title+" · ITS "+assignment.hof_its_id,user?.email);
-      skipCacheWrite.current = true;
-      try {
-        localStorage.setItem(cacheKey, JSON.stringify({date, surveyor:payload.surveyor, remarks:payload.remarks, answers, updatedAt:new Date().toISOString(), synced:true}));
-      } catch (_e) {}
+      syncedSnapshot.current = JSON.stringify({date, surveyor, remarks, answers});
+      try { localStorage.removeItem(cacheKey); } catch (_e) {}
       setLocalDraft(false);
       setVisit(saved); await loadHistory(); if (onChanged) await onChanged();
       setNotice(submit ? "Visit submitted and synced. Previous visits remain in history." : "Draft saved online. A local recovery copy is also kept on this device.");
@@ -130,7 +142,7 @@ export function SurveyVisitEntry({ survey, assignment, hofLabel, questions, user
     <div className="survey-section-head"><div><h3>Field visit entry</h3><p>{hofLabel} · {survey.title}</p></div><button className="btn btn-ghost btn-sm" onClick={onClose}>Close</button></div>
     {error && <div className="survey-alert survey-alert-error" role="alert">{error}</div>}
     {notice && <div className="survey-alert survey-alert-success" role="status">{notice}</div>}
-    <div className="survey-offline-status" role="status"><span className={"survey-connection-dot " + (typeof navigator !== "undefined" && navigator.onLine ? "is-online" : "is-offline")}></span><div><strong>{typeof navigator !== "undefined" && navigator.onLine ? "Connection available" : "Offline mode"}</strong><small>{localDraft ? "Unsynced local recovery draft is stored on this device." : "Changes are backed up locally while you work; server saves still require a connection."}</small></div></div>
+    <div className="survey-offline-status" role="status"><span className={"survey-connection-dot " + (isOnline ? "is-online" : "is-offline")}></span><div><strong>{isOnline ? "Connection available" : "Offline mode"}</strong><small>{localDraft ? "Unsynced local recovery draft is stored on this device." : "Changes are backed up locally while you work; server saves still require a connection."}</small></div></div>
     <div className="survey-visit-meta"><label>Visit date<input type="date" value={date} onChange={e=>setDate(e.target.value)} required/></label><label>Surveyor<input value={surveyor} onChange={e=>setSurveyor(e.target.value)} maxLength={120} placeholder="Name of surveyor"/></label></div>
     <label className="survey-visit-remarks">Remarks<textarea value={remarks} onChange={e=>setRemarks(e.target.value)} maxLength={3000} rows={2} placeholder="Visit notes or follow-up"/></label>
     {questions.length ? <div className="survey-answer-list">{questions.map((q,i)=><label className="survey-answer-item" key={q.id}><span><b>{i+1}. {q.question_text}</b>{q.is_required && <em>Required</em>}</span>{renderQuestion(q)}</label>)}</div> : <div className="survey-empty">Add questions to this survey before recording responses.</div>}
