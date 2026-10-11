@@ -105,7 +105,7 @@ export function printMumin(m, sabilFamily, sectorInfo) {
     h += "<div class='print-section-title'>Family \u2014 Sabil No. " + m.sabil_no + "</div>";
     h += "<div class='print-family-box'>";
     sabilFamily.forEach(function (o) {
-      h += "<div class='print-family-name' style='margin-bottom:4px'>" + o.name + " <span class='print-family-role'>(" + (o.its_number || "") + ")</span></div>";
+      h += "<div class='print-family-name' style='margin-bottom:4px'>" + esc(o.name) + " <span class='print-family-role'>(" + esc(o.its_number || "") + ")</span></div>";
     });
     h += "</div>";
   }
@@ -133,7 +133,7 @@ function makeBarcode(value) {
 export function printIdCard(m, sabilFamily, sectorInfo) {
   var initial = (m.name || "?").trim().charAt(0).toUpperCase();
   var photoHtml = m.photo_url
-    ? "<img src='" + m.photo_url + "' alt='' />"
+    ? "<img src='" + esc(m.photo_url) + "' alt='' />"
     : "<div class='idcard-photo-initial'>" + initial + "</div>";
   var h = "";
   h += "<div class='idcard-page'>";
@@ -148,7 +148,7 @@ export function printIdCard(m, sabilFamily, sectorInfo) {
   h += "<div class='idcard-photo-wrap'>" + photoHtml + "</div>";
   h += "</div>";
   h += "<div class='idcard-body'>";
-  h += "<div class='idcard-name'>" + (m.name || "") + "</div>";
+  h += "<div class='idcard-name'>" + esc(m.name || "") + "</div>";
   h += "<div class='idcard-role'>" + esc(m.status || "Mumin") + "</div>";
   h += "<div class='idcard-info'>";
   h += "<div class='idcard-info-row'><span class='idcard-info-label'>ITS No.</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + esc(m.its_number || "\u2014") + "</span></div>";
