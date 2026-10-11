@@ -53,6 +53,10 @@ var PRINT_CSS = [
   ".idcard-barcode-id{font-size:8px;color:#9a8a5f;letter-spacing:2px;margin-top:6px}"
 ].join("");
 
+function esc(value) {
+  return String(value == null ? "" : value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/\'/g, "&#039;");
+}
+
 // ── Popup opener (Blob URL — avoids the document.write CSS-as-text bug) ──
 function openPrint(title, bodyHtml) {
   var fullHtml = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>" + title +
@@ -74,26 +78,26 @@ export function printMumin(m, sabilFamily, sectorInfo) {
   h += "<div><div class='print-logo'>Husaini Mohallah</div><div class='print-logo-sub'>Husaini Mohallah &bull; Database</div></div>";
   h += "<div class='print-date'><strong>Mumin Record</strong><br/>" + today + "</div>";
   h += "</div>";
-  h += "<div class='print-title'>" + (m.name || "") + "</div>";
+  h += "<div class='print-title'>" + esc(m.name || "") + "</div>";
   h += "<div class='print-subtitle'>ITS: " + (m.its_number || "") + " &nbsp;&nbsp; <span class='print-badge print-badge-" + sc + "'>" + (m.status || "") + "</span></div>";
   h += "<div class='print-section-title'>Personal Details</div>";
   h += "<div class='print-grid'>";
   h += "<div class='print-field'><div class='print-field-label'>Age</div><div class='print-field-val'>" + (getMuminAge(m) || "\u2014") + "</div></div>";
-  h += "<div class='print-field'><div class='print-field-label'>Gender</div><div class='print-field-val'>" + (m.gender || "\u2014") + "</div></div>";
-  h += "<div class='print-field'><div class='print-field-label'>Phone</div><div class='print-field-val'>" + (m.phone || "\u2014") + "</div></div>";
-  h += "<div class='print-field'><div class='print-field-label'>Email</div><div class='print-field-val'>" + (m.email || "\u2014") + "</div></div>";
-  h += "<div class='print-field full'><div class='print-field-label'>Address</div><div class='print-field-val'>" + (m.address || "\u2014") + "</div></div>";
-  h += "<div class='print-field full'><div class='print-field-label'>Area Sector</div><div class='print-field-val'>" + (m.area_sector || "\u2014") + "</div></div>";
-  h += "<div class='print-field full'><div class='print-field-label'>Sabil No.</div><div class='print-field-val'>" + (m.sabil_no || "\u2014") + "</div></div>";
+  h += "<div class='print-field'><div class='print-field-label'>Gender</div><div class='print-field-val'>" + esc(m.gender || "\u2014") + "</div></div>";
+  h += "<div class='print-field'><div class='print-field-label'>Phone</div><div class='print-field-val'>" + esc(m.phone || "\u2014") + "</div></div>";
+  h += "<div class='print-field'><div class='print-field-label'>Email</div><div class='print-field-val'>" + esc(m.email || "\u2014") + "</div></div>";
+  h += "<div class='print-field full'><div class='print-field-label'>Address</div><div class='print-field-val'>" + esc(m.address || "\u2014") + "</div></div>";
+  h += "<div class='print-field full'><div class='print-field-label'>Area Sector</div><div class='print-field-val'>" + esc(m.area_sector || "\u2014") + "</div></div>";
+  h += "<div class='print-field full'><div class='print-field-label'>Sabil No.</div><div class='print-field-val'>" + esc(m.sabil_no || "\u2014") + "</div></div>";
   h += "</div>";
   if (sectorInfo && (sectorInfo.sectorName || sectorInfo.subSectorName)) {
     h += "<div class='print-section-title'>Sector &amp; Leadership</div>";
     h += "<div class='print-grid'>";
     h += "<div class='print-field'><div class='print-field-label'>Sector</div><div class='print-field-val'>" + (sectorInfo.sectorName || "\u2014") + "</div></div>";
-    h += "<div class='print-field'><div class='print-field-label'>Masool</div><div class='print-field-val'>" + (sectorInfo.masoolName || "\u2014") + "</div></div>";
+    h += "<div class='print-field'><div class='print-field-label'>Masool</div><div class='print-field-val'>" + esc(sectorInfo.masoolName || "\u2014") + "</div></div>";
     if (sectorInfo.subSectorName) {
-      h += "<div class='print-field'><div class='print-field-label'>Sub-Sector</div><div class='print-field-val'>" + sectorInfo.subSectorName + "</div></div>";
-      h += "<div class='print-field'><div class='print-field-label'>Musaid</div><div class='print-field-val'>" + (sectorInfo.musaidName || "\u2014") + "</div></div>";
+      h += "<div class='print-field'><div class='print-field-label'>Sub-Sector</div><div class='print-field-val'>" + esc(sectorInfo.subSectorName) + "</div></div>";
+      h += "<div class='print-field'><div class='print-field-label'>Musaid</div><div class='print-field-val'>" + esc(sectorInfo.musaidName || "\u2014") + "</div></div>";
     }
     h += "</div>";
   }
@@ -106,7 +110,7 @@ export function printMumin(m, sabilFamily, sectorInfo) {
     h += "</div>";
   }
   h += "<div class='print-footer'><span>Husaini Mohallah Database</span><span>Printed: " + new Date().toLocaleString() + "</span></div>";
-  openPrint("Mumin - " + (m.name || ""), h);
+  openPrint("Mumin - " + esc(m.name || ""), h);
 }
 
 // ── Deterministic pseudo-barcode (visual only, derived from ITS no.) ──
@@ -145,17 +149,17 @@ export function printIdCard(m, sabilFamily, sectorInfo) {
   h += "</div>";
   h += "<div class='idcard-body'>";
   h += "<div class='idcard-name'>" + (m.name || "") + "</div>";
-  h += "<div class='idcard-role'>" + (m.status || "Mumin") + "</div>";
+  h += "<div class='idcard-role'>" + esc(m.status || "Mumin") + "</div>";
   h += "<div class='idcard-info'>";
-  h += "<div class='idcard-info-row'><span class='idcard-info-label'>ITS No.</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + (m.its_number || "\u2014") + "</span></div>";
-  h += "<div class='idcard-info-row'><span class='idcard-info-label'>Phone</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + (m.phone || "\u2014") + "</span></div>";
-  if (m.email) h += "<div class='idcard-info-row'><span class='idcard-info-label'>E-mail</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + m.email + "</span></div>";
+  h += "<div class='idcard-info-row'><span class='idcard-info-label'>ITS No.</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + esc(m.its_number || "\u2014") + "</span></div>";
+  h += "<div class='idcard-info-row'><span class='idcard-info-label'>Phone</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + esc(m.phone || "\u2014") + "</span></div>";
+  if (m.email) h += "<div class='idcard-info-row'><span class='idcard-info-label'>E-mail</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + esc(m.email) + "</span></div>";
   h += "<div class='idcard-info-row'><span class='idcard-info-label'>Age/Sex</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + (getMuminAge(m) || "\u2014") + " / " + (m.gender || "\u2014") + "</span></div>";
-  if (m.area_sector) h += "<div class='idcard-info-row'><span class='idcard-info-label'>Sector</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + m.area_sector + "</span></div>";
-  if (m.sabil_no) h += "<div class='idcard-info-row'><span class='idcard-info-label'>Sabil No.</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + m.sabil_no + "</span></div>";
-  if (sectorInfo && sectorInfo.masoolName) h += "<div class='idcard-info-row'><span class='idcard-info-label'>Masool</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + sectorInfo.masoolName + "</span></div>";
-  if (sectorInfo && sectorInfo.subSectorName) h += "<div class='idcard-info-row'><span class='idcard-info-label'>Sub-Sector</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + sectorInfo.subSectorName + "</span></div>";
-  if (sectorInfo && sectorInfo.musaidName) h += "<div class='idcard-info-row'><span class='idcard-info-label'>Musaid</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + sectorInfo.musaidName + "</span></div>";
+  if (m.area_sector) h += "<div class='idcard-info-row'><span class='idcard-info-label'>Sector</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + esc(m.area_sector) + "</span></div>";
+  if (m.sabil_no) h += "<div class='idcard-info-row'><span class='idcard-info-label'>Sabil No.</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + esc(m.sabil_no) + "</span></div>";
+  if (sectorInfo && sectorInfo.masoolName) h += "<div class='idcard-info-row'><span class='idcard-info-label'>Masool</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + esc(sectorInfo.masoolName) + "</span></div>";
+  if (sectorInfo && sectorInfo.subSectorName) h += "<div class='idcard-info-row'><span class='idcard-info-label'>Sub-Sector</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + esc(sectorInfo.subSectorName) + "</span></div>";
+  if (sectorInfo && sectorInfo.musaidName) h += "<div class='idcard-info-row'><span class='idcard-info-label'>Musaid</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + esc(sectorInfo.musaidName) + "</span></div>";
   h += "</div>";
   h += "<div class='idcard-barcode-wrap'>";
   h += "<div class='idcard-barcode'>" + makeBarcode(m.its_number) + "</div>";
@@ -164,7 +168,7 @@ export function printIdCard(m, sabilFamily, sectorInfo) {
   h += "</div>";
   h += "</div>";
   h += "</div>";
-  openPrint("ID Card - " + (m.name || ""), h);
+  openPrint("ID Card - " + esc(m.name || ""), h);
 }
 
 // ── Umoor File record ─────────────────────────────────────────────
@@ -176,33 +180,33 @@ export function printFile(f, atts) {
   h += "<div><div class='print-logo'>Husaini Mohallah</div><div class='print-logo-sub'>Husaini Mohallah &bull; Database</div></div>";
   h += "<div class='print-date'><strong>Umoor File</strong><br/>" + today + "</div>";
   h += "</div>";
-  h += "<div class='print-type'>" + (f.umoor_type || "") + "</div>";
-  h += "<div class='print-title'>" + (f.title || "") + "</div>";
-  h += "<div class='print-subtitle'><span class='print-badge print-badge-" + sc + "'>" + (f.status || "") + "</span></div>";
+  h += "<div class='print-type'>" + esc(f.umoor_type || "") + "</div>";
+  h += "<div class='print-title'>" + esc(f.title || "") + "</div>";
+  h += "<div class='print-subtitle'><span class='print-badge print-badge-" + sc + "'>" + esc(f.status || "") + "</span></div>";
   h += "<div class='print-section-title'>File Details</div>";
   h += "<div class='print-grid'>";
-  h += "<div class='print-field'><div class='print-field-label'>File No.</div><div class='print-field-val' style='font-family:monospace;color:#8a6a1a'>" + (f.file_no || "\u2014") + "</div></div>";
-  h += "<div class='print-field'><div class='print-field-label'>Year</div><div class='print-field-val'>" + (f.year || "\u2014") + "</div></div>";
-  h += "<div class='print-field'><div class='print-field-label'>Date</div><div class='print-field-val'>" + (f.date || "\u2014") + "</div></div>";
-  h += "<div class='print-field'><div class='print-field-label'>Status</div><div class='print-field-val'>" + (f.status || "\u2014") + "</div></div>";
+  h += "<div class='print-field'><div class='print-field-label'>File No.</div><div class='print-field-val' style='font-family:monospace;color:#8a6a1a'>" + esc(f.file_no || "\u2014") + "</div></div>";
+  h += "<div class='print-field'><div class='print-field-label'>Year</div><div class='print-field-val'>" + esc(f.year || "\u2014") + "</div></div>";
+  h += "<div class='print-field'><div class='print-field-label'>Date</div><div class='print-field-val'>" + esc(f.date || "\u2014") + "</div></div>";
+  h += "<div class='print-field'><div class='print-field-label'>Status</div><div class='print-field-val'>" + esc(f.status || "\u2014") + "</div></div>";
   h += "</div>";
   if (f.description) {
     h += "<div class='print-section-title'>Description</div>";
-    h += "<div class='print-desc'>" + f.description + "</div>";
+    h += "<div class='print-desc'>" + esc(f.description) + "</div>";
   }
   if (f.due_date) {
     h += "<div class='print-section-title'>Due Date</div>";
-    h += "<div class='print-due'>Due: " + f.due_date + "</div>";
+    h += "<div class='print-due'>Due: " + esc(f.due_date) + "</div>";
   }
   if (atts && atts.length > 0) {
     h += "<div class='print-section-title'>Attachments (" + atts.length + ")</div>";
     h += "<div class='print-att-list'>";
     atts.forEach(function (att) {
       var icon = att.type && att.type.startsWith("image/") ? "[IMG]" : att.type === "application/pdf" ? "[PDF]" : "[FILE]";
-      h += "<div class='print-att-item'>" + icon + " " + att.name + "</div>";
+      h += "<div class='print-att-item'>" + icon + " " + esc(att.name) + "</div>";
     });
     h += "</div>";
   }
   h += "<div class='print-footer'><span>Husaini Mohallah Database</span><span>Printed: " + new Date().toLocaleString() + "</span></div>";
-  openPrint("File - " + (f.title || ""), h);
+  openPrint("File - " + esc(f.title || ""), h);
 }
