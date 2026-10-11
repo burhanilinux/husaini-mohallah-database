@@ -13,7 +13,6 @@ const StatisticsPage = lazy(() => import("./pages/StatisticsPage.jsx").then((mod
 const MuminPage = lazy(() => import("./pages/MuminPage.jsx").then((module) => ({ default: module.MuminPage })));
 const DataQualityPage = lazy(() => import("./pages/DataQualityPage.jsx").then((module) => ({ default: module.DataQualityPage })));
 const AdvancedSearchPage = lazy(() => import("./pages/AdvancedSearchPage.jsx").then((module) => ({ default: module.AdvancedSearchPage })));
-const SabilPage = lazy(() => import("./pages/SabilPage.jsx").then((module) => ({ default: module.SabilPage })));
 const RelationshipManagerPage = lazy(() => import("./pages/SabilPage.jsx").then((module) => ({ default: module.RelationshipManagerPage })));
 const MasoolPage = lazy(() => import("./pages/MasoolPage.jsx").then((module) => ({ default: module.MasoolPage })));
 const ReportsPage = lazy(() => import("./pages/ReportsPage.jsx").then((module) => ({ default: module.ReportsPage })));
@@ -38,7 +37,6 @@ function ActivePage() {
     case "mumin": return <MuminPage />;
     case "data-quality": return <DataQualityPage />;
     case "advanced-search": return <AdvancedSearchPage />;
-    case "sabil": return <SabilPage />;
     case "relationships": return <RelationshipManagerPage />;
     case "masool": return <MasoolPage />;
     case "reports": return <ReportsPage />;
