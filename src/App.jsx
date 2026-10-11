@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import "./App.css";
 import "./mobile.css";
 import "./print.css";
+import "./pages/VajebaatPage.css";
 import { AppProvider, useAppContext } from "./context/AppContext.jsx";
 import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
 import { Spinner } from "./components/Shared.jsx";
@@ -21,6 +22,7 @@ const ActivityPage = lazy(() => import("./pages/ActivityPage.jsx").then((module)
 const UsersPage = lazy(() => import("./pages/UsersPage.jsx").then((module) => ({ default: module.UsersPage })));
 const MohallahSurveyPage = lazy(() => import("./pages/MohallahSurveyPage.jsx").then((module) => ({ default: module.MohallahSurveyPage })));
 const SurveyManagementPage = lazy(() => import("./pages/SurveyManagementPage.jsx").then((module) => ({ default: module.SurveyManagementPage })));
+const VajebaatPage = lazy(() => import("./pages/VajebaatPage.jsx").then((module) => ({ default: module.VajebaatPage })));
 import { MuminModal } from "./modals/MuminModal.jsx";
 import { SectorModal } from "./modals/SectorModal.jsx";
 import { SubSectorModal } from "./modals/SubSectorModal.jsx";
@@ -46,6 +48,7 @@ function ActivePage() {
     case "users": return <UsersPage />;
     case "mohallah-survey": return <MohallahSurveyPage />;
     case "survey-management": return <SurveyManagementPage />;
+    case "vajebaat": return <VajebaatPage />;
     default: return <Dashboard />;
   }
 }
