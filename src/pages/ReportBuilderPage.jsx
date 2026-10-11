@@ -82,7 +82,7 @@ var FIELD_OPTIONS=[
   {key:"subSectorInchargeFemaleName",label:"Sub Sector Incharge Female Name",aliases:["sub_sector_incharge_female_name"]}
 ];
 var REPORT_COLUMNS=FIELD_OPTIONS;
-var DEFAULT_COLUMNS=["its","name","age","gender","sector","hofId","hofFmType","phone","status"];
+var DEFAULT_COLUMNS=["its","name","age","gender","sector","hofId","hofFmType","mobile","inactiveStatus"];
 function normalizeKey(value){return String(value==null?"":value).toLowerCase().replace(/[^a-z0-9]/g,"");}
 function rawValue(m,aliases){
   var source=m.source_data||{},pool=Object.assign({},source,m),wanted=aliases.map(normalizeKey);
@@ -131,6 +131,7 @@ export function ReportBuilderPage(){
   function reset(){apply({});}
   function printReport(){window.print();}
   function exportExcel(){var exportData=data.slice();exportData._subSectors=ctx.subSectorsData||[];var out=rows.map(function(m){var item={};columns.forEach(function(key){var col=REPORT_COLUMNS.find(function(x){return x.key===key;});if(col)item[col.label]=rowValue(m,key,exportData);});return item;});var headers=columns.map(function(key){var col=REPORT_COLUMNS.find(function(x){return x.key===key;});return col?col.label:key;});toXLS(out,headers,"advanced_report");}
+  function toggleAllFields(all){setColumnError("");setColumns(all?REPORT_COLUMNS.map(function(c){return c.key;}):DEFAULT_COLUMNS.slice());}
   function toggleColumn(key){setColumnError("");setColumns(function(prev){if(prev.indexOf(key)>=0){if(prev.length===1){setColumnError("Select at least one column.");return prev;}return prev.filter(function(x){return x!==key;});}return prev.concat(key);});}
   function moveColumn(key,direction){setColumns(function(prev){var i=prev.indexOf(key),j=i+direction;if(i<0||j<0||j>=prev.length)return prev;var next=prev.slice(),tmp=next[i];next[i]=next[j];next[j]=tmp;return next;});}
   return <div>
