@@ -124,20 +124,36 @@ function renderItemReport(){
  $('irSummary').innerHTML='<span><b>'+totalUnits+'</b> total units / requests</span><span><b>'+money(totalAmount)+'</b> total Enayat</span><span><b>'+new Set(ITEM_REPORT_DATA.flatMap(r=>r.ids)).size+'</b> unique ITS IDs listed</span><span><b>'+rows.length+'</b> items shown</span>';
  $('irRows').innerHTML=rows.map(r=>'<tr><td><b>'+esc(r.item)+'</b></td><td>'+r.units+'</td><td>'+money(r.amount)+'</td><td>'+r.ids.map(id=>{const f=D.find(x=>String(x.i)===id);return '<div class="ir-beneficiary"><b>'+esc(id)+'</b>'+(f?' <span class="ir-name">— '+esc(f.n)+'</span>':'')+'</div>'}).join('')+'</td><td>'+esc(r.status||'—')+'</td><td>'+r.procured+'</td><td>'+r.remaining+'</td><td>'+esc(r.remarks)+'</td></tr>').join('');
  $('irFoot').innerHTML='<tr><th>Grand Total</th><th>'+totalUnits+'</th><th>'+money(totalAmount)+'</th><th colspan="5">Complete assessed portfolio — 100% house visits completed (as stated in source)</th></tr>';
- const allocations=[];
- rows.forEach(r=>r.ids.forEach(id=>{const f=D.find(x=>String(x.i).trim()===String(id).trim());allocations.push({id:String(id),name:f?f.n:'Name not matched in survey',item:r.item,status:r.status||'Not specified',remarks:r.remarks||''})}));
- allocations.sort((a,b)=>a.id.localeCompare(b.id)||a.item.localeCompare(b.item));
- $('irMuminRows').innerHTML=allocations.map((a,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(a.id)+'</td><td>'+esc(a.name)+'</td><td><b>'+esc(a.item)+'</b></td><td>'+esc(a.status)+'</td><td>'+esc(a.remarks)+'</td></tr>').join('');
- const people=new Set(allocations.map(a=>a.id));
- if(itemReportView==='mumin')$('irSummary').innerHTML='<span><b>'+people.size+'</b> unique ITS numbers</span><span><b>'+allocations.length+'</b> item-to-Mumin listings</span><span><b>'+rows.length+'</b> source items matching search</span>';
+ const byMumin=new Map();
+ rows.forEach(r=>r.ids.forEach(id=>{
+  const key=String(id).trim();if(!key)return;
+  const f=D.find(x=>String(x.i).trim()===key);
+  if(!byMumin.has(key))byMumin.set(key,{id:key,name:f?f.n:'Name not matched in survey',items:[],statuses:[],remarks:[]});
+  const person=byMumin.get(key);
+  if(!person.items.includes(r.item))person.items.push(r.item);
+  const status=r.status||'Not specified';if(!person.statuses.includes(status))person.statuses.push(status);
+  if(r.remarks&&!person.remarks.includes(r.remarks))person.remarks.push(r.remarks);
+ }));
+ const people=[...byMumin.values()].sort((a,b)=>a.id.localeCompare(b.id));
+ $('irMuminRows').innerHTML=people.map((p,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(p.id)+'</td><td>'+esc(p.name)+'</td><td><b>'+esc(p.items.join('; '))+'</b></td><td>'+esc(p.statuses.join('; '))+'</td><td>'+esc(p.remarks.join(' | '))+'</td></tr>').join('');
+ if(itemReportView==='mumin')$('irSummary').innerHTML='<span><b>'+people.length+'</b> Mumineen listed</span><span><b>'+people.reduce((n,p)=>n+p.items.length,0)+'</b> item allocations</span><span><b>'+rows.length+'</b> source items matching search</span>';
 }
 function money(n){return '₹'+Number(n).toLocaleString('en-IN')}
 function printItemReport(){if($('itemReport').hidden)return;document.body.classList.add('item-report-only');setTimeout(()=>window.print(),50)}
 function csvItemReport(){
  let rows,filename;
  if(itemReportView==='mumin'){
-  rows=[['Mumin ITS','Mumin Name','Item / Support','Item Status','Operational Remarks']];
-  ITEM_REPORT_DATA.filter(r=>low([r.item,r.remarks,...r.ids].join(' ')).includes(low($('irSearch')?.value||''))).forEach(r=>r.ids.forEach(id=>{const f=D.find(x=>String(x.i).trim()===String(id).trim());rows.push([id,f?f.n:'Name not matched in survey',r.item,r.status||'Not specified',r.remarks||'']);}));
+  rows=[['Mumin ITS','Mumin Name','Items Given / Listed','Item Statuses','Operational Remarks']];
+  const q=low($('irSearch')?.value||''),grouped=new Map();
+  ITEM_REPORT_DATA.forEach(r=>r.ids.forEach(id=>{
+   const key=String(id).trim(),f=D.find(x=>String(x.i).trim()===key),name=f?f.n:'Name not matched in survey';
+   if(!low([r.item,r.remarks,key,name].join(' ')).includes(q))return;
+   if(!grouped.has(key))grouped.set(key,{id:key,name,items:[],statuses:[],remarks:[]});
+   const p=grouped.get(key);if(!p.items.includes(r.item))p.items.push(r.item);
+   const status=r.status||'Not specified';if(!p.statuses.includes(status))p.statuses.push(status);
+   if(r.remarks&&!p.remarks.includes(r.remarks))p.remarks.push(r.remarks);
+  }));
+  [...grouped.values()].sort((a,b)=>a.id.localeCompare(b.id)).forEach(p=>rows.push([p.id,p.name,p.items.join('; '),p.statuses.join('; '),p.remarks.join(' | ')]));
   filename='husaini-mohallah-items-given-mumin-wise.csv';
  }else{
   rows=[['Item / Support Classification','Total Units / Requests','Net Enayat (INR)','Beneficiary ITS IDs','Status','Quantity Procured','Remaining','Operational Remarks']];
