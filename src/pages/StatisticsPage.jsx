@@ -35,7 +35,7 @@ export function StatisticsPage() {
     var phone = data.filter(function(m){return String(m.phone||"").trim();}).length;
     var verified = data.filter(function(m){var v=field(m,"data_verification_status","Data_Verifcation_Status").toLowerCase();return v.indexOf("verified")>=0&&v.indexOf("not")<0;}).length;
     var fam={}; data.forEach(function(m){var s=String(m.sabil_no||"").trim();if(s)fam[s]=1;});
-    var hof=data.filter(function(m){var e=src(m), h=String(e.HOF_ID||m.HOF_ID||e.hof_id||m.hof_id||"").trim(); return h && h===String(m.id||"").trim();}).length;
+    var hof=data.filter(function(m){var e=src(m), h=String(e.HOF_ID||m.HOF_ID||e.hof_id||m.hof_id||"").trim(); return h && h===String(m.its_id||m.its_number||"").trim();}).length;
     return {active:active, inactive:data.length-active, phone:phone, verified:verified, families:Object.keys(fam).length, hof:hof, ageKnown:ages.length, avgAge:ages.length?ages.reduce(function(s,m){return s+getMuminAge(m);},0)/ages.length:0};
   },[data]);
   var age = useMemo(function(){return [{key:"Children (0–15)",min:0,max:15},{key:"Youth (16–30)",min:16,max:30},{key:"Adults (31–60)",min:31,max:60},{key:"Seniors (61+)",min:61,max:999}].map(function(g){return {key:g.key,count:data.filter(function(m){var a=getMuminAge(m);return a!==null&&a>=g.min&&a<=g.max;}).length};});},[data]);
