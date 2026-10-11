@@ -243,7 +243,7 @@ export function SurveyManagementPage() {
     var headers = ["Survey", "Visit Date", "HOF Name", "HOF ITS", "Sector", "Sub-sector", "Surveyor", "Visit Status", "Remarks"].concat(questions.map(function (q) { return q.question_text; }));
     function safeCell(value) {
       var text = value === null || value === undefined ? "" : (typeof value === "object" ? JSON.stringify(value) : String(value));
-      return /^[\\s]*[=+@\\-\\t\\r]/.test(text) ? "'" + text : text;
+      return /^\s*[=+\-@]/.test(text) ? "'" + text : text;
     }
     var rows = reportRows.map(function (r) {
       return [selectedSurvey.title, r.visit.visit_date, r.hof && r.hof.mumin.name || "", r.assignment && r.assignment.hof_its_id || "", r.hof && r.hof.sector && r.hof.sector.name || "", r.hof && r.hof.subSector && r.hof.subSector.name || "", r.visit.surveyor || "", r.visit.status || "", r.visit.remarks || ""].concat(questions.map(function (q) { return r.answerMap[q.id] === undefined ? "" : r.answerMap[q.id]; })).map(safeCell);
