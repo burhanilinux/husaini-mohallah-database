@@ -114,6 +114,280 @@ const ITEM_REPORT_DATA = [
 {item:"General Awran & Misc Household Support",units:2,amount:4000,ids:["30326384","30305869"],status:"",procured:0,remaining:2,remarks:"General home repairs, sanitation maintenance, and unspecified basic essentials approved during home verification."},
 {item:"Delivery, Ancillary & Installation",units:1,amount:550,ids:["20309815"],status:"",procured:0,remaining:1,remarks:"Transportation, delivery, and professional installation overheads for appliances."}
 ];
+const MUMIN_ITEM_SOURCE = [
+  {
+    "its": "20309436",
+    "name": "Ateka bai Hatim bhai Arsiwala",
+    "sector": "B",
+    "remarks": "Kaffaf ni arz che,Hospital expenses,Fracture ni dua, Lives Alone",
+    "items": [
+      "Washing Machine"
+    ]
+  },
+  {
+    "its": "20308163",
+    "name": "Sajjad bhai Doriwala",
+    "sector": "E",
+    "remarks": "Kitchen ma Manager che ,2 dikra che,makaan rent nu che, Dombivali jai sake che",
+    "items": [
+      "Sewing Machine"
+    ]
+  },
+  {
+    "its": "30302228",
+    "name": "Adnan bhai Zohair bhai Soni",
+    "sector": "E",
+    "remarks": "Rida painting nu kaam kare che, watertank leakage,steel cupboard",
+    "items": [
+      "Cupboards & Storage",
+      "Water Supply Infrastructure (Tank & Pump)"
+    ]
+  },
+  {
+    "its": "20307078",
+    "name": "Juzer bhai Abdullah bhai Pinwala",
+    "sector": "D",
+    "remarks": "Writing problem, Staying on rent",
+    "items": [
+      "Kitchen Utensils",
+      "Water Purifier (RO/UV)",
+      "Pressure Cooker"
+    ]
+  },
+  {
+    "its": "30326384",
+    "name": "Jafar bhai Turab bhai Shiamwala",
+    "sector": "D",
+    "remarks": "Tasneem bs Contact, utensils,ghar shift,Maula TUS photo frame,washing Machine, study tables,quran mahad farzando,Mehendi",
+    "items": [
+      "Kitchen Utensils",
+      "Washing Machine",
+      "Cupboards & Storage",
+      "Bedsheets and Carpet",
+      "Gas stove Installation",
+      "General Awran & Misc. Houshold Support"
+    ]
+  },
+  {
+    "its": "20308215",
+    "name": "Sakina bai Taher bhai Jamnagarwala",
+    "sector": "B",
+    "remarks": "Ghar ma saaf safai ni zarurat che, cricket items nu small business start kidu che, Fridge hadiya inayat thai",
+    "items": [
+      "Refrigerator"
+    ]
+  },
+  {
+    "its": "20308305",
+    "name": "Tamim bhai Saleh bhai Haryananwala",
+    "sector": "E",
+    "remarks": "Burhanuddin need funds for Cancer treatment",
+    "items": [
+      "Medical : Cancer Chemotherapy"
+    ]
+  },
+  {
+    "its": "20300375",
+    "name": "Rajabali bhai Badruddin bhai Musaddi",
+    "sector": "D",
+    "remarks": "",
+    "items": [
+      "Kitchen Utensils",
+      "Bed"
+    ]
+  },
+  {
+    "its": "20308056",
+    "name": "Murtaza bhai Mulla Haiderali bhai Bhinderwala",
+    "sector": "E",
+    "remarks": "Paralyse need Pamper,Bairo crochet kare,Fridge and utensils ni zaroorat che",
+    "items": [
+      "Kitchen Utensils",
+      "Refrigerator"
+    ]
+  },
+  {
+    "its": "20308337",
+    "name": "Firoz bhai Mohammed bhai Rangwala",
+    "sector": "D",
+    "remarks": "Sakina bai ni 10yrs si qadambosi nathi thai,Magrib Mashreeq/Migrane Taweez,diabetic Patient,firoz bhai Follow up",
+    "items": [
+      "Medical : Chronic Disease Care (Diabetes & BP)"
+    ]
+  },
+  {
+    "its": "30336350",
+    "name": "Rashida bai Qutbuddin bhai Masalawala",
+    "sector": "B",
+    "remarks": "",
+    "items": [
+      "Medical : Chronic Disease Care (Diabetes & BP)"
+    ]
+  },
+  {
+    "its": "50447603",
+    "name": "Murtaza bhai Shabbir bhai Lightwala",
+    "sector": "H",
+    "remarks": "Upgrade thava joye , Farzand bava saathe 3/4 onsite help kare che",
+    "items": [
+      "Water Purifier (RO/UV)"
+    ]
+  },
+  {
+    "its": "30326385",
+    "name": "Onali bhai Turab bhai Shiamwala",
+    "sector": "D",
+    "remarks": "",
+    "items": [
+      "Kitchen Utensils",
+      "Cupboards & Storage"
+    ]
+  },
+  {
+    "its": "30322377",
+    "name": "Ateka bai Hakimuddin bhai Jawrawala",
+    "sector": "B",
+    "remarks": "",
+    "items": [
+      "Kitchen Utensils",
+      "Sewing Machine"
+    ]
+  },
+  {
+    "its": "30306054",
+    "name": "Khadija bai Badruddinbhai Surendranagarwala",
+    "sector": "E",
+    "remarks": "",
+    "items": [
+      "Kitchen Utensils",
+      "Washing Machine",
+      "Awran : House Paint & illumination"
+    ]
+  },
+  {
+    "its": "30322588",
+    "name": "Shabbir bhai Fidahusain bhai Amreliwala",
+    "sector": "C",
+    "remarks": "",
+    "items": [
+      "Kitchen Utensils",
+      "Pressure Cooker"
+    ]
+  },
+  {
+    "its": "30370573",
+    "name": "Tasneem bai Mustafa bhai Ezzy",
+    "sector": "H",
+    "remarks": "",
+    "items": [
+      "Kitchen Utensils"
+    ]
+  },
+  {
+    "its": "30305883",
+    "name": "Yusuf bhai Tayyeb bhai Kaba",
+    "sector": "F",
+    "remarks": "",
+    "items": [
+      "Kitchen Utensils"
+    ]
+  },
+  {
+    "its": "50203956",
+    "name": "Zainab bai Yusuf bhai Jambura",
+    "sector": "C",
+    "remarks": "",
+    "items": [
+      "Kitchen Utensils",
+      "Water Purifier (RO/UV)",
+      "Awran : Chakri & Bath"
+    ]
+  },
+  {
+    "its": "20309815",
+    "name": "Fatema bai Kaizar bhai Alotewala",
+    "sector": "C",
+    "remarks": "",
+    "items": [
+      "Water Purifier (RO/UV)",
+      "Pressure Cooker",
+      "Delivery",
+      "Ancillary & Installation"
+    ]
+  },
+  {
+    "its": "20300175",
+    "name": "Kalimuddin bhai Ghulamali bhai Khokar",
+    "sector": "C",
+    "remarks": "",
+    "items": [
+      "Water Purifier (RO/UV)"
+    ]
+  },
+  {
+    "its": "20387286",
+    "name": "Taher bhai Fakhruddin bhai Tarwala",
+    "sector": "E",
+    "remarks": "",
+    "items": [
+      "Refrigerator"
+    ]
+  },
+  {
+    "its": "30322988",
+    "name": "Zahra bai Asgarali bhai Painter",
+    "sector": "E",
+    "remarks": "",
+    "items": [
+      "Refrigerator"
+    ]
+  },
+  {
+    "its": "30306323",
+    "name": "Hameda bai Shabbir bhai Chullawala",
+    "sector": "C",
+    "remarks": "",
+    "items": [
+      "Pressure Cooker"
+    ]
+  },
+  {
+    "its": "30322777",
+    "name": "Sakina bai Sadiqali bhai Patrawala",
+    "sector": "F",
+    "remarks": "",
+    "items": [
+      "Medical : Dyslexia"
+    ]
+  },
+  {
+    "its": "30322739",
+    "name": "Khadija bai Shabbir Bhai Sairawala",
+    "sector": "F",
+    "remarks": "",
+    "items": [
+      "Awran : Farzando Education Kits"
+    ]
+  },
+  {
+    "its": "20308164",
+    "name": "Shaikh Jabir bhai Hakimuddin bhai Presswala",
+    "sector": "E",
+    "remarks": "",
+    "items": [
+      "Awran : Kids Corner"
+    ]
+  },
+  {
+    "its": "30305869",
+    "name": "Zareena bai Mansor bhai Udaipurwala",
+    "sector": "H",
+    "remarks": "",
+    "items": [
+      "General Awran & Misc. Household Support"
+    ]
+  }
+];
 function itemAllocationsForITS(its){const key=String(its||"").trim();if(!key)return [];return ITEM_REPORT_DATA.filter(r=>r.ids.some(id=>String(id).trim()===key)).map(r=>({item:r.item,amount:r.amount,remarks:r.remarks,status:r.status,units:r.units}));}
 let itemReportView='master';
 function setItemReportView(view){itemReportView=view==='mumin'?'mumin':'master';$('irMasterView').hidden=itemReportView!=='master';$('irMuminView').hidden=itemReportView!=='mumin';renderItemReport()}
@@ -125,38 +399,21 @@ function renderItemReport(){
  $('irSummary').innerHTML='<span><b>'+totalUnits+'</b> total units / requests</span><span><b>'+money(totalAmount)+'</b> total Enayat</span><span><b>'+new Set(ITEM_REPORT_DATA.flatMap(r=>r.ids)).size+'</b> unique ITS IDs listed</span><span><b>'+rows.length+'</b> items shown</span>';
  $('irRows').innerHTML=rows.map(r=>'<tr><td><b>'+esc(r.item)+'</b></td><td>'+r.units+'</td><td>'+money(r.amount)+'</td><td>'+r.ids.map(id=>{const f=D.find(x=>String(x.i)===id);return '<div class="ir-beneficiary"><b>'+esc(id)+'</b>'+(f?' <span class="ir-name">— '+esc(f.n)+'</span>':'')+'</div>'}).join('')+'</td><td>'+esc(r.status||'—')+'</td><td>'+r.procured+'</td><td>'+r.remaining+'</td><td>'+esc(r.remarks)+'</td></tr>').join('');
  $('irFoot').innerHTML='<tr><th>Grand Total</th><th>'+totalUnits+'</th><th>'+money(totalAmount)+'</th><th colspan="5">Complete assessed portfolio — 100% house visits completed (as stated in source)</th></tr>';
- const byMumin=new Map();
- rows.forEach(r=>r.ids.forEach(id=>{
-  const key=String(id).trim();if(!key)return;
-  const f=D.find(x=>String(x.i).trim()===key);
-  if(!byMumin.has(key))byMumin.set(key,{id:key,name:f?f.n:'Name not matched in survey',items:[],statuses:[],remarks:[]});
-  const person=byMumin.get(key);
-  if(!person.items.includes(r.item))person.items.push(r.item);
-  const status=r.status||'Not specified';if(!person.statuses.includes(status))person.statuses.push(status);
-  if(r.remarks&&!person.remarks.includes(r.remarks))person.remarks.push(r.remarks);
- }));
- const people=[...byMumin.values()].sort((a,b)=>a.id.localeCompare(b.id));
- $('irMuminRows').innerHTML=people.map((p,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(p.id)+'</td><td>'+esc(p.name)+'</td><td><b>'+esc(p.items.join('; '))+'</b></td><td>'+esc(p.statuses.join('; '))+'</td><td>'+esc(p.remarks.join(' | '))+'</td></tr>').join('');
- if(itemReportView==='mumin')$('irSummary').innerHTML='<span><b>'+people.length+'</b> Mumineen listed</span><span><b>'+people.reduce((n,p)=>n+p.items.length,0)+'</b> item allocations</span><span><b>'+rows.length+'</b> source items matching search</span>';
+ const people=MUMIN_ITEM_SOURCE.filter(p=>low([p.its,p.name,p.sector,p.remarks,...p.items].join(' ')).includes(q));
+ $('irMuminRows').innerHTML=people.map((p,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(p.its)+'</td><td>'+esc(p.name)+'</td><td><b>'+esc(p.items.join('; '))+'</b></td><td>'+esc(p.sector)+'</td><td>'+esc(p.remarks||'—')+'</td></tr>').join('');
+ if(itemReportView==='mumin')$('irSummary').innerHTML='<span><b>'+people.length+'</b> Mumineen listed</span><span><b>'+people.reduce((n,p)=>n+p.items.length,0)+'</b> item allocations</span><span><b>'+people.filter(p=>p.remarks).length+'</b> with survey remarks</span>';
 }
 function money(n){return '₹'+Number(n).toLocaleString('en-IN')}
 function printItemReport(){if($('itemReport').hidden)return;document.body.classList.add('item-report-only');setTimeout(()=>window.print(),50)}
 function csvItemReport(){
  let rows,filename;
  if(itemReportView==='mumin'){
-  rows=[['Mumin ITS','Mumin Name','Items Given / Listed','Item Statuses','Operational Remarks']];
-  const q=low($('irSearch')?.value||''),grouped=new Map();
-  ITEM_REPORT_DATA.forEach(r=>r.ids.forEach(id=>{
-   const key=String(id).trim(),f=D.find(x=>String(x.i).trim()===key),name=f?f.n:'Name not matched in survey';
-   if(!low([r.item,r.remarks,key,name].join(' ')).includes(q))return;
-   if(!grouped.has(key))grouped.set(key,{id:key,name,items:[],statuses:[],remarks:[]});
-   const p=grouped.get(key);if(!p.items.includes(r.item))p.items.push(r.item);
-   const status=r.status||'Not specified';if(!p.statuses.includes(status))p.statuses.push(status);
-   if(r.remarks&&!p.remarks.includes(r.remarks))p.remarks.push(r.remarks);
-  }));
-  [...grouped.values()].sort((a,b)=>a.id.localeCompare(b.id)).forEach(p=>rows.push([p.id,p.name,p.items.join('; '),p.statuses.join('; '),p.remarks.join(' | ')]));
-  filename='husaini-mohallah-items-given-mumin-wise.csv';
- }else{
+  rows=[['Mumin ITS','Mumin Name','Sector','Items Given / Listed','Survey Remarks']];
+  const q=low($('irSearch')?.value||'');
+  MUMIN_ITEM_SOURCE.filter(p=>low([p.its,p.name,p.sector,p.remarks,...p.items].join(' ')).includes(q))
+   .sort((a,b)=>a.its.localeCompare(b.its))
+   .forEach(p=>rows.push([p.its,p.name,p.sector,p.items.join('; '),p.remarks]));
+  filename='husaini-mohallah-items-given-mumin-wise.csv'; }else{
   rows=[['Item / Support Classification','Total Units / Requests','Net Enayat (INR)','Beneficiary ITS IDs','Status','Quantity Procured','Remaining','Operational Remarks']];
   ITEM_REPORT_DATA.filter(r=>low([r.item,r.remarks,...r.ids].join(' ')).includes(low($('irSearch')?.value||''))).forEach(r=>rows.push([r.item,r.units,r.amount,r.ids.join('; '),r.status,r.procured,r.remaining,r.remarks]));
   filename='husaini-mohallah-cumulative-item-report.csv';
