@@ -138,9 +138,10 @@ export function SurveyVisitEntry({ survey, assignment, hofLabel, questions, user
       setVisit(saved);
       const responseRows = questions.map(q => {
         const answer = val(q);
-        return {visit_id:saved.id,question_id:q.id,answer:(answer === "" || answer == null || (Array.isArray(answer) && !answer.length)) ? null : answer};
+        return (answer === "" || answer == null || (Array.isArray(answer) && !answer.length)) ? null : {visit_id:saved.id,question_id:q.id,answer:answer};
       });
-      if (responseRows.length) await sbUpsert("survey_responses",responseRows,"visit_id,question_id");
+      const answeredRows = responseRows.filter(Boolean);
+       if (answeredRows.length) await sbUpsert("survey_responses",answeredRows,"visit_id,question_id");
       if (submit) await sbUpdate("survey_assignments",assignment.id,{status:"completed"});
       else await sbUpdate("survey_assignments",assignment.id,{status:"in_progress"});
       await logActivity(submit?"Submitted survey visit":"Saved survey visit draft","survey",survey.title+" · ITS "+assignment.hof_its_id,user?.email);
