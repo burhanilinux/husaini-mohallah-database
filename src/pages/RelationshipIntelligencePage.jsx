@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useApp } from "../context/AppContext.jsx";
 
 function norm(v) { return String(v ?? "").trim().toLowerCase(); }
