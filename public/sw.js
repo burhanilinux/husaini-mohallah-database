@@ -1,5 +1,7 @@
 const CACHE_NAME = "husaini-mohallah-v7";
-const OFFLINE_URL = "/";\n\nconst APP_SHELL = [
+const OFFLINE_URL = "/";
+
+const APP_SHELL = [
   "/",
   "/manifest.webmanifest",
   "/favicon.svg?v=20260920",
@@ -16,7 +18,11 @@ self.addEventListener("install", (event) => {
   );
 });
 
-self.addEventListener("message", (event) => {\n  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();\n});\n\nself.addEventListener("activate", (event) => {
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
+});
+
+self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys()
       .then((keys) => Promise.all(
