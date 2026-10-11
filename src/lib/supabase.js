@@ -64,6 +64,7 @@ async function request(url, options, retryable) {
       throw error;
     } catch (e) {
       lastError = e;
+      if (e && e.status >= 400 && e.status < 500) throw e;
       if (attempt + 1 >= attempts) throw e;
       await new Promise(function (resolve) { setTimeout(resolve, 300 * (attempt + 1)); });
     }
