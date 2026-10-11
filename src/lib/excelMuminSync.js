@@ -260,8 +260,8 @@ export async function syncMuminExcel(rows, meta, progress) {
     for (var op = 0; op < allIts.length; op += 500) {
       var chunk = allIts.slice(op, op + 500);
       if (!chunk.length) continue;
-      var found = await sbGet("mumin_data", "its_id=in.(" + chunk.join(",") + ")&select=id,its_id");
-      (found || []).forEach(function (m) { idByIts[Number(m.its_id)] = Number(m.id); });
+      var foundRows = await sbGet("mumin_data", "its_id=in.(" + chunk.join(",") + ")&select=id,its_id");
+      (foundRows || []).forEach(function (m) { idByIts[Number(m.its_id)] = Number(m.id); });
     }
 
     var memberships = [];
