@@ -52,12 +52,12 @@ export function AdvancedSearchPage() {
         if (endAge !== "" && age > Number(endAge)) return false;
       }
       if (ageGroup) {
-        var age = getMuminAge(m);
-        if (age === null || age === undefined) return false;
-        if (ageGroup === "child" && age > 15) return false;
-        if (ageGroup === "youth" && (age < 16 || age > 30)) return false;
-        if (ageGroup === "adult" && (age < 31 || age > 60)) return false;
-        if (ageGroup === "senior" && age < 61) return false;
+        var groupAge = getMuminAge(m);
+        if (groupAge === null || groupAge === undefined) return false;
+        if (ageGroup === "child" && groupAge > 15) return false;
+        if (ageGroup === "youth" && (groupAge < 16 || groupAge > 30)) return false;
+        if (ageGroup === "adult" && (groupAge < 31 || groupAge > 60)) return false;
+        if (ageGroup === "senior" && groupAge < 61) return false;
       }
       return true;
     });
