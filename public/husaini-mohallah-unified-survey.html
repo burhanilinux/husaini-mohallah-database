@@ -47,7 +47,7 @@
  <div class="ir-head"><div><h2>Cumulative Item Report</h2><div class="vr-sub">Item-wise master summary and beneficiary-wise view. ITS numbers are retained as printed in the source.</div></div>
  <div class="ir-actions"><input id="irSearch" placeholder="Search item, ITS, beneficiary…" oninput="renderItemReport()"><button type="button" onclick="setItemReportView('master')">Cumulative item-wise</button><button type="button" onclick="setItemReportView('mumin')">Items Given to Mumin-wise</button><button type="button" onclick="printItemReport()">Print report</button><button type="button" onclick="csvItemReport()">Excel / CSV</button><button type="button" class="ghost" onclick="toggleItemReport()">Close</button></div></div>
  <div id="irSummary" class="vr-summary"></div><div id="irMasterView" class="x"><table id="irTable"><thead><tr><th>Item / Support Classification</th><th>Units</th><th>Net Enayat (₹)</th><th>Beneficiary HOF ITS / IDs</th><th>Status</th><th>Procured</th><th>Remaining</th><th>Operational Remarks</th></tr></thead><tbody id="irRows"></tbody><tfoot id="irFoot"></tfoot></table></div>
- <div id="irMuminView" class="x" hidden><table id="irMuminTable"><thead><tr><th>#</th><th>Mumin ITS</th><th>Mumin Name</th><th>Item / Support Given or Listed</th><th>Item Status</th><th>Operational Remarks</th></tr></thead><tbody id="irMuminRows"></tbody></table></div>
+ <div id="irMuminView" class="x" hidden><table id="irMuminTable"><thead><tr><th>#</th><th>Mumin ITS</th><th>Mumin Name</th><th>Item / Support Given or Listed</th><th>Sector</th><th>Survey Remarks</th></tr></thead><tbody id="irMuminRows"></tbody></table></div>
  <p class="ir-note">Names are matched to the survey database when the ITS number matches a survey HOF record. ITS numbers not found in the survey remain visible as printed in the source report. Status and remarks reflect the item-level source record; they are not proof of delivery where no delivery status was recorded.</p>
 </section>
 <div id="addp" class="np" hidden><h3>Add family / child</h3><label>Add to <select id="af" onchange="togNF()"></select></label>
@@ -414,8 +414,8 @@ function csvItemReport(){
    .sort((a,b)=>a.its.localeCompare(b.its))
    .forEach(p=>rows.push([p.its,p.name,p.sector,p.items.join('; '),p.remarks]));
   filename='husaini-mohallah-items-given-mumin-wise.csv'; }else{
-  rows=[['Item / Support Classification','Total Units / Requests','Net Enayat (INR)','Beneficiary ITS IDs','Status','Quantity Procured','Remaining','Operational Remarks']];
-  ITEM_REPORT_DATA.filter(r=>low([r.item,r.remarks,...r.ids].join(' ')).includes(low($('irSearch')?.value||''))).forEach(r=>rows.push([r.item,r.units,r.amount,r.ids.join('; '),r.status,r.procured,r.remaining,r.remarks]));
+  rows=[['Item / Support Classification','Total Units / Requests','Net Enayat (INR)','Beneficiary ITS IDs','Beneficiary Names','Status','Quantity Procured','Remaining','Operational Remarks']];
+  ITEM_REPORT_DATA.filter(r=>low([r.item,r.remarks,...r.ids,...r.ids.map(id=>MUMIN_ITEM_SOURCE.find(p=>p.its===String(id))?.name||'')].join(' ')).includes(low($('irSearch')?.value||''))).forEach(r=>rows.push([r.item,r.units,r.amount,r.ids.join('; '),r.ids.map(id=>MUMIN_ITEM_SOURCE.find(p=>p.its===String(id))?.name||'Name not found').join('; '),r.status,r.procured,r.remaining,r.remarks]));
   filename='husaini-mohallah-cumulative-item-report.csv';
  }
  if(window.XLSX){
