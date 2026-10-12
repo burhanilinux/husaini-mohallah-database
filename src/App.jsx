@@ -21,7 +21,6 @@ const ReportBuilderPage = lazy(() => import("./pages/ReportBuilderPage.jsx").the
 const ActivityPage = lazy(() => import("./pages/ActivityPage.jsx").then((module) => ({ default: module.ActivityPage })));
 const UsersPage = lazy(() => import("./pages/UsersPage.jsx").then((module) => ({ default: module.UsersPage })));
 const MohallahSurveyPage = lazy(() => import("./pages/MohallahSurveyPage.jsx").then((module) => ({ default: module.MohallahSurveyPage })));
-const SurveyManagementPage = lazy(() => import("./pages/SurveyManagementPage.jsx").then((module) => ({ default: module.SurveyManagementPage })));
 const VajebaatPage = lazy(() => import("./pages/VajebaatPage.jsx").then((module) => ({ default: module.VajebaatPage })));
 import { MuminModal } from "./modals/MuminModal.jsx";
 import { SectorModal } from "./modals/SectorModal.jsx";
@@ -47,8 +46,7 @@ function ActivePage() {
     case "reception": return <ReceptionPage />;
     case "users": return <UsersPage />;
     case "mohallah-survey": return <MohallahSurveyPage />;
-    case "survey-management": return <SurveyManagementPage />;
-    case "vajebaat": return <VajebaatPage />;
+      case "vajebaat": return <VajebaatPage />;
     default: return <Dashboard />;
   }
 }
