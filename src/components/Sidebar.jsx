@@ -13,7 +13,7 @@ export function Sidebar(){
   function openImport(){setIeModal(true);setMobileOpen(false);} function openTrash(){setTrashModal(true);loadTrash();setMobileOpen(false);}
   function backup(){downloadFullBackup();setMobileOpen(false);} function restore(){document.getElementById("restore-file-input")?.click();setMobileOpen(false);}
   var navItems=[
-    {id:"dashboard",icon:"◈",label:"Dashboard"},{id:"statistics",icon:"📈",label:"Dashboard & Statistics"},{id:"survey-management",icon:"🗂️",label:"Survey Management"},{id:"mohallah-survey",icon:"📋",label:"Mohallah Survey (Legacy)"},
+    {id:"dashboard",icon:"◈",label:"Dashboard"},{id:"statistics",icon:"📈",label:"Dashboard & Statistics"},{id:"mohallah-survey",icon:"📋",label:"Mohallah Survey (Legacy)"},
     {id:"mumin",icon:"👤",label:"Mumin Data"},{id:"vajebaat",icon:"₹",label:"Vajebaat"},{id:"advanced-search",icon:"🔎",label:"Advanced Search"},
     {id:"data-quality",icon:"✓",label:"Data Quality"},{id:"relationships",icon:"👨‍👩‍👧",label:"Family Relationships"},
     {id:"report-builder",icon:"🧰",label:"Advanced Report Builder"},{id:"activity",icon:"🕘",label:"Activity Log"},{id:"reception",icon:"🎟️",label:"Reception"},{id:"users",icon:"👥",label:"Users"}];
