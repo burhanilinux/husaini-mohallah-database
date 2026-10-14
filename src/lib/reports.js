@@ -125,7 +125,7 @@ export function buildReportRows(reportId, extra, ctx) {
       rows: sectorMembers.map(function (m) {
         var si = getSectorInfo(m) || {};
         return {
-          its_number: m.its_number || "", name: m.name || "", age: getMuminAgeLocal(m, calcAge) || "",
+          its_number: m.its_number || "", name: m.name || "", age: (getMuminAgeLocal(m, calcAge) == null ? "" : getMuminAgeLocal(m, calcAge)),
           gender: m.gender || "", phone: m.phone || "", address: m.address || "",
           sub_sector: si.subSectorName || "", musaid: si.musaidName || "", status: m.status || "",
         };
@@ -268,6 +268,7 @@ export function buildReportRows(reportId, extra, ctx) {
   if (reportId === "ashara_mubaraka_top") {
     function ashCount2(m) {
       var raw = m.ashara_mubaraka !== undefined && m.ashara_mubaraka !== null ? m.ashara_mubaraka : ext(m).Ashara_Mubaraka;
+      if (raw === null || raw === undefined || String(raw).trim() === "") return null;
       var n = Number(raw);
       return Number.isFinite(n) ? n : null;
     }
