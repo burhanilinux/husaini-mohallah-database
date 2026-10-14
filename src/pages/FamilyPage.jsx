@@ -117,8 +117,8 @@ function esc(v) { return String(v == null ? "" : v).replace(/&/g, "&amp;").repla
 function ActionModal({ action, families, busy, onClose, onRun }) {
   var row = action.row;
   var [familyId, setFamilyId] = useState("");
-  var [sabil, setSabil] = useState(row && row.family ? (row.family.sabil_no || "") : "");
-  var [hof, setHof] = useState("");
+  var [sabil, setSabil] = useState(action.type === "save" ? (action.sabil == null ? "" : action.sabil) : (row && row.family ? (row.family.sabil_no || "") : ""));
+  var [hof, setHof] = useState(action.type === "save" ? (action.hof == null ? "" : action.hof) : "");
   var [target, setTarget] = useState("");
   var [selectedIds, setSelectedIds] = useState([]);
   var [newFamilyId, setNewFamilyId] = useState("");
