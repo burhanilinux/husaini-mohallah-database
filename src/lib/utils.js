@@ -20,7 +20,7 @@ export function calcAge(dob) {
 export function getMuminAge(m) {
   if (!m) return null;
   var fromDob = calcAge(m.dob);
-  return fromDob !== null ? fromDob : (m.age || null);
+  return fromDob !== null ? fromDob : (m.age === 0 || m.age ? Number(m.age) : null);
 }
 
 // ── File helpers ──────────────────────────────────────────────────

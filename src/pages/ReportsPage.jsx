@@ -5,6 +5,7 @@ function ext(m) { return m.source_data || {}; }
 function getVal(m, col, key) { return m[col] || ext(m)[key] || ""; }
 function ashCount(m) {
   var raw = m.ashara_mubaraka !== undefined && m.ashara_mubaraka !== null ? m.ashara_mubaraka : ext(m).Ashara_Mubaraka;
+  if (raw === null || raw === undefined || String(raw).trim() === "") return null;
   var n = Number(raw);
   return Number.isFinite(n) ? n : null;
 }
