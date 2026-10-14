@@ -8,7 +8,7 @@ function getVal(m, col, key) { return (m && (m[col] || ext(m)[key])) || ""; }
 function getMuminAgeLocal(m, calcAge) {
   if (!m) return null;
   var fromDob = calcAge(m.dob);
-  return fromDob !== null ? fromDob : (m.age || null);
+  return fromDob !== null ? fromDob : (m.age === 0 || m.age ? Number(m.age) : null);
 }
 
 export function buildReportRows(reportId, extra, ctx) {
@@ -30,7 +30,7 @@ export function buildReportRows(reportId, extra, ctx) {
       rows: muminData.map(function (m) {
         var si = getSectorInfo(m) || {};
         return {
-          its_number: m.its_number || "", name: m.name || "", age: getMuminAgeLocal(m, calcAge) || "",
+          its_number: m.its_number || "", name: m.name || "", age: (getMuminAgeLocal(m, calcAge) == null ? "" : getMuminAgeLocal(m, calcAge)),
           gender: m.gender || "", phone: m.phone || "", address: m.address || "",
           area_sector: m.area_sector || "", masool: si.masoolName || "",
           sub_sector: si.subSectorName || "", musaid: si.musaidName || "",
@@ -245,6 +245,7 @@ export function buildReportRows(reportId, extra, ctx) {
     ];
     function ashCount(m) {
       var raw = m.ashara_mubaraka !== undefined && m.ashara_mubaraka !== null ? m.ashara_mubaraka : ext(m).Ashara_Mubaraka;
+      if (raw === null || raw === undefined || String(raw).trim() === "") return null;
       var n = Number(raw);
       return Number.isFinite(n) ? n : null;
     }
