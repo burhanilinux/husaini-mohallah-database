@@ -18,7 +18,8 @@ export const SOURCE_COLUMNS = [
 ];
 
 function text(v) { if (v === null || v === undefined) return ""; return String(v).trim(); }
-function intOrNull(v) { var n = Number(text(v)); return Number.isFinite(n) && n !== 0 ? Math.trunc(n) : null; }
+function intOrNull(v) { var raw = text(v); if (!raw) return null; var n = Number(raw); return Number.isFinite(n) && n !== 0 ? Math.trunc(n) : null; }
+function intOrNullAllowZero(v) { var raw = text(v); if (!raw) return null; var n = Number(raw); return Number.isFinite(n) ? Math.trunc(n) : null; }
 function cleanRow(row) { var out = {}; Object.keys(row || {}).forEach(function (k) { out[k] = row[k] === undefined || row[k] === null ? "" : row[k]; }); return out; }
 
 export async function parseMuminExcel(file) {
@@ -52,14 +53,13 @@ function incharge(row, prefix) {
   return { its: intOrNull(row[prefix + "_ITSID"]), name: text(row[prefix + "_Name"]) };
 }
 
-   function buildPayload(row, subSectorIdByKey) {
+   function buildPayload(row, subSectorIdByKey, existing) {
   var its = intOrNull(row.ITS_ID), sector = text(row.Sector), sub = text(row.Sub_Sector), subKey = sector + "\u0000" + sub;
-  return {
-    its_id: its, its_number: its === null ? "" : String(its), name: text(row.Full_Name), dob: null,
-    age: intOrNull(row.Age), gender: text(row.Gender) || "Male", phone: text(row.Mobile), email: text(row.Email),
+  var payload = {
+    its_id: its, its_number: its === null ? "" : String(its), name: text(row.Full_Name),
+    gender: text(row.Gender) || "Male", phone: text(row.Mobile), email: text(row.Email),
     address: text(row.Address), area_sector: sector, sub_sector_id: subSectorIdByKey[subKey] || null,
-    sabil_no: null, status: text(row.Inactive_Status) ? "Inactive" : "Active", family_id: intOrNull(row.Family_ID),
-    spouse_its_id: intOrNull(row.Spouse_ITS_ID), source_data: row,
+    status: text(row.Inactive_Status) ? "Inactive" : "Active", source_data: row,
     occupation: text(row.Occupation) || null,
     sub_occupation: text(row.Sub_Occupation) || null,
     qualification: text(row.Qualification) || null,
@@ -80,12 +80,22 @@ function incharge(row, prefix) {
     qadambosi_sharaf: text(row.Qadambosi_Sharaf) || null,
     raudat_tahera_ziyarat: text(row.Raudat_Tahera_Ziyarat) || null,
     karbala_ziyarat: text(row.Karbala_Ziyarat) || null,
-    // FIX: this is an INTEGER column — must be a number, not text.
-    ashara_mubaraka: intOrNull(row.Ashara_Mubaraka),
+    // FIX: this is an INTEGER column — preserve an explicit zero and omit blanks.
     warakatul_tarkhis: text(row.Warakatul_Tarkhis) || null,
     last_scanned_event: text(row.Last_Scanned_Event) || null,
     last_scanned_place: text(row.Last_Scanned_Place) || null,
   };
+  // Excel blanks must never erase values maintained in the app.
+  if (text(row.Age) !== "") payload.age = intOrNullAllowZero(row.Age);
+  if (text(row.Ashara_Mubaraka) !== "") payload.ashara_mubaraka = intOrNullAllowZero(row.Ashara_Mubaraka);
+  if (text(row.Date_Of_Birth)) payload.dob = text(row.Date_Of_Birth);
+  if (existing) {
+    if (existing.dob) delete payload.dob;
+    if (existing.sabil_no) delete payload.sabil_no;
+    if (existing.family_id !== null && existing.family_id !== undefined) payload.family_id = existing.family_id;
+    else if (intOrNull(row.Family_ID) !== null) payload.family_id = intOrNull(row.Family_ID);
+  } else if (intOrNull(row.Family_ID) !== null) payload.family_id = intOrNull(row.Family_ID);
+  return payload;
 }
 
 
@@ -173,11 +183,34 @@ export async function syncMuminExcel(rows, meta, progress) {
     subSectors.forEach(function (s) { var sec = sectors.find(function (x) { return Number(x.id) === Number(s.sector_id); }); if (sec) subSectorIdByKey[text(sec.name) + "\u0000" + text(s.name)] = Number(s.id); });
   }
 
-  // Families reference mumin_data.hof_its_id, so HOF-linked families cannot be inserted
-  // until the Mumin rows exist. We first ensure Mumin records are present, then upsert families.
+  // Preserve app-maintained fields on existing records. Fetch by ITS in bounded batches.
   report("Synchronizing Mumin records", 0, source.length);
-  var muminRows = source.map(function (r) { return buildPayload(r, subSectorIdByKey); });
+  var existingByIts = {};
+  var sourceIts = source.map(function (r) { return intOrNull(r.ITS_ID); }).filter(function (v) { return v !== null; });
+  for (var ep = 0; ep < sourceIts.length; ep += 500) {
+    var existingChunk = await sbGet("mumin_data", "its_id=in.(" + sourceIts.slice(ep, ep + 500).join(",") + ")");
+    (existingChunk || []).forEach(function (m) { existingByIts[Number(m.its_id)] = m; });
+  }
+  var muminRows = source.map(function (r) { return buildPayload(r, subSectorIdByKey, existingByIts[intOrNull(r.ITS_ID)]); });
+  // Avoid the spouse-normalization trigger nulling links to members in later chunks.
+  muminRows.forEach(function (m) { delete m.spouse_its_id; });
   await chunksUpsert("mumin_data", muminRows, "its_id", 200);
+  // Second pass: link only spouse ITS values explicitly supplied and now present.
+  var spouseLinks = {};
+  source.forEach(function (r) {
+    var its = intOrNull(r.ITS_ID), spouse = intOrNull(r.Spouse_ITS_ID);
+    if (its !== null && spouse !== null) spouseLinks[its] = spouse;
+  });
+  var spouseIds = Object.keys(spouseLinks).map(Number);
+  var presentIts = {};
+  for (var sp = 0; sp < spouseIds.length; sp += 500) {
+    var present = await sbGet("mumin_data", "its_id=in.(" + spouseIds.slice(sp, sp + 500).concat(spouseIds.slice(sp, sp + 500).map(function (id) { return spouseLinks[id]; })).filter(function (id, index, arr) { return arr.indexOf(id) === index; }).join(",") + ")&select=its_id");
+    (present || []).forEach(function (m) { presentIts[Number(m.its_id)] = true; });
+  }
+  for (var sl = 0; sl < spouseIds.length; sl++) {
+    var personIts = spouseIds[sl], spouseIts = spouseLinks[personIts];
+    if (presentIts[personIts] && presentIts[spouseIts]) await sbUpdateWhere("mumin_data", "its_id=eq." + personIts, { spouse_its_id: spouseIts });
+  }
   report("Mumin records synchronized", source.length, source.length);
 
   report("Synchronizing families", 0, source.length);
@@ -191,6 +224,7 @@ export async function syncMuminExcel(rows, meta, progress) {
     if (hof !== null && !familyMap[family].hof_its_id) familyMap[family].hof_its_id = hof;
   });
   var families = Object.keys(familyMap).map(function (k) { return familyMap[k]; });
+  // Existing family HOF and Sabil values are app-maintained; only create missing family rows.
   var hofIds = {};
   families.forEach(function (f) { if (f.hof_its_id !== null) hofIds[f.hof_its_id] = true; });
   var existingHofIds = {};
@@ -202,7 +236,11 @@ export async function syncMuminExcel(rows, meta, progress) {
     (foundHofs || []).forEach(function (m) { existingHofIds[Number(m.its_id)] = true; });
   }
   families.forEach(function (f) { if (f.hof_its_id !== null && !existingHofIds[f.hof_its_id]) f.hof_its_id = null; });
-  await chunksUpsert("families", families, "family_id", 200);
+  var existingFamilyRows = await sbGet("families", "select=family_id");
+  var existingFamilyIds = {};
+  (existingFamilyRows || []).forEach(function (f) { existingFamilyIds[String(f.family_id)] = true; });
+  var newFamilies = families.filter(function (f) { return !existingFamilyIds[String(f.family_id)]; });
+  if (newFamilies.length) await chunksUpsert("families", newFamilies, "family_id", 200);
 
   // Resolve only ITS IDs that actually exist in mumin_data before assigning FK values.
   var inchargeIds = {};
@@ -229,13 +267,16 @@ export async function syncMuminExcel(rows, meta, progress) {
   });
   await Promise.all(Object.keys(sectorInchargeByName).map(async function (sector) {
     var data = sectorInchargeByName[sector], id = sectorIdByName[sector]; if (!id) return;
-    await sbUpdateWhere("sectors", "id=eq." + encodeURIComponent(id), { incharge_its_id: data.its || null, masool_its: data.its ? String(data.its) : null, masool_name: data.name || null });
+    var patch = {};
+    if (data.its) { patch.incharge_its_id = data.its; patch.masool_its = String(data.its); }
+    if (data.name) patch.masool_name = data.name;
+    if (Object.keys(patch).length) await sbUpdateWhere("sectors", "id=eq." + encodeURIComponent(id), patch);
   }));
 
   report("Linking sub-sector incharges", 0, source.length);
   var subInchargeByKey = {};
   source.forEach(function (r) { var sector = text(r.Sector), sub = text(r.Sub_Sector); if (!sector || !sub) return; var key = sector + "\u0000" + sub, current = subInchargeByKey[key] || {}, ic = incharge(r, "Sub_Sector_Incharge"); if (!current.its && ic.its && existingInchargeIds[ic.its]) current.its = ic.its; if (!current.name && ic.name) current.name = ic.name; subInchargeByKey[key] = current; });
-  await Promise.all(Object.keys(subInchargeByKey).map(async function (key) { var id = subSectorIdByKey[key]; if (!id) return; var data = subInchargeByKey[key]; await sbUpdateWhere("sub_sectors", "id=eq." + encodeURIComponent(id), { incharge_its_id: data.its || null, musaid_its: data.its ? String(data.its) : null, musaid_name: data.name || null }); }));
+  await Promise.all(Object.keys(subInchargeByKey).map(async function (key) { var id = subSectorIdByKey[key]; if (!id) return; var data = subInchargeByKey[key], patch = {}; if (data.its) { patch.incharge_its_id = data.its; patch.musaid_its = String(data.its); } if (data.name) patch.musaid_name = data.name; if (Object.keys(patch).length) await sbUpdateWhere("sub_sectors", "id=eq." + encodeURIComponent(id), patch); }));
 
    report("Synchronizing organisations", 0, source.length);
   var result = {
