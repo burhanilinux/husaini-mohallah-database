@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import { sbGet, sbInsert, sbUpdate, sbDelete, logActivity } from "../lib/supabase.js";
 import { useAppContext } from "../context/AppContext.jsx";
+import { VajebaatExcelImport } from "../components/VajebaatExcelImport.jsx";
 
 const THIS_YEAR = 1448;
 const EMPTY = { its_number:"", mumin_name:"", year:THIS_YEAR, previous_takmeen:"0", current_takmeen:"0", amount_due:"0", amount_paid:"0", payment_status:"Unpaid", payment_mode:"Cash", payment_date:"", cheque_dd_no:"", takmeen_signed_by:"", takmeen_signed_date:"", remarks:"" };
@@ -90,7 +91,7 @@ export function VajebaatPage() {
     const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Vajebaat");XLSX.writeFile(wb,"Vajebaat_"+year+".xlsx");
   }
   return <div className="vajebaat-page">
-    <div className="page-hdr"><div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:14,flexWrap:"wrap"}}><div><div className="page-title">Vajebaat Module</div><div className="page-sub">Year-wise Takmeen, payment tracking and Mumin records</div></div><div className="vajebaat-actions"><button className="btn btn-ghost" onClick={load}>↻ Refresh</button><button className="btn btn-ghost" onClick={exportExcel}>↓ Export Excel</button>{canEdit&&<button className="btn btn-primary" onClick={newRecord}>＋ New Entry</button>}</div></div></div>
+    <div className="page-hdr"><div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:14,flexWrap:"wrap"}}><div><div className="page-title">Vajebaat Module</div><div className="page-sub">Year-wise Takmeen, payment tracking and Mumin records</div></div><div className="vajebaat-actions"><button className="btn btn-ghost" onClick={load}>↻ Refresh</button><button className="btn btn-ghost" onClick={exportExcel}>↓ Export Excel</button>{canEdit&&<><VajebaatExcelImport canEdit={canEdit} ctx={ctx} onImported={load}/><button className="btn btn-primary" onClick={newRecord}>＋ New Entry</button></>}</div></div></div>
     {error&&<div className="err-banner" role="alert" style={{marginBottom:12}}>{error}<button className="btn btn-ghost btn-sm" style={{marginLeft:8}} onClick={()=>setError("")}>Dismiss</button></div>}
     {notice&&<div className="vajebaat-notice" role="status">{notice}<button onClick={()=>setNotice("")}>×</button></div>}
     <div className="stats-grid vajebaat-stats"><div className="stat-card"><div className="stat-lbl">Records</div><div className="stat-val">{totals.count}</div><div className="stat-desc">Selected year & filters</div></div><div className="stat-card"><div className="stat-lbl">Total Takmeen / Due</div><div className="stat-val">{money(totals.due)}</div><div className="stat-desc">Amount due</div></div><div className="stat-card"><div className="stat-lbl">Total Collected</div><div className="stat-val">{money(totals.paid)}</div><div className="stat-desc">Amount received</div></div><div className="stat-card"><div className="stat-lbl">Balance</div><div className="stat-val">{money(Math.max(0,totals.due-totals.paid))}</div><div className="stat-desc">Outstanding amount</div></div></div>
