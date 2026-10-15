@@ -42,7 +42,7 @@ function parseWorkbook(file, fallbackYear) {
       const paid = num(paidValue);
       const current = num(getValue(row, headerAliases.current));
       const dueValue = getValue(row, headerAliases.due);
-      const due = dueValue === undefined || String(dueValue).trim() === "" ? (current || paid) : num(dueValue);
+      const due = dueValue === undefined || String(dueValue).trim() === "" ? current : num(dueValue);
       return {
         sourceRow: index + 2,
         its_number: its,
@@ -50,7 +50,7 @@ function parseWorkbook(file, fallbackYear) {
         year,
         previous_takmeen: num(getValue(row, headerAliases.previous)),
         current_takmeen: current,
-        amount_due: Math.max(due, paid),
+        amount_due: due,
         amount_paid: paid,
         payment_date: String(getValue(row, headerAliases.paymentDate) ?? "").trim(),
         payment_mode: String(getValue(row, headerAliases.mode) ?? "").trim(),
@@ -73,11 +73,11 @@ export function VajebaatExcelImport({ canEdit, ctx, onImported }) {
     if (busy) return;
     setOpen(false); setFile(null); setPreview(null); setError(""); setResult(null);
   }
-  async function chooseFile(nextFile) {
+  async function chooseFile(nextFile, yearOverride = fallbackYear) {
     setFile(nextFile); setPreview(null); setResult(null); setError("");
     if (!nextFile) return;
     if (!/\.xlsx?$/i.test(nextFile.name)) { setError("Please choose an Excel .xlsx or .xls file."); return; }
-    try { setPreview(await parseWorkbook(nextFile, fallbackYear)); }
+    try { setPreview(await parseWorkbook(nextFile, yearOverride)); }
     catch (e) { setError(e.message || "Unable to read this workbook."); }
   }
   async function importRows() {
@@ -132,7 +132,7 @@ export function VajebaatExcelImport({ canEdit, ctx, onImported }) {
         <div className="modal-hdr"><div><div id="vajebaat-import-title" className="modal-title">Import Vajebaat Excel</div><div className="page-sub">Imports new records only; existing ITS/year records are skipped.</div></div><button className="modal-close" onClick={close} disabled={busy} aria-label="Close">×</button></div>
         <div className="modal-body">
           <div className="form-grp"><label>Excel file (.xlsx or .xls)</label><input type="file" accept=".xlsx,.xls" onChange={e => chooseFile(e.target.files?.[0] || null)} disabled={busy} /></div>
-          <div className="form-grp"><label>Default Hijri year (used only if the sheet has no year column)</label><select value={fallbackYear} onChange={e => { const next = Number(e.target.value); setFallbackYear(next); if (file) chooseFile(file); }} disabled={busy}><option value={1446}>1446H</option><option value={1447}>1447H</option></select></div>
+          <div className="form-grp"><label>Default Hijri year (used only if the sheet has no year column)</label><select value={fallbackYear} onChange={e => { const next = Number(e.target.value); setFallbackYear(next); if (file) chooseFile(file, next); }} disabled={busy}><option value={1446}>1446H</option><option value={1447}>1447H</option></select></div>
           <p className="page-sub">Accepted years: 1446H and 1447H only. The Amount/Collected column is imported as Amount Paid. Rows for 1448H or other years are skipped. Names are checked against Mumin Data when available. No existing records are overwritten.</p>
           {preview && <div className="vajebaat-preview"><span>Rows detected</span><b>{preview.length}</b><span>Valid ITS rows: <b>{preview.filter(r => /^\d{8}$/.test(r.its_number)).length}</b></span></div>}
           {preview?.length > 0 && <div className="table-wrap" style={{maxHeight:220,overflow:"auto",marginTop:12}}><table className="vajebaat-table"><thead><tr><th>ITS Number</th><th>Name</th><th>Year</th><th>Amount Paid</th></tr></thead><tbody>{preview.slice(0,8).map((r,i)=><tr key={r.sourceRow + "-" + i}><td>{r.its_number || "—"}</td><td>{r.mumin_name || "From Mumin Data"}</td><td>{r.year || "—"}</td><td>{r.amount_paid}</td></tr>)}</tbody></table>{preview.length>8 && <p className="page-sub">Showing first 8 rows of {preview.length}.</p>}</div>}
