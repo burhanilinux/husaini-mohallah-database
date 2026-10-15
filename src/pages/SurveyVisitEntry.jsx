@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { sbGet, sbInsert, sbUpdate, sbUpsert, logActivity } from "../lib/supabase.js";
+import { sbGet, sbInsert, sbUpdate, sbUpsert, sbDeleteWhere, logActivity } from "../lib/supabase.js";
 
 function fmtDate(value) {
   if (!value) return "—";
@@ -141,9 +141,24 @@ export function SurveyVisitEntry({ survey, assignment, hofLabel, questions, user
         return (answer === "" || answer == null || (Array.isArray(answer) && !answer.length)) ? null : {visit_id:saved.id,question_id:q.id,answer:answer};
       });
       const answeredRows = responseRows.filter(Boolean);
-       if (answeredRows.length) await sbUpsert("survey_responses",answeredRows,"visit_id,question_id");
-      if (submit) await sbUpdate("survey_assignments",assignment.id,{status:"completed"});
-      else await sbUpdate("survey_assignments",assignment.id,{status:"in_progress"});
+      if (answeredRows.length) await sbUpsert("survey_responses", answeredRows, "visit_id,question_id");
+      // Blank answers are intentional edits: delete previously saved answers
+      // for current questions that the user has now cleared.
+      const clearedQuestionIds = questions.filter(function (q) {
+        const answer = val(q);
+        return answer === "" || answer == null || (Array.isArray(answer) && !answer.length);
+      }).map(function (q) { return q.id; }).filter(Boolean);
+      if (clearedQuestionIds.length) {
+        await sbDeleteWhere("survey_responses", "visit_id=eq." + encodeURIComponent(saved.id) + "&question_id=in.(" + clearedQuestionIds.map(encodeURIComponent).join(",") + ")");
+      }
+      if (submit) {
+        await sbUpdate("survey_assignments", assignment.id, {status:"completed"});
+      } else {
+        // A draft save must not downgrade an assignment already completed elsewhere.
+        const currentAssignments = await sbGet("survey_assignments", "id=eq." + encodeURIComponent(assignment.id) + "&select=id,status");
+        const currentStatus = currentAssignments[0] && currentAssignments[0].status;
+        if (currentStatus !== "completed") await sbUpdate("survey_assignments", assignment.id, {status:"in_progress"});
+      }
       await logActivity(submit?"Submitted survey visit":"Saved survey visit draft","survey",survey.title+" · ITS "+assignment.hof_its_id,user?.email);
       syncedSnapshot.current = JSON.stringify({date, surveyor, remarks, answers});
       try {

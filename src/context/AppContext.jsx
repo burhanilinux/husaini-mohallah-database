@@ -451,8 +451,12 @@ export function AppProvider({ children }) {
         photoUrl = await uploadStorage(muminPhotoFile, path);
         setUploadingPhoto(false);
       }
+      var itsNumber = (form.its_number || "").trim();
+      var itsId = itsNumber && /^\d+$/.test(itsNumber) ? Number(itsNumber) : null;
+      if (itsNumber && itsId === null) throw new Error("ITS Number must contain digits only.");
       var payload = {
-        its_number: (form.its_number || "").trim(),
+        its_id: itsId,
+        its_number: itsNumber,
         name: form.name.trim(),
         dob: form.dob || null,
         age: form.dob ? calcAge(form.dob) : (form.age ? Number(form.age) : null),
@@ -543,8 +547,11 @@ export function AppProvider({ children }) {
     for (var i = 0; i < rows.length; i++) {
       var r = rows[i];
       try {
+        var itsNumber = String(r.its_number || "").trim();
+        var itsId = itsNumber && /^\d+$/.test(itsNumber) ? Number(itsNumber) : null;
+        if (itsNumber && itsId === null) throw new Error("ITS Number must contain digits only.");
         await sbInsert("mumin_data", {
-          its_number: r.its_number || "", name: r.name || "",
+          its_id: itsId, its_number: itsNumber, name: r.name || "",
           dob: r.dob || null, age: r.dob ? calcAge(r.dob) : (r.age ? Number(r.age) : null), gender: r.gender || "Male",
           phone: r.phone || "", email: r.email || "",
           address: r.address || "", area_sector: r.area_sector || "", sabil_no: r.sabil_no || "", status: r.status || "Active",
