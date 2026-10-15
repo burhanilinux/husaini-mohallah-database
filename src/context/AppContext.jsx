@@ -454,6 +454,12 @@ export function AppProvider({ children }) {
       var itsNumber = (form.its_number || "").trim();
       var itsId = itsNumber && /^\d+$/.test(itsNumber) ? Number(itsNumber) : null;
       if (itsNumber && itsId === null) throw new Error("ITS Number must contain digits only.");
+      // ITS IDs are referenced by family and spouse relationships. Do not
+      // silently change an existing identity here; that requires a dedicated
+      // relationship-aware migration rather than a normal profile edit.
+      if (modal.mode === "edit" && String(itsNumber) !== String((modal.record && modal.record.its_number) || "")) {
+        throw new Error("ITS Number changes require a relationship-aware migration. Keep the existing ITS Number for this edit.");
+      }
       var payload = {
         its_id: itsId,
         its_number: itsNumber,
