@@ -44,6 +44,55 @@ function savedSurveyValues() {
   } catch (_e) {}
   return values;
 }
+
+// Recover legacy house-visit status from the shared database. The isolated iframe
+// intentionally cannot read the app session, so the parent fetches this data.
+function loadCloudVisitValues(values) {
+  var headers = authHeaders();
+  headers.Accept = "application/json";
+  return fetch(SUPABASE_URL + "/rest/v1/mohallah_survey_families?select=hof_its,visited,visit_date,visit_remarks", {
+    headers: headers
+  }).then(function (r) {
+    if (!r.ok) throw new Error("Could not restore saved house visits (" + r.status + ").");
+    return r.json();
+  }).then(function (rows) {
+    var visits = {};
+    try {
+      var local = JSON.parse(values["hm-survey-unified-visits-v1"] || "{}");
+      if (local && typeof local === "object" && !Array.isArray(local)) visits = local;
+    } catch (_e) {}
+    rows.forEach(function (r) {
+      var id = String(r.hof_its == null ? "" : r.hof_its);
+      if (id && (r.visited || r.visit_date || r.visit_remarks)) {
+        visits[id] = { v: !!r.visited, d: r.visit_date || "", r: r.visit_remarks || "" };
+      }
+    });
+    values["hm-survey-unified-visits-v1"] = JSON.stringify(visits);
+    try { localStorage.setItem("hm-survey-unified-visits-v1", values["hm-survey-unified-visits-v1"]); } catch (_e) {}
+    return values;
+  });
+}
+
+function syncCloudVisitChanges(previousValue, nextValue) {
+  var previous = {};
+  var next = {};
+  try { previous = JSON.parse(previousValue || "{}") || {}; } catch (_e) {}
+  try { next = JSON.parse(nextValue || "{}") || {}; } catch (_e) {}
+  var ids = {};
+  Object.keys(previous).forEach(function (id) { ids[id] = true; });
+  Object.keys(next).forEach(function (id) { ids[id] = true; });
+  Object.keys(ids).forEach(function (id) {
+    if (JSON.stringify(previous[id] || null) === JSON.stringify(next[id] || null)) return;
+    var v = next[id] || {};
+    fetch(SUPABASE_URL + "/rest/v1/mohallah_survey_families?hof_its=eq." + encodeURIComponent(id), {
+      method: "PATCH",
+      headers: Object.assign({}, authHeaders(), { "Content-Type": "application/json", Prefer: "return=minimal" }),
+      body: JSON.stringify({ visited: !!v.v, visit_date: v.d || null, visit_remarks: v.r || null })
+    }).then(function (r) {
+      if (!r.ok) console.warn("Could not sync house-visit change for", id, r.status);
+    }).catch(function (e) { console.warn("Could not sync house-visit change", e); });
+  });
+}
 // The iframe has no same-origin permission. This small bridge preserves only
 // survey-specific localStorage keys; the embedded document never gets app/session storage.
 function isolateSurveyHtml(html, initialValues) {
@@ -73,8 +122,12 @@ export function MohallahSurveyPage() {
       var m = event.data;
       if (!m || m.type !== "HM_SURVEY_STORAGE" || !STORAGE_KEY_RE.test(String(m.key || ""))) return;
       try {
-        if (m.action === "set" && typeof m.value === "string") localStorage.setItem(m.key, m.value);
-        else if (m.action === "remove") localStorage.removeItem(m.key);
+        if (m.action === "set" && typeof m.value === "string") {
+          if (m.key === "hm-survey-unified-visits-v1") {
+            syncCloudVisitChanges(localStorage.getItem(m.key), m.value);
+          }
+          localStorage.setItem(m.key, m.value);
+        } else if (m.action === "remove") localStorage.removeItem(m.key);
       } catch (_e) {}
     }
     window.addEventListener("message", onMessage);
@@ -86,7 +139,17 @@ export function MohallahSurveyPage() {
     var active = true;
     setBusy(true); setErr(""); setHtml("");
     loadSheet(current).then(function (source) {
-      if (active) setHtml(isolateSurveyHtml(source, savedSurveyValues()));
+      if (!active) return;
+      var values = savedSurveyValues();
+      var prepare = current === "husaini-mohallah-unified-survey.html"
+        ? loadCloudVisitValues(values).catch(function (e) {
+            console.warn("Could not restore cloud house visits; using local copy", e);
+            return values;
+          })
+        : Promise.resolve(values);
+      prepare.then(function (initialValues) {
+        if (active) setHtml(isolateSurveyHtml(source, initialValues));
+      });
     }).catch(function (e) { if (active) setErr(e.message || "Unable to open survey."); })
       .finally(function () { if (active) setBusy(false); });
     return function () { active = false; };
