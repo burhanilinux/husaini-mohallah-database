@@ -79,6 +79,11 @@ function syncCloudVisitChanges(previousValue, nextValue) {
   try { previous = JSON.parse(previousValue || "{}") || {}; } catch (_e) {}
   try { next = JSON.parse(nextValue || "{}") || {}; } catch (_e) {}
   var ids = {};
+  var baseHeaders;
+  try { baseHeaders = authHeaders(); } catch (e) {
+    console.warn("House-visit change is saved locally; sign in again to sync it.", e);
+    return;
+  }
   Object.keys(previous).forEach(function (id) { ids[id] = true; });
   Object.keys(next).forEach(function (id) { ids[id] = true; });
   Object.keys(ids).forEach(function (id) {
@@ -86,7 +91,7 @@ function syncCloudVisitChanges(previousValue, nextValue) {
     var v = next[id] || {};
     fetch(SUPABASE_URL + "/rest/v1/mohallah_survey_families?hof_its=eq." + encodeURIComponent(id), {
       method: "PATCH",
-      headers: Object.assign({}, authHeaders(), { "Content-Type": "application/json", Prefer: "return=minimal" }),
+      headers: Object.assign({}, baseHeaders, { "Content-Type": "application/json", Prefer: "return=minimal" }),
       body: JSON.stringify({ visited: !!v.v, visit_date: v.d || null, visit_remarks: v.r || null })
     }).then(function (r) {
       if (!r.ok) console.warn("Could not sync house-visit change for", id, r.status);
