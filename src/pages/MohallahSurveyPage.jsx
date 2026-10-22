@@ -50,12 +50,17 @@ function savedSurveyValues() {
 function loadCloudVisitValues(values) {
   var headers = authHeaders();
   headers.Accept = "application/json";
-  return fetch(SUPABASE_URL + "/rest/v1/mohallah_survey_families?select=hof_its,visited,visit_date,visit_remarks", {
+  return fetch(SUPABASE_URL + "/rest/v1/mohallah_survey_families?select=hof_its,hof_name,sector,priority,category,mobile,family_count,status,address,city,children,source_record,visited,visit_date,visit_remarks&order=priority.asc,hof_name.asc", {
     headers: headers
   }).then(function (r) {
-    if (!r.ok) throw new Error("Could not restore saved house visits (" + r.status + ").");
+    if (!r.ok) throw new Error("Could not restore saved survey records (" + r.status + ").");
     return r.json();
   }).then(function (rows) {
+    var families = rows.map(function (r) {
+      return Object.assign({}, r.source_record || {}, { i: r.hof_its, n: r.hof_name || "", s: r.sector || "", p: r.priority || "", cat: r.category || "", m: r.mobile || "", k: String(r.family_count == null ? "" : r.family_count), st: r.status || "", a: r.address || "", ct: r.city || "", c: Array.isArray(r.children) ? r.children : [] });
+    });
+    values["hm-survey-unified-families-v1"] = JSON.stringify(families);
+    try { localStorage.setItem("hm-survey-unified-families-v1", values["hm-survey-unified-families-v1"]); } catch (_e) {}
     var visits = {};
     try {
       var local = JSON.parse(values["hm-survey-unified-visits-v1"] || "{}");
@@ -148,7 +153,9 @@ export function MohallahSurveyPage() {
       // The legacy unified HTML expects a parent config, but the sandboxed iframe cannot access it.
       // Supply only public project config plus a placeholder token; authenticated visit reads/writes stay in the parent.
       var compatibleSource = current === "husaini-mohallah-unified-survey.html"
-        ? source.replace("const SB=(window.parent&&window.parent.__HM_SURVEY_CONFIG)||{};", "const SB={url:" + JSON.stringify(SUPABASE_URL) + ",key:" + JSON.stringify(SUPABASE_ANON) + ",token:'parent-bridge'};")
+        ? source
+            .replace("const SB=(window.parent&&window.parent.__HM_SURVEY_CONFIG)||{};", "const SB={url:" + JSON.stringify(SUPABASE_URL) + ",key:" + JSON.stringify(SUPABASE_ANON) + ",token:'parent-bridge'};")
+            .replace("applyX();sortD();$('q').oninput=view;", "try{var restoredFamilies=JSON.parse(localStorage.getItem(\'hm-survey-unified-families-v1\')||\'[]\');if(Array.isArray(restoredFamilies)&&restoredFamilies.length){D.splice(0,D.length,...restoredFamilies);}}catch(e){}applyX();sortD();$(\'q\').oninput=view;")
         : source;
       var values = savedSurveyValues();
       var prepare = current === "husaini-mohallah-unified-survey.html"
