@@ -145,6 +145,11 @@ export function MohallahSurveyPage() {
     setBusy(true); setErr(""); setHtml("");
     loadSheet(current).then(function (source) {
       if (!active) return;
+      // The legacy unified HTML expects a parent config, but the sandboxed iframe cannot access it.
+      // Supply only public project config plus a placeholder token; authenticated visit reads/writes stay in the parent.
+      var compatibleSource = current === "husaini-mohallah-unified-survey.html"
+        ? source.replace("const SB=(window.parent&&window.parent.__HM_SURVEY_CONFIG)||{};", "const SB={url:" + JSON.stringify(SUPABASE_URL) + ",key:" + JSON.stringify(SUPABASE_ANON) + ",token:'parent-bridge'};")
+        : source;
       var values = savedSurveyValues();
       var prepare = current === "husaini-mohallah-unified-survey.html"
         ? loadCloudVisitValues(values).catch(function (e) {
@@ -153,7 +158,7 @@ export function MohallahSurveyPage() {
           })
         : Promise.resolve(values);
       prepare.then(function (initialValues) {
-        if (active) setHtml(isolateSurveyHtml(source, initialValues));
+        if (active) setHtml(isolateSurveyHtml(compatibleSource, initialValues));
       });
     }).catch(function (e) { if (active) setErr(e.message || "Unable to open survey."); })
       .finally(function () { if (active) setBusy(false); });
