@@ -33,7 +33,7 @@ function ActivePage() {
   var ctx = useAppContext();
   switch (ctx.page) {
     case "dashboard": return <Dashboard />;
-    case "statistics": return <StatisticsPage />;
+    case "statistics": return <Dashboard />;
     case "mumin": return <MuminPage />;
     case "data-quality": return <DataQualityPage />;
     case "advanced-search": return <AdvancedSearchPage />;
