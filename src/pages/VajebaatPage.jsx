@@ -10,6 +10,7 @@ const MODES = ["Cash","Cheque","DD","Bank Transfer","UPI","Other"];
 const money = n => new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR",maximumFractionDigits:2}).format(Number(n)||0);
 const dateToday = () => new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"});
 const safeNum = v => Math.max(0, Number(v)||0);
+const html = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
 export function VajebaatPage() {
   const ctx = useAppContext();
@@ -41,9 +42,18 @@ export function VajebaatPage() {
 
   function change(k,v){setForm(f=>({...f,[k]:v}));}
   function printReport(){
+    if(loading){setError("Please wait for the records to finish loading, then print.");return;}
     if(!shown.length){setError("No records to print for the selected filters.");return;}
     setError("");
-    window.print();
+    const w=window.open("","_blank","width=1200,height=800");
+    if(!w){setError("Your browser blocked the print window. Allow pop-ups for this site and try again.");return;}
+    const details=shown.map(r=>`<tr><td>${html(r.its_number)}</td><td>${html(r.mumin_name)}</td><td class="num">${html(money(r.previous_takmeen))}</td><td class="num">${html(money(r.current_takmeen))}</td><td class="num">${html(money(r.amount_due))}</td><td class="num">${html(money(r.amount_paid))}</td><td class="num">${html(money(Math.max(0,safeNum(r.amount_due)-safeNum(r.amount_paid))))}</td><td>${html(r.payment_status||"—")}</td><td>${html(r.payment_mode||"—")}</td></tr>`).join("");
+    const filterText=[status==="All"?"All statuses":status,search.trim()?"Search: "+search.trim():""].filter(Boolean).join(" · ");
+    w.document.open();
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Vajebaat Report — ${html(year)}H</title><style>
+      @page{size:A4 landscape;margin:10mm}*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#111;background:#fff;font-size:10px;margin:0}h1{font-size:20px;margin:0 0 4px} .sub{font-size:11px;color:#444;margin-bottom:14px}.meta{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #777;padding:0 0 8px;margin-bottom:10px}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}.stat{border:1px solid #aaa;padding:8px}.label{font-size:9px;color:#444;margin-bottom:4px}.value{font-size:14px;font-weight:bold}table{width:100%;border-collapse:collapse;font-size:9px}thead{display:table-header-group}tr{break-inside:avoid;page-break-inside:avoid}th,td{border:1px solid #aaa;padding:5px 6px;text-align:left;vertical-align:top}th{background:#eee;font-weight:bold}.num{text-align:right;white-space:nowrap}.foot{margin-top:10px;font-size:9px;color:#444}@media screen{body{padding:20px}.print-tip{margin:0 0 14px;padding:10px;background:#f2f2f2;border:1px solid #ccc;font-size:12px}}@media print{.print-tip{display:none}}
+    </style></head><body><div class="print-tip">Print preview is ready. Choose Print, or press Ctrl+P to print / save as PDF.</div><h1>Husaini Mohallah — Vajebaat Report</h1><div class="sub">Year-wise Takmeen and payment records</div><div class="meta"><b>Hijri Year: ${html(year)}H</b><span>${html(filterText)}</span><span>Records: ${shown.length}</span></div><div class="summary"><div class="stat"><div class="label">Total Records</div><div class="value">${totals.count}</div></div><div class="stat"><div class="label">Total Amount Due</div><div class="value">${html(money(totals.due))}</div></div><div class="stat"><div class="label">Total Amount Paid</div><div class="value">${html(money(totals.paid))}</div></div><div class="stat"><div class="label">Balance</div><div class="value">${html(money(Math.max(0,totals.due-totals.paid)))}</div></div></div><table><thead><tr><th>ITS Number</th><th>Mumin Name</th><th>Last Year Takmeen</th><th>Current Takmeen</th><th>Amount Due</th><th>Amount Paid</th><th>Balance</th><th>Status</th><th>Payment Mode</th></tr></thead><tbody>${details}</tbody></table><div class="foot">Generated from Husaini Mohallah Database. Amounts shown in INR.</div><script>window.addEventListener('load',()=>{setTimeout(()=>window.print(),350)});<\/script></body></html>`);
+    w.document.close();
   }
   async function lookupMumin(){
     const its=String(form?.its_number||"").replace(/\D/g,"").slice(0,8);
