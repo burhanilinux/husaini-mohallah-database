@@ -10,7 +10,6 @@ import { LoginPage } from "./components/LoginPage.jsx";
 import { Sidebar } from "./components/Sidebar.jsx";
 const IEModal = lazy(() => import("./modals/IEModal.jsx").then((module) => ({ default: module.IEModal })));
 const Dashboard = lazy(() => import("./pages/Dashboard.jsx").then((module) => ({ default: module.Dashboard })));
-const StatisticsPage = lazy(() => import("./pages/StatisticsPage.jsx").then((module) => ({ default: module.StatisticsPage })));
 const MuminPage = lazy(() => import("./pages/MuminPage.jsx").then((module) => ({ default: module.MuminPage })));
 const DataQualityPage = lazy(() => import("./pages/DataQualityPage.jsx").then((module) => ({ default: module.DataQualityPage })));
 const AdvancedSearchPage = lazy(() => import("./pages/AdvancedSearchPage.jsx").then((module) => ({ default: module.AdvancedSearchPage })));
