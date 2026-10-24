@@ -61,9 +61,25 @@ export function VajebaatPage() {
     if(its.length!==8){setError("Enter a valid 8-digit ITS number.");return;}
     try {
       const found=await sbGet("mumin_data","its_number=eq."+encodeURIComponent(its)+"&deleted_at=is.null&select=its_number,name");
-      if(found?.[0]){setForm(f=>({...f,its_number:its,mumin_name:found[0].name||""}));setError("");}
-      else setError("This ITS number was not found in Mumin Data.");
-    } catch(e){setError(e.message||"Unable to find Mumin.");}
+      if(!found?.[0]){setError("This ITS number was not found in Mumin Data.");return;}
+      const targetYear=Number(form?.year)||THIS_YEAR;
+      let previousTakmeen=form?.previous_takmeen??"0";
+      let previousNote="";
+      if(targetYear>1400){
+        const previousRows=await sbGet("vajebaat_entries","its_number=eq."+encodeURIComponent(its)+"&year=eq."+(targetYear-1)+"&select=year,current_takmeen,previous_takmeen&order=updated_at.desc");
+        if(previousRows?.length){
+          // The prior year's current Takmeen is this year's Last Year Takmeen.
+          const prior=previousRows.find(r=>safeNum(r.current_takmeen)>0)||previousRows[0];
+          previousTakmeen=String(safeNum(prior.current_takmeen));
+          previousNote="Fetched last year’s Takmeen from "+(targetYear-1)+"H.";
+        } else {
+          previousNote="Mumin found. No Vajebaat record found for "+(targetYear-1)+"H, so Last Year Takmeen was left unchanged.";
+        }
+      }
+      setForm(f=>({...f,its_number:its,mumin_name:found[0].name||"",previous_takmeen:previousTakmeen}));
+      setError("");
+      setNotice(previousNote);
+    } catch(e){setError(e.message||"Unable to fetch Mumin or last year’s Takmeen.");}
   }
   function editRecord(r){setForm({...r});setError("");setNotice("");}
   function newRecord(){setForm({...EMPTY,year:Number(year)});setError("");setNotice("");}
