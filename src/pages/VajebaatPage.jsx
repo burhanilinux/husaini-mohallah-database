@@ -66,10 +66,15 @@ export function VajebaatPage() {
       let previousTakmeen=form?.previous_takmeen??"0";
       let previousNote="";
       if(targetYear>1400){
-        const previousRows=await sbGet("vajebaat_entries","its_number=eq."+encodeURIComponent(its)+"&year=eq."+(targetYear-1)+"&select=year,current_takmeen,previous_takmeen&order=updated_at.desc");
+        const previousRows=await sbGet("vajebaat_entries","its_number=eq."+encodeURIComponent(its)+"&year=eq."+(targetYear-1)+"&select=year,mumin_name,current_takmeen,previous_takmeen&order=updated_at.desc");
         if(previousRows?.length){
+          // Prefer the matching Mumin name when an ITS has multiple historical rows.
+          const matchedName=String(found[0].name||"").trim().toLocaleLowerCase();
+          const sameMumin=previousRows.find(r=>String(r.mumin_name||"").trim().toLocaleLowerCase()===matchedName);
           // The prior year's current Takmeen is this year's Last Year Takmeen.
-          const prior=previousRows.find(r=>safeNum(r.current_takmeen)>0)||previousRows[0];
+          const prior=(sameMumin&&safeNum(sameMumin.current_takmeen)>0)
+            ? sameMumin
+            : previousRows.find(r=>safeNum(r.current_takmeen)>0)||sameMumin||previousRows[0];
           previousTakmeen=String(safeNum(prior.current_takmeen));
           previousNote="Fetched last year’s Takmeen from "+(targetYear-1)+"H.";
         } else {
