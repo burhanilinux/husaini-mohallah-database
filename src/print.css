@@ -184,16 +184,38 @@
 }
 
 
-/* Advanced Report Builder: override the Survey module's global print visibility rule.
-   Scope this to the report builder so Survey printing remains unchanged. */
+
+
+/* Advanced Report Builder: print only the results report, not the app interface. */
 @media print {
-  .layout:has(.report-fields-card),
-  .layout:has(.report-fields-card) * {
+  body * {
+    visibility: hidden !important;
+  }
+  .advanced-report-print-area,
+  .advanced-report-print-area * {
     visibility: visible !important;
   }
-
-  .layout:has(.report-fields-card) .main {
-    position: static !important;
+  .advanced-report-print-area {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
     overflow: visible !important;
+    break-inside: auto !important;
+  }
+  .advanced-report-print-area .card-hdr {
+    display: block !important;
+  }
+  .advanced-report-print-area table,
+  .advanced-report-print-area tr {
+    break-inside: auto !important;
+  }
+  .advanced-report-print-area th,
+  .advanced-report-print-area td {
+    color: #111 !important;
+    background: #fff !important;
   }
 }
