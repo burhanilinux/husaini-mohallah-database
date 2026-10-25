@@ -182,3 +182,18 @@
     margin: 12mm;
   }
 }
+
+
+/* Advanced Report Builder: override the Survey module's global print visibility rule.
+   Scope this to the report builder so Survey printing remains unchanged. */
+@media print {
+  .layout:has(.report-fields-card),
+  .layout:has(.report-fields-card) * {
+    visibility: visible !important;
+  }
+
+  .layout:has(.report-fields-card) .main {
+    position: static !important;
+    overflow: visible !important;
+  }
+}
