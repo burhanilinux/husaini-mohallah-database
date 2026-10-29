@@ -118,7 +118,7 @@ export function ReportBuilderPage(){
   var [columns,setColumns]=useState(DEFAULT_COLUMNS.slice());
   var [columnError,setColumnError]=useState("");
   var sectors=useMemo(function(){return Array.from(new Set(data.map(function(m){return String(m.area_sector||"").trim();}).filter(Boolean))).sort();},[data]);
-  var rows=useMemo(function(){var q=search.trim().toLowerCase(),itsTokens=search.split(/[\\s,;\\n\\r]+/).map(function(v){return v.trim();}).filter(Boolean),multipleIts=itsTokens.length>1||/[,;\\n\\r]/.test(search),lo=startAge===""?null:Number(startAge),hi=endAge===""?null:Number(endAge);return data.filter(function(m){
+  var rows=useMemo(function(){var q=search.trim().toLowerCase(),itsTokens=search.split(/[\s,;\n\r]+/).map(function(v){return v.trim();}).filter(Boolean),multipleIts=itsTokens.length>1||/[,;\n\r]/.test(search),lo=startAge===""?null:Number(startAge),hi=endAge===""?null:Number(endAge);return data.filter(function(m){
     var age=getMuminAge(m),source=m.source_data||{},its=String(m.its_number||m.its_id||"").trim(),hofIts=String(source.HOF_ID||source.hof_id||m.HOF_ID||m.hof_id||"").trim(),text=(its+" "+(m.name||"")+" "+(m.phone||"")+" "+hofIts).toLowerCase();
     if(q){if(multipleIts){if(itsTokens.indexOf(its)<0)return false;}else if(text.indexOf(q)<0)return false;}if(lo!==null&&(age===null||age<lo))return false;if(hi!==null&&(age===null||age>hi))return false;
     if(sector&&m.area_sector!==sector)return false;if(gender&&m.gender!==gender)return false;if(status&&m.status!==status)return false;
