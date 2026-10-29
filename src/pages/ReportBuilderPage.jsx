@@ -118,9 +118,9 @@ export function ReportBuilderPage(){
   var [columns,setColumns]=useState(DEFAULT_COLUMNS.slice());
   var [columnError,setColumnError]=useState("");
   var sectors=useMemo(function(){return Array.from(new Set(data.map(function(m){return String(m.area_sector||"").trim();}).filter(Boolean))).sort();},[data]);
-  var rows=useMemo(function(){var q=search.trim().toLowerCase(),lo=startAge===""?null:Number(startAge),hi=endAge===""?null:Number(endAge);return data.filter(function(m){
+  var rows=useMemo(function(){var q=search.trim().toLowerCase(),itsTokens=search.split(/[\\s,;\\n\\r]+/).map(function(v){return v.trim();}).filter(Boolean),multipleIts=itsTokens.length>1||/[,;\\n\\r]/.test(search),lo=startAge===""?null:Number(startAge),hi=endAge===""?null:Number(endAge);return data.filter(function(m){
     var age=getMuminAge(m),source=m.source_data||{},its=String(m.its_number||m.its_id||"").trim(),hofIts=String(source.HOF_ID||source.hof_id||m.HOF_ID||m.hof_id||"").trim(),text=(its+" "+(m.name||"")+" "+(m.phone||"")+" "+hofIts).toLowerCase();
-    if(q&&text.indexOf(q)<0)return false;if(lo!==null&&(age===null||age<lo))return false;if(hi!==null&&(age===null||age>hi))return false;
+    if(q){if(multipleIts){if(itsTokens.indexOf(its)<0)return false;}else if(text.indexOf(q)<0)return false;}if(lo!==null&&(age===null||age<lo))return false;if(hi!==null&&(age===null||age>hi))return false;
     if(sector&&m.area_sector!==sector)return false;if(gender&&m.gender!==gender)return false;if(status&&m.status!==status)return false;
     if(hofOnly||template==="hof"){var type=String(source.HOF_FM_TYPE||source.hof_fm_type||m.HOF_FM_TYPE||m.hof_fm_type||"").toUpperCase();if(type!=="HOF"&&!String(hofIts).trim())return false;}if(hasPhone&&!String(m.phone||"").trim())return false;return true;
   });},[data,search,startAge,endAge,sector,gender,status,hofOnly,hasPhone,template]);
@@ -137,7 +137,7 @@ export function ReportBuilderPage(){
   return <div>
     <div className="page-hdr"><div className="page-title">Advanced Report Builder</div><div className="page-sub">Build, save and export filtered Mumin reports.</div></div>
     <div className="card"><div className="advanced-search-filters">
-      <input className="input" placeholder="Search ITS or name" value={search} onChange={function(e){setSearch(e.target.value);}}/>
+      <input className="input" placeholder="Search name / ITS, or enter multiple ITS separated by commas (e.g. 20309520, 30336904, 30336905)" value={search} onChange={function(e){setSearch(e.target.value);}}/>
       <input className="input" type="number" min="0" placeholder="Start Age" value={startAge} onChange={function(e){setStartAge(e.target.value);}}/>
       <input className="input" type="number" min="0" placeholder="End Age" value={endAge} onChange={function(e){setEndAge(e.target.value);}}/>
       <select className="input" value={sector} onChange={function(e){setSector(e.target.value);}}><option value="">All Sectors</option>{sectors.map(function(s){return <option key={s}>{s}</option>;})}</select>
