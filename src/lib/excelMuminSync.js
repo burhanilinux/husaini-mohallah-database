@@ -80,13 +80,12 @@ function incharge(row, prefix) {
     qadambosi_sharaf: text(row.Qadambosi_Sharaf) || null,
     raudat_tahera_ziyarat: text(row.Raudat_Tahera_Ziyarat) || null,
     karbala_ziyarat: text(row.Karbala_Ziyarat) || null,
-    // FIX: this is an INTEGER column — preserve an explicit zero and omit blanks.
-    warakatul_tarkhis: text(row.Warakatul_Tarkhis) || null,
     last_scanned_event: text(row.Last_Scanned_Event) || null,
     last_scanned_place: text(row.Last_Scanned_Place) || null,
   };
   // Excel blanks must never erase values maintained in the app.
   if (text(row.Age) !== "") payload.age = intOrNullAllowZero(row.Age);
+  if (text(row.Warakatul_Tarkhis) !== "") payload.warakatul_tarkhis = intOrNullAllowZero(row.Warakatul_Tarkhis);
   if (text(row.Ashara_Mubaraka) !== "") payload.ashara_mubaraka = intOrNullAllowZero(row.Ashara_Mubaraka);
   if (text(row.Date_Of_Birth)) payload.dob = text(row.Date_Of_Birth);
   if (existing) {
