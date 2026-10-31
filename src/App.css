@@ -756,13 +756,13 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280
 .survey-report-table td{color:#ddd7ca}.survey-report-table tbody tr:hover{background:rgba(201,168,76,.04)}
 @media(max-width:800px){.survey-report-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.survey-report-filters .btn{width:100%}.survey-report-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media print{
-  body *{visibility:hidden!important}
-  .survey-report-section,.survey-report-section *{visibility:visible!important}
-  .survey-report-section{position:absolute;left:0;top:0;width:100%;background:white!important;color:black!important;border:0!important;padding:0!important}
-  .survey-report-section .survey-report-filters,.survey-report-section .survey-report-actions,.survey-report-section .survey-section-head p{display:none!important}
-  .survey-report-table-wrap{max-height:none!important;overflow:visible!important;border:0!important}
-  .survey-report-table{width:100%!important;min-width:0!important;font-size:8px!important}
-  .survey-report-table th,.survey-report-table td{position:static!important;background:white!important;color:black!important;border:1px solid #999!important;padding:4px!important}
+  body[data-print="survey"] *{visibility:hidden!important}
+  body[data-print="survey"] .survey-report-section,body[data-print="survey"] .survey-report-section *{visibility:visible!important}
+  body[data-print="survey"] .survey-report-section{position:absolute;left:0;top:0;width:100%;background:white!important;color:black!important;border:0!important;padding:0!important}
+  body[data-print="survey"] .survey-report-section .survey-report-filters,body[data-print="survey"] .survey-report-section .survey-report-actions,body[data-print="survey"] .survey-report-section .survey-section-head p{display:none!important}
+  body[data-print="survey"] .survey-report-table-wrap{max-height:none!important;overflow:visible!important;border:0!important}
+  body[data-print="survey"] .survey-report-table{width:100%!important;min-width:0!important;font-size:8px!important}
+  body[data-print="survey"] .survey-report-table th,body[data-print="survey"] .survey-report-table td{position:static!important;background:white!important;color:black!important;border:1px solid #999!important;padding:4px!important}
 }
 
 

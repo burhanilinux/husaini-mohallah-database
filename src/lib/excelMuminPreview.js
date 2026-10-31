@@ -32,6 +32,11 @@ export function analyzeMuminExcel(rows, existingRows, existingSectorNames) {
     var its = intOrNull(m.its_id !== undefined ? m.its_id : m.its_number);
     if (its !== null) existingByIts[its] = m;
   });
+  var sourceItsSet = {};
+  source.forEach(function (r) {
+    var its = intOrNull(r.ITS_ID);
+    if (its !== null) sourceItsSet[its] = true;
+  });
 
   var counts = { new: 0, updated: 0, unchanged: 0, conflicts: 0, invalid: 0 };
   var details = { new: [], updated: [], unchanged: [], conflicts: [], invalid: [] };
@@ -62,6 +67,10 @@ export function analyzeMuminExcel(rows, existingRows, existingSectorNames) {
     }
 
     var current = existingByIts[its];
+    if (hofId !== null && family !== null && !sourceItsSet[hofId] && !existingByIts[hofId]) {
+      counts.conflicts++;
+      details.conflicts.push({ row: row, its: its, name: name, reason: "HOF_ID " + hofId + " is not present in the workbook or current database" });
+    }
     if (!current) {
       counts.new++;
       details.new.push({ row: row, its: its, name: name || "Unnamed" });
@@ -80,7 +89,7 @@ export function analyzeMuminExcel(rows, existingRows, existingSectorNames) {
     diff("Address", r.Address, current.address);
     diff("Sector", r.Sector, current.area_sector);
     diff("Family", r.Family_ID, current.family_id);
-    diff("Spouse", r.Spouse_ITS_ID, current.spouse_its_id);
+    diff("Spouse", intOrNull(r.Spouse_ITS_ID), intOrNull(current.spouse_its_id));
     diff("Status", text(r.Inactive_Status) ? "Inactive" : "Active", current.status);
 
     if (changes.length) {
@@ -91,13 +100,6 @@ export function analyzeMuminExcel(rows, existingRows, existingSectorNames) {
       details.unchanged.push({ row: row, its: its, name: name || current.name || "Unnamed" });
     }
 
-    if (hofId !== null && family !== null) {
-      var hofInSource = source.some(function (x) { return intOrNull(x.ITS_ID) === hofId; });
-      if (!hofInSource && !existingByIts[hofId]) {
-        counts.conflicts++;
-        details.conflicts.push({ row: row, its: its, name: name, reason: "HOF_ID " + hofId + " is not present in the workbook or current database" });
-      }
-    }
   });
 
   Object.keys(seen).forEach(function (its) {

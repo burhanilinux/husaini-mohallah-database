@@ -129,7 +129,13 @@ export function ReportBuilderPage(){
   function saveReport(){var name=savedName.trim();if(!name){alert("Enter a report name.");return;}var next=saved.filter(function(x){return x.name.toLowerCase()!==name.toLowerCase();});next.unshift({name:name,filters:filters(),updatedAt:new Date().toISOString()});next=next.slice(0,20);window.localStorage.setItem(STORAGE,JSON.stringify(next));setSaved(next);setSavedName("");}
   function removeReport(name){var next=saved.filter(function(x){return x.name!==name;});window.localStorage.setItem(STORAGE,JSON.stringify(next));setSaved(next);}
   function reset(){apply({});}
-  function printReport(){window.print();}
+  function printReport(){
+    var body=document.body;
+    function clearPrintMode(){delete body.dataset.print;}
+    body.dataset.print="advanced-report";
+    window.addEventListener("afterprint",clearPrintMode,{once:true});
+    window.print();
+  }
   function exportExcel(){var exportData=data.slice();exportData._subSectors=ctx.subSectorsData||[];var out=rows.map(function(m){var item={};columns.forEach(function(key){var col=REPORT_COLUMNS.find(function(x){return x.key===key;});if(col)item[col.label]=rowValue(m,key,exportData);});return item;});var headers=columns.map(function(key){var col=REPORT_COLUMNS.find(function(x){return x.key===key;});return col?col.label:key;});toXLS(out,headers,"advanced_report");}
   function toggleAllFields(all){setColumnError("");setColumns(all?REPORT_COLUMNS.map(function(c){return c.key;}):DEFAULT_COLUMNS.slice());}
   function toggleColumn(key){setColumnError("");setColumns(function(prev){if(prev.indexOf(key)>=0){if(prev.length===1){setColumnError("Select at least one column.");return prev;}return prev.filter(function(x){return x!==key;});}return prev.concat(key);});}

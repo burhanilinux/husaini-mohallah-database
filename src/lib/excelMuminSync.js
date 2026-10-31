@@ -251,11 +251,27 @@ export async function syncMuminExcel(rows, meta, progress) {
     (foundHofs || []).forEach(function (m) { existingHofIds[Number(m.its_id)] = true; });
   }
   families.forEach(function (f) { if (f.hof_its_id !== null && !existingHofIds[f.hof_its_id]) f.hof_its_id = null; });
-  var existingFamilyRows = await sbGet("families", "select=family_id");
+  var existingFamilyRows = await sbGet("families", "select=family_id,hof_its_id");
   var existingFamilyIds = {};
   (existingFamilyRows || []).forEach(function (f) { existingFamilyIds[String(f.family_id)] = true; });
   var newFamilies = families.filter(function (f) { return !existingFamilyIds[String(f.family_id)]; });
   if (newFamilies.length) await chunksUpsert("families", newFamilies, "family_id", 200);
+
+  // The mumin_data upsert trigger may have created family rows with a null HOF.
+  // Fill only missing HOF links after all Mumin records exist; never replace an
+  // HOF already maintained on an existing family record.
+  var familyRowsAfterImport = await sbGet("families", "select=family_id,hof_its_id");
+  var familyRowById = {};
+  (familyRowsAfterImport || []).forEach(function (f) { familyRowById[String(f.family_id)] = f; });
+  for (var fi = 0; fi < families.length; fi++) {
+    var wantedFamily = families[fi];
+    var storedFamily = familyRowById[String(wantedFamily.family_id)];
+    if (!storedFamily || storedFamily.hof_its_id !== null && storedFamily.hof_its_id !== undefined) continue;
+    if (wantedFamily.hof_its_id === null || !existingHofIds[wantedFamily.hof_its_id]) continue;
+    await sbUpdateWhere("families", "family_id=eq." + encodeURIComponent(wantedFamily.family_id), {
+      hof_its_id: wantedFamily.hof_its_id
+    });
+  }
 
   // Resolve only ITS IDs that actually exist in mumin_data before assigning FK values.
   var inchargeIds = {};
