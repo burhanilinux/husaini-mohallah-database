@@ -100,10 +100,25 @@ function incharge(row, prefix) {
 
 
 async function chunksUpsert(table, rows, conflict, chunkSize) {
+  // PostgREST rejects bulk payloads whose objects have different keys
+  // (PGRST102 "All object keys must match"). Rows are built with optional
+  // columns so blanks never overwrite app-maintained data, so group rows by
+  // their exact key set and upsert each group separately.
+  var groups = {};
+  rows.forEach(function (r) {
+    var sig = Object.keys(r).sort().join("|");
+    (groups[sig] = groups[sig] || []).push(r);
+  });
   var count = 0;
-  for (var i = 0; i < rows.length; i += chunkSize) {
-    var chunk = rows.slice(i, i + chunkSize); if (!chunk.length) continue;
-    await sbUpsert(table, chunk, conflict); count += chunk.length;
+  var sigs = Object.keys(groups);
+  for (var g = 0; g < sigs.length; g++) {
+    var list = groups[sigs[g]];
+    for (var i = 0; i < list.length; i += chunkSize) {
+      var chunk = list.slice(i, i + chunkSize);
+      if (!chunk.length) continue;
+      await sbUpsert(table, chunk, conflict);
+      count += chunk.length;
+    }
   }
   return count;
 }
