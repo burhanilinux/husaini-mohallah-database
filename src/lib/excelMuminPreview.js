@@ -1,8 +1,11 @@
 import { SOURCE_COLUMNS } from "./excelMuminSync.js";
 
 function text(v) { return v === null || v === undefined ? "" : String(v).trim(); }
-function intOrNull(v) { var n = Number(text(v)); return Number.isFinite(n) && n !== 0 ? Math.trunc(n) : null; }
+function intOrNull(v) { var n = Number(text(v)); return text(v) !== "" && Number.isFinite(n) && n !== 0 ? Math.trunc(n) : null; }
 function clean(v) { return text(v); }
+// Normalizes relationship IDs (Family / Spouse) so the Excel sentinel 0 and
+// blanks compare equal to a stored NULL.
+function relId(v) { var n = intOrNull(v); return n === null ? "" : String(n); }
 
 // ── Column drift guard ──────────────────────────────────────────────
 export function checkColumnDrift(rows) {
@@ -32,10 +35,12 @@ export function analyzeMuminExcel(rows, existingRows, existingSectorNames) {
     var its = intOrNull(m.its_id !== undefined ? m.its_id : m.its_number);
     if (its !== null) existingByIts[its] = m;
   });
-  var sourceItsSet = {};
+
+  // Every ITS present in the workbook, so HOF lookups are O(1).
+  var sourceIts = {};
   source.forEach(function (r) {
     var its = intOrNull(r.ITS_ID);
-    if (its !== null) sourceItsSet[its] = true;
+    if (its !== null) sourceIts[its] = true;
   });
 
   var counts = { new: 0, updated: 0, unchanged: 0, conflicts: 0, invalid: 0 };
@@ -66,11 +71,14 @@ export function analyzeMuminExcel(rows, existingRows, existingSectorNames) {
       selfHeadedFM.push({ row: row, its: its, name: name || "Unnamed" });
     }
 
-    var current = existingByIts[its];
-    if (hofId !== null && family !== null && !sourceItsSet[hofId] && !existingByIts[hofId]) {
+    // HOF reference check — runs for EVERY valid row (new or existing).
+    // A self-reference is fine (the HOF row itself).
+    if (hofId !== null && hofId !== its && !sourceIts[hofId] && !existingByIts[hofId]) {
       counts.conflicts++;
       details.conflicts.push({ row: row, its: its, name: name, reason: "HOF_ID " + hofId + " is not present in the workbook or current database" });
     }
+
+    var current = existingByIts[its];
     if (!current) {
       counts.new++;
       details.new.push({ row: row, its: its, name: name || "Unnamed" });
@@ -81,6 +89,9 @@ export function analyzeMuminExcel(rows, existingRows, existingSectorNames) {
     function diff(label, incoming, stored) {
       if (clean(incoming) !== clean(stored)) changes.push(label);
     }
+    function diffRel(label, incoming, stored) {
+      if (relId(incoming) !== relId(stored)) changes.push(label);
+    }
     diff("Name", r.Full_Name, current.name);
     diff("Age", r.Age, current.age);
     diff("Gender", r.Gender || "Male", current.gender || "Male");
@@ -88,8 +99,8 @@ export function analyzeMuminExcel(rows, existingRows, existingSectorNames) {
     diff("Email", r.Email, current.email);
     diff("Address", r.Address, current.address);
     diff("Sector", r.Sector, current.area_sector);
-    diff("Family", r.Family_ID, current.family_id);
-    diff("Spouse", intOrNull(r.Spouse_ITS_ID), intOrNull(current.spouse_its_id));
+    diffRel("Family", r.Family_ID, current.family_id);
+    diffRel("Spouse", r.Spouse_ITS_ID, current.spouse_its_id);
     diff("Status", text(r.Inactive_Status) ? "Inactive" : "Active", current.status);
 
     if (changes.length) {
@@ -99,7 +110,6 @@ export function analyzeMuminExcel(rows, existingRows, existingSectorNames) {
       counts.unchanged++;
       details.unchanged.push({ row: row, its: its, name: name || current.name || "Unnamed" });
     }
-
   });
 
   Object.keys(seen).forEach(function (its) {
