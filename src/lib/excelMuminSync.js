@@ -53,7 +53,7 @@ function incharge(row, prefix) {
   return { its: intOrNull(row[prefix + "_ITSID"]), name: text(row[prefix + "_Name"]) };
 }
 
-   function buildPayload(row, subSectorIdByKey, existing) {
+function buildPayload(row, subSectorIdByKey, existing) {
   var its = intOrNull(row.ITS_ID), sector = text(row.Sector), sub = text(row.Sub_Sector), subKey = sector + "\u0000" + sub;
   var payload = {
     its_id: its, its_number: its === null ? "" : String(its), name: text(row.Full_Name),
@@ -80,7 +80,6 @@ function incharge(row, prefix) {
     qadambosi_sharaf: text(row.Qadambosi_Sharaf) || null,
     raudat_tahera_ziyarat: text(row.Raudat_Tahera_Ziyarat) || null,
     karbala_ziyarat: text(row.Karbala_Ziyarat) || null,
-    // FIX: this is an INTEGER column — preserve an explicit zero and omit blanks.
     warakatul_tarkhis: text(row.Warakatul_Tarkhis) || null,
     last_scanned_event: text(row.Last_Scanned_Event) || null,
     last_scanned_place: text(row.Last_Scanned_Place) || null,
@@ -98,27 +97,11 @@ function incharge(row, prefix) {
   return payload;
 }
 
-
 async function chunksUpsert(table, rows, conflict, chunkSize) {
-  // PostgREST rejects bulk payloads whose objects have different keys
-  // (PGRST102 "All object keys must match"). Rows are built with optional
-  // columns so blanks never overwrite app-maintained data, so group rows by
-  // their exact key set and upsert each group separately.
-  var groups = {};
-  rows.forEach(function (r) {
-    var sig = Object.keys(r).sort().join("|");
-    (groups[sig] = groups[sig] || []).push(r);
-  });
   var count = 0;
-  var sigs = Object.keys(groups);
-  for (var g = 0; g < sigs.length; g++) {
-    var list = groups[sigs[g]];
-    for (var i = 0; i < list.length; i += chunkSize) {
-      var chunk = list.slice(i, i + chunkSize);
-      if (!chunk.length) continue;
-      await sbUpsert(table, chunk, conflict);
-      count += chunk.length;
-    }
+  for (var i = 0; i < rows.length; i += chunkSize) {
+    var chunk = rows.slice(i, i + chunkSize); if (!chunk.length) continue;
+    await sbUpsert(table, chunk, conflict); count += chunk.length;
   }
   return count;
 }
@@ -228,18 +211,28 @@ export async function syncMuminExcel(rows, meta, progress) {
   }
   report("Mumin records synchronized", source.length, source.length);
 
+  // ── Families ────────────────────────────────────────────────────
+  // NOTE: the ensure_family_for_mumin_import trigger creates a blank family
+  // row (hof_its_id = NULL) as each Mumin row is upserted above. So by this
+  // point nearly every family already exists, and "only insert missing
+  // families" would never set a HOF. We therefore (a) insert any family still
+  // missing, and (b) back-fill hof_its_id on existing families where it is
+  // NULL. A HOF already set in the app is never overwritten.
   report("Synchronizing families", 0, source.length);
   var familyMap = {};
   source.forEach(function (r) {
-    var family = intOrNull(r.Family_ID), hof = intOrNull(r.HOF_ID);
+    var family = intOrNull(r.Family_ID);
     if (family === null) return;
+    var its = intOrNull(r.ITS_ID);
+    var hof = intOrNull(r.HOF_ID);
+    // A row typed HOF with no HOF_ID heads its own family.
+    if (hof === null && text(r.HOF_FM_TYPE).toUpperCase() === "HOF") hof = its;
     if (!familyMap[family]) familyMap[family] = { family_id: family, hof_its_id: null, sabil_no: null };
-    // Only set HOF when that ITS record actually exists. This prevents the FK from
-    // rejecting a family when the export contains a stale/missing HOF reference.
     if (hof !== null && !familyMap[family].hof_its_id) familyMap[family].hof_its_id = hof;
   });
   var families = Object.keys(familyMap).map(function (k) { return familyMap[k]; });
-  // Existing family HOF and Sabil values are app-maintained; only create missing family rows.
+
+  // Only reference HOFs that actually exist in mumin_data (FK safety).
   var hofIds = {};
   families.forEach(function (f) { if (f.hof_its_id !== null) hofIds[f.hof_its_id] = true; });
   var existingHofIds = {};
@@ -251,26 +244,23 @@ export async function syncMuminExcel(rows, meta, progress) {
     (foundHofs || []).forEach(function (m) { existingHofIds[Number(m.its_id)] = true; });
   }
   families.forEach(function (f) { if (f.hof_its_id !== null && !existingHofIds[f.hof_its_id]) f.hof_its_id = null; });
+
   var existingFamilyRows = await sbGet("families", "select=family_id,hof_its_id");
-  var existingFamilyIds = {};
-  (existingFamilyRows || []).forEach(function (f) { existingFamilyIds[String(f.family_id)] = true; });
-  var newFamilies = families.filter(function (f) { return !existingFamilyIds[String(f.family_id)]; });
+  var existingFamilyById = {};
+  (existingFamilyRows || []).forEach(function (f) { existingFamilyById[String(f.family_id)] = f; });
+
+  var newFamilies = families.filter(function (f) { return !existingFamilyById[String(f.family_id)]; });
   if (newFamilies.length) await chunksUpsert("families", newFamilies, "family_id", 200);
 
-  // The mumin_data upsert trigger may have created family rows with a null HOF.
-  // Fill only missing HOF links after all Mumin records exist; never replace an
-  // HOF already maintained on an existing family record.
-  var familyRowsAfterImport = await sbGet("families", "select=family_id,hof_its_id");
-  var familyRowById = {};
-  (familyRowsAfterImport || []).forEach(function (f) { familyRowById[String(f.family_id)] = f; });
-  for (var fi = 0; fi < families.length; fi++) {
-    var wantedFamily = families[fi];
-    var storedFamily = familyRowById[String(wantedFamily.family_id)];
-    if (!storedFamily || storedFamily.hof_its_id !== null && storedFamily.hof_its_id !== undefined) continue;
-    if (wantedFamily.hof_its_id === null || !existingHofIds[wantedFamily.hof_its_id]) continue;
-    await sbUpdateWhere("families", "family_id=eq." + encodeURIComponent(wantedFamily.family_id), {
-      hof_its_id: wantedFamily.hof_its_id
-    });
+  // Back-fill HOF on existing families that still have none.
+  var hofBackfill = families.filter(function (f) {
+    var row = existingFamilyById[String(f.family_id)];
+    return row && (row.hof_its_id === null || row.hof_its_id === undefined) && f.hof_its_id !== null;
+  });
+  for (var hb = 0; hb < hofBackfill.length; hb += 20) {
+    await Promise.all(hofBackfill.slice(hb, hb + 20).map(function (f) {
+      return sbUpdateWhere("families", "family_id=eq." + encodeURIComponent(f.family_id) + "&hof_its_id=is.null", { hof_its_id: f.hof_its_id });
+    }));
   }
 
   // Resolve only ITS IDs that actually exist in mumin_data before assigning FK values.
@@ -306,12 +296,24 @@ export async function syncMuminExcel(rows, meta, progress) {
 
   report("Linking sub-sector incharges", 0, source.length);
   var subInchargeByKey = {};
-  source.forEach(function (r) { var sector = text(r.Sector), sub = text(r.Sub_Sector); if (!sector || !sub) return; var key = sector + "\u0000" + sub, current = subInchargeByKey[key] || {}, ic = incharge(r, "Sub_Sector_Incharge"); if (!current.its && ic.its && existingInchargeIds[ic.its]) current.its = ic.its; if (!current.name && ic.name) current.name = ic.name; subInchargeByKey[key] = current; });
-  await Promise.all(Object.keys(subInchargeByKey).map(async function (key) { var id = subSectorIdByKey[key]; if (!id) return; var data = subInchargeByKey[key], patch = {}; if (data.its) { patch.incharge_its_id = data.its; patch.musaid_its = String(data.its); } if (data.name) patch.musaid_name = data.name; if (Object.keys(patch).length) await sbUpdateWhere("sub_sectors", "id=eq." + encodeURIComponent(id), patch); }));
+  source.forEach(function (r) {
+    var sector = text(r.Sector), sub = text(r.Sub_Sector); if (!sector || !sub) return;
+    var key = sector + "\u0000" + sub, current = subInchargeByKey[key] || {}, ic = incharge(r, "Sub_Sector_Incharge");
+    if (!current.its && ic.its && existingInchargeIds[ic.its]) current.its = ic.its;
+    if (!current.name && ic.name) current.name = ic.name;
+    subInchargeByKey[key] = current;
+  });
+  await Promise.all(Object.keys(subInchargeByKey).map(async function (key) {
+    var id = subSectorIdByKey[key]; if (!id) return;
+    var data = subInchargeByKey[key], patch = {};
+    if (data.its) { patch.incharge_its_id = data.its; patch.musaid_its = String(data.its); }
+    if (data.name) patch.musaid_name = data.name;
+    if (Object.keys(patch).length) await sbUpdateWhere("sub_sectors", "id=eq." + encodeURIComponent(id), patch);
+  }));
 
-   report("Synchronizing organisations", 0, source.length);
+  report("Synchronizing organisations", 0, source.length);
   var result = {
-    imported: source.length, families: families.length,
+    imported: source.length, families: families.length, hofsBackfilled: hofBackfill.length,
     sectors: Object.keys(sectorNames).length, subSectors: Object.keys(subKeySet).length,
     organisations: 0, memberships: 0,
   };
@@ -324,8 +326,7 @@ export async function syncMuminExcel(rows, meta, progress) {
     organisations = organisations.concat(newOrgs);
 
     // mumineen_organisations references mumin_data.id (mumin_id), not its_id —
-    // resolve each ITS number to its internal row id before linking. This was
-    // previously sent as its_id directly, which does not match the schema.
+    // resolve each ITS number to its internal row id before linking.
     var allIts = [];
     orgEntries.forEach(function (o) { Object.keys(o.roleByIts).forEach(function (its) { allIts.push(Number(its)); }); });
     var idByIts = {};
