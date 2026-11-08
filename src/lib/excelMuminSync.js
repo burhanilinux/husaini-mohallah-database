@@ -53,47 +53,91 @@ function incharge(row, prefix) {
   return { its: intOrNull(row[prefix + "_ITSID"]), name: text(row[prefix + "_Name"]) };
 }
 
+function setIfPresent(obj, key, value) {
+  var normalized = text(value);
+  if (normalized !== "") obj[key] = normalized;
+}
+
 function buildPayload(row, subSectorIdByKey, existing) {
-  var its = intOrNull(row.ITS_ID), sector = text(row.Sector), sub = text(row.Sub_Sector), subKey = sector + "\u0000" + sub;
+  var its = intOrNull(row.ITS_ID);
+  var sector = text(row.Sector);
+  var sub = text(row.Sub_Sector);
+  var subKey = sector + "\u0000" + sub;
   var payload = {
-    its_id: its, its_number: its === null ? "" : String(its), name: text(row.Full_Name),
-    gender: text(row.Gender) || "Male", phone: text(row.Mobile), email: text(row.Email),
-    address: text(row.Address), area_sector: sector, sub_sector_id: subSectorIdByKey[subKey] || null,
-    status: text(row.Inactive_Status) ? "Inactive" : "Active", source_data: row,
-    occupation: text(row.Occupation) || null,
-    sub_occupation: text(row.Sub_Occupation) || null,
-    qualification: text(row.Qualification) || null,
-    languages: text(row.Languages) || null,
-    hunars: text(row.Hunars) || null,
-    marital_status: text(row.Marital_Status) || null,
-    blood_group: text(row.Blood_Group) || null,
-    misaq: text(row.Misaq) || null,
-    city: text(row.City) || null,
-    vatan: text(row.Vatan) || null,
-    nationality: text(row.Nationality) || null,
-    whatsapp_no: text(row.WhatsApp_No) || null,
-    housing: text(row.Housing) || null,
-    type_of_house: text(row.Type_of_House) || null,
-    data_verification_status: text(row.Data_Verifcation_Status) || null,
-    photo_verification_status: text(row.Photo_Verifcation_Status) || null,
-    quran_sanad: text(row.Quran_Sanad) || null,
-    qadambosi_sharaf: text(row.Qadambosi_Sharaf) || null,
-    raudat_tahera_ziyarat: text(row.Raudat_Tahera_Ziyarat) || null,
-    karbala_ziyarat: text(row.Karbala_Ziyarat) || null,
-    warakatul_tarkhis: text(row.Warakatul_Tarkhis) || null,
-    last_scanned_event: text(row.Last_Scanned_Event) || null,
-    last_scanned_place: text(row.Last_Scanned_Place) || null,
+    its_id: its,
+    its_number: its === null ? "" : String(its),
+    source_data: row,
   };
-  // Excel blanks must never erase values maintained in the app.
+
+  // Excel is authoritative when it supplies a value, but a blank cell must
+  // never erase an app-maintained value on an existing Mumin record.
+  setIfPresent(payload, "name", row.Full_Name);
+  setIfPresent(payload, "gender", row.Gender);
+  setIfPresent(payload, "phone", row.Mobile);
+  setIfPresent(payload, "email", row.Email);
+  setIfPresent(payload, "address", row.Address);
+  setIfPresent(payload, "area_sector", row.Sector);
+
+  if (sector && sub && subSectorIdByKey[subKey]) {
+    payload.sub_sector_id = subSectorIdByKey[subKey];
+  }
+
+  if (!existing) {
+    // Keep the legacy defaults for newly created records only.
+    payload.name = text(row.Full_Name);
+    payload.gender = text(row.Gender) || "Male";
+  }
+
+  // An empty Inactive_Status means "no update", not "set Active".
+  if (text(row.Inactive_Status)) {
+    payload.status = "Inactive";
+  }
+
+  var textFields = {
+    occupation: "Occupation",
+    sub_occupation: "Sub_Occupation",
+    qualification: "Qualification",
+    languages: "Languages",
+    hunars: "Hunars",
+    marital_status: "Marital_Status",
+    blood_group: "Blood_Group",
+    misaq: "Misaq",
+    city: "City",
+    vatan: "Vatan",
+    nationality: "Nationality",
+    whatsapp_no: "WhatsApp_No",
+    housing: "Housing",
+    type_of_house: "Type_of_House",
+    data_verification_status: "Data_Verifcation_Status",
+    photo_verification_status: "Photo_Verifcation_Status",
+    quran_sanad: "Quran_Sanad",
+    qadambosi_sharaf: "Qadambosi_Sharaf",
+    raudat_tahera_ziyarat: "Raudat_Tahera_Ziyarat",
+    karbala_ziyarat: "Karbala_Ziyarat",
+    warakatul_tarkhis: "Warakatul_Tarkhis",
+    last_scanned_event: "Last_Scanned_Event",
+    last_scanned_place: "Last_Scanned_Place",
+  };
+  Object.keys(textFields).forEach(function (key) {
+    setIfPresent(payload, key, row[textFields[key]]);
+  });
+
   if (text(row.Age) !== "") payload.age = intOrNullAllowZero(row.Age);
   if (text(row.Ashara_Mubaraka) !== "") payload.ashara_mubaraka = intOrNullAllowZero(row.Ashara_Mubaraka);
   if (text(row.Date_Of_Birth)) payload.dob = text(row.Date_Of_Birth);
+
   if (existing) {
     if (existing.dob) delete payload.dob;
     if (existing.sabil_no) delete payload.sabil_no;
-    if (existing.family_id !== null && existing.family_id !== undefined) payload.family_id = existing.family_id;
-    else if (intOrNull(row.Family_ID) !== null) payload.family_id = intOrNull(row.Family_ID);
-  } else if (intOrNull(row.Family_ID) !== null) payload.family_id = intOrNull(row.Family_ID);
+    if (existing.family_id !== null && existing.family_id !== undefined) {
+      payload.family_id = existing.family_id;
+    } else if (intOrNull(row.Family_ID) !== null) {
+      payload.family_id = intOrNull(row.Family_ID);
+    }
+  } else if (intOrNull(row.Family_ID) !== null) {
+    payload.family_id = intOrNull(row.Family_ID);
+  }
+
   return payload;
 }
 

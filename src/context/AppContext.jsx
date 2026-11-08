@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import {
-  sbGet, sbInsert, sbUpdate, sbDelete, sbUpdateWhere, logActivity, uploadStorage,
+  sbGet, sbInsert, sbUpsert, sbUpdate, sbDelete, sbUpdateWhere, logActivity, uploadStorage,
 } from "../lib/supabase.js";
 import { useAuth } from "./AuthContext.jsx";
 import { UMOOR_TYPES, currentYear } from "../lib/constants.js";
@@ -322,18 +322,32 @@ export function AppProvider({ children }) {
         if (!window.confirm("This will ADD all records from the backup as new entries. Continue?")) return;
         setRestoring(true);
         var addedMumin = 0, addedFiles = 0;
+        var failedMumin = 0;
+        var restoreErrors = [];
         if (backup.mumin_data) {
           for (var i = 0; i < backup.mumin_data.length; i++) {
-            var m = backup.mumin_data[i];
+            var m = backup.mumin_data[i] || {};
             try {
-              await sbInsert("mumin_data", {
-                its_number: m.its_number || "", name: m.name || "", dob: m.dob || null,
-                age: m.age || null, gender: m.gender || "Male", phone: m.phone || "",
-                email: m.email || "", address: m.address || "", status: m.status || "Active",
-                photo_url: m.photo_url || null,
+              var itsNumber = String(m.its_number || m.its_id || "").trim();
+              var itsId = Number(m.its_id || itsNumber);
+              if (!itsNumber || !Number.isSafeInteger(itsId) || itsId <= 0) {
+                throw new Error("Missing or invalid ITS number");
+              }
+
+              // Restore the complete backed-up row, including source_data,
+              // family links and extended fields. Never reuse the local DB id:
+              // the ITS identity is the stable key across databases.
+              var restoredMumin = Object.assign({}, m, {
+                its_id: itsId,
+                its_number: itsNumber,
               });
+              delete restoredMumin.id;
+              await sbUpsert("mumin_data", restoredMumin, "its_id");
               addedMumin++;
-            } catch (err) {}
+            } catch (err) {
+              failedMumin++;
+              if (restoreErrors.length < 3) restoreErrors.push(err.message);
+            }
           }
         }
         if (backup.umoor_files) {
@@ -350,7 +364,7 @@ export function AppProvider({ children }) {
           }
         }
         await logActivity("restore_backup", "system", addedMumin + " members, " + addedFiles + " files", getUserEmail());
-        showToast("Restored " + addedMumin + " members and " + addedFiles + " files");
+        showToast("Restored " + addedMumin + " members and " + addedFiles + " files" + (failedMumin ? "; " + failedMumin + " members failed. " + restoreErrors.join("; ") : ""));
         await loadAll();
       } catch (err) {
         showToast("Error reading backup file: " + err.message, "error");
