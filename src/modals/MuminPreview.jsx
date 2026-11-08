@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAppContext } from "../context/AppContext.jsx";
-import { sbGet } from "../lib/supabase.js";
+import { sbGet, getStorageDisplayUrl } from "../lib/supabase.js";
 import { getMuminAge } from "../lib/utils.js";
 import { getExtendedProfile } from "../lib/muminProfile.js";
 import { printMumin, printIdCard } from "../lib/print.js";
@@ -14,6 +14,7 @@ export function MuminPreview() {
   var getFamilyBySabil = ctx.getFamilyBySabil, getSectorInfo = ctx.getSectorInfo;
   var [familyRecord, setFamilyRecord] = useState(null);
   var [showFullProfile, setShowFullProfile] = useState(false);
+  var [photoDisplayUrl, setPhotoDisplayUrl] = useState(null);
 
   useEffect(function () {
     var cancelled = false;
@@ -46,6 +47,16 @@ export function MuminPreview() {
 
     return function () { cancelled = true; };
   }, [muminPreview]);
+
+  useEffect(function () {
+    var cancelled = false;
+    setPhotoDisplayUrl(null);
+    if (!muminPreview || !muminPreview.photo_url) return function () {};
+    getStorageDisplayUrl(muminPreview.photo_url)
+      .then(function (url) { if (!cancelled) setPhotoDisplayUrl(url); })
+      .catch(function (err) { console.warn("Profile photo could not be loaded:", err); if (!cancelled) setPhotoDisplayUrl(null); });
+    return function () { cancelled = true; };
+  }, [muminPreview && muminPreview.id, muminPreview && muminPreview.photo_url]);
 
   useEffect(function () { setShowFullProfile(false); }, [muminPreview && muminPreview.id]);
 
@@ -102,7 +113,7 @@ export function MuminPreview() {
         <div className="preview-hdr">
           <div style={{ display: "flex", alignItems: "center", gap: 16, minWidth: 0 }}>
             <div className="preview-avatar" style={{ width: 76, height: 76, flexShrink: 0, fontSize: 28 }}>
-              {m.photo_url ? <img src={m.photo_url} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} /> : initials}
+              {photoDisplayUrl ? <img src={photoDisplayUrl} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} onError={function () { setPhotoDisplayUrl(null); }} /> : initials}
             </div>
             <div style={{ minWidth: 0 }}>
               <div className="preview-name" style={{ fontSize: 22 }}>{m.name || "Unnamed Mumin"}</div>
