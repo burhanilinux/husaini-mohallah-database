@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
 import { Spinner } from "./components/Shared.jsx";
 import { LoginPage } from "./components/LoginPage.jsx";
 import { Sidebar } from "./components/Sidebar.jsx";
+import { ErrorBoundary } from "./components/ErrorBoundary.jsx";
 const IEModal = lazy(() => import("./modals/IEModal.jsx").then((module) => ({ default: module.IEModal })));
 const Dashboard = lazy(() => import("./pages/Dashboard.jsx").then((module) => ({ default: module.Dashboard })));
 const MuminPage = lazy(() => import("./pages/MuminPage.jsx").then((module) => ({ default: module.MuminPage })));
@@ -26,6 +27,8 @@ import { SubSectorModal } from "./modals/SubSectorModal.jsx";
 import { TrashModal } from "./modals/TrashModal.jsx";
 import { MuminPreview } from "./modals/MuminPreview.jsx";
 import { Lightbox } from "./modals/Lightbox.jsx";
+const FamilyPage = lazy(() => import("./pages/FamilyPage.jsx").then((module) => ({ default: module.FamilyPage })));
+const SurveyManagementPage = lazy(() => import("./pages/SurveyManagementPage.jsx").then((module) => ({ default: module.SurveyManagementPage })));
 const ReceptionPage = lazy(() => import("./pages/ReceptionPage.jsx").then((module) => ({ default: module.ReceptionPage })));
 
 function ActivePage() {
@@ -43,7 +46,9 @@ function ActivePage() {
     case "reception": return <ReceptionPage />;
     case "users": return <UsersPage />;
     case "mohallah-survey": return <MohallahSurveyPage />;
-      case "vajebaat": return <VajebaatPage />;
+    case "vajebaat": return <VajebaatPage />;
+    case "families": return <FamilyPage />;
+    case "survey-management": return <SurveyManagementPage />;
     default: return <Dashboard />;
   }
 }
@@ -57,6 +62,6 @@ function AppShell() {
   var ctx = useAppContext(), auth = useAuth();
   if (auth.authLoading) return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#0d1117",color:"#6b7280",gap:12,fontSize:14}}><Spinner /> Loading…</div>;
   if (!auth.session) return <LoginPage onLogin={auth.login} />;
-  return <div className="layout"><NetworkStatus /><Sidebar /><main className="main">{ctx.dbError && <div className="err-banner">⚠ {ctx.dbError}<button className="btn btn-ghost btn-sm" onClick={ctx.loadAll} style={{marginLeft:8}}>Retry</button></div>}<Suspense fallback={<div className="card" role="status" style={{ padding: 24, color: "#9ca3af" }}>Loading module…</div>}><ActivePage /></Suspense></main><MuminModal /><SectorModal /><SubSectorModal />{ctx.ieModal && <IEModal onClose={function(){ctx.setIeModal(false);}} muminData={ctx.muminData} filesData={[]} onImportMumin={ctx.handleImportMumin} onImportFiles={function(){}} importing={ctx.importing} />}<TrashModal /><MuminPreview /><Lightbox />{ctx.toast && <div className={"toast toast-"+ctx.toast.type}>{ctx.toast.type==="success"?"✓":"⚠"} {ctx.toast.msg}</div>}</div>;
+  return <div className="layout"><NetworkStatus /><Sidebar /><main className="main">{ctx.dbError && <div className="err-banner">⚠ {ctx.dbError}<button className="btn btn-ghost btn-sm" onClick={ctx.loadAll} style={{marginLeft:8}}>Retry</button></div>}<ErrorBoundary key={ctx.page}><Suspense fallback={<div className="card" role="status" style={{ padding: 24, color: "#9ca3af" }}>Loading module…</div>}><ActivePage /></Suspense></ErrorBoundary></main><MuminModal /><SectorModal /><SubSectorModal />{ctx.ieModal && <IEModal onClose={function(){ctx.setIeModal(false);}} muminData={ctx.muminData} filesData={[]} onImportMumin={ctx.handleImportMumin} onImportFiles={function(){}} importing={ctx.importing} />}<TrashModal /><MuminPreview /><Lightbox />{ctx.toast && <div className={"toast toast-"+ctx.toast.type}>{ctx.toast.type==="success"?"✓":"⚠"} {ctx.toast.msg}</div>}</div>;
 }
 export default function App() { return <AuthProvider><AppProvider><AppShell /></AppProvider></AuthProvider>; }

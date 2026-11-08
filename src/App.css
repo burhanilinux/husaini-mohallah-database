@@ -799,3 +799,9 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280
 .survey-sector-progress-row>b{text-align:right;font-size:11px;color:#e8d7a5}
 @media(max-width:1000px){.survey-stat-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:700px){.survey-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.survey-progress-panel{padding:13px}.survey-sector-progress-row{grid-template-columns:minmax(0,1fr) 36px;gap:7px}.survey-sector-progress-label{grid-column:1 / -1}.survey-sector-progress-track{grid-column:1}.survey-sector-progress-row>b{grid-column:2;grid-row:2}}
+
+/* Button variants referenced by Survey, Statistics and Report Builder pages */
+@layer components {
+  .btn-gold { @apply bg-brand-gold/15 text-brand-gold border border-brand-gold/30 hover:bg-brand-gold/25; }
+  .btn-secondary { @apply bg-white/[0.05] text-brand-text border border-brand-gold/20 hover:bg-white/[0.09]; }
+}

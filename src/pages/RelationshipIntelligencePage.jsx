@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useApp } from "../context/AppContext.jsx";
+import { useAppContext as useApp } from "../context/AppContext.jsx";
 
 function norm(v) { return String(v ?? "").trim().toLowerCase(); }
 function label(v) { return v == null || v === "" ? "—" : String(v); }

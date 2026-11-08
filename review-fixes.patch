@@ -1,0 +1,1008 @@
+diff --git a/.env.example b/.env.example
+new file mode 100644
+index 0000000..abfdc28
+--- /dev/null
++++ b/.env.example
+@@ -0,0 +1,2 @@
++VITE_SUPABASE_URL=
++VITE_SUPABASE_ANON_KEY=
+diff --git a/.gitignore b/.gitignore
+index a5926d8..d19fd0a 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -4,3 +4,4 @@ dist/
+ .env.*
+ !.env.example
+ .DS_Store
++env
+diff --git a/package-lock.json b/package-lock.json
+index 53914a9..a720d4b 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -9,10 +9,12 @@
+       "version": "0.0.0",
+       "dependencies": {
+         "react": "^19.2.6",
+-        "react-dom": "^19.2.6"
++        "react-dom": "^19.2.6",
++        "xlsx": "^0.18.5"
+       },
+       "devDependencies": {
+         "@eslint/js": "^10.0.1",
++        "@tailwindcss/vite": "4.3.0",
+         "@types/react": "^19.2.14",
+         "@types/react-dom": "^19.2.3",
+         "@vitejs/plugin-react": "^6.0.1",
+@@ -20,6 +22,7 @@
+         "eslint-plugin-react-hooks": "^7.1.1",
+         "eslint-plugin-react-refresh": "^0.5.2",
+         "globals": "^17.6.0",
++        "tailwindcss": "4.3.0",
+         "vite": "^8.0.12"
+       }
+     },
+@@ -663,9 +666,6 @@
+         "arm64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -683,9 +683,6 @@
+         "arm64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "musl"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -703,9 +700,6 @@
+         "ppc64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -723,9 +717,6 @@
+         "s390x"
+       ],
+       "dev": true,
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -743,9 +734,6 @@
+         "x64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -763,9 +751,6 @@
+         "x64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "musl"
+-      ],
+       "license": "MIT",
+       "optional": true,
+       "os": [
+@@ -852,6 +837,278 @@
+       "dev": true,
+       "license": "MIT"
+     },
++    "node_modules/@tailwindcss/node": {
++      "version": "4.3.0",
++      "resolved": "https://registry.npmjs.org/@tailwindcss/node/-/node-4.3.0.tgz",
++      "integrity": "sha512-aFb4gUhFOgdh9AXo4IzBEOzBkkAxm9VigwDJnMIYv3lcfXCJVesNfbEaBl4BNgVRyid92AmdviqwBUBRKSeY3g==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@jridgewell/remapping": "^2.3.5",
++        "enhanced-resolve": "^5.21.0",
++        "jiti": "^2.6.1",
++        "lightningcss": "1.32.0",
++        "magic-string": "^0.30.21",
++        "source-map-js": "^1.2.1",
++        "tailwindcss": "4.3.0"
++      }
++    },
++    "node_modules/@tailwindcss/oxide": {
++      "version": "4.3.0",
++      "resolved": "https://registry.npmjs.org/@tailwindcss/oxide/-/oxide-4.3.0.tgz",
++      "integrity": "sha512-F7HZGBeN9I0/AuuJS5PwcD8xayx5ri5GhjYUDBEVYUkexyA/giwbDNjRVrxSezE3T250OU2K/wp/ltWx3UOefg==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">= 20"
++      },
++      "optionalDependencies": {
++        "@tailwindcss/oxide-android-arm64": "4.3.0",
++        "@tailwindcss/oxide-darwin-arm64": "4.3.0",
++        "@tailwindcss/oxide-darwin-x64": "4.3.0",
++        "@tailwindcss/oxide-freebsd-x64": "4.3.0",
++        "@tailwindcss/oxide-linux-arm-gnueabihf": "4.3.0",
++        "@tailwindcss/oxide-linux-arm64-gnu": "4.3.0",
++        "@tailwindcss/oxide-linux-arm64-musl": "4.3.0",
++        "@tailwindcss/oxide-linux-x64-gnu": "4.3.0",
++        "@tailwindcss/oxide-linux-x64-musl": "4.3.0",
++        "@tailwindcss/oxide-wasm32-wasi": "4.3.0",
++        "@tailwindcss/oxide-win32-arm64-msvc": "4.3.0",
++        "@tailwindcss/oxide-win32-x64-msvc": "4.3.0"
++      }
++    },
++    "node_modules/@tailwindcss/oxide-android-arm64": {
++      "version": "4.3.0",
++      "resolved": "https://registry.npmjs.org/@tailwindcss/oxide-android-arm64/-/oxide-android-arm64-4.3.0.tgz",
++      "integrity": "sha512-TJPiq67tKlLuObP6RkwvVGDoxCMBVtDgKkLfa/uyj7/FyxvQwHS+UOnVrXXgbEsfUaMgiVvC4KbJnRr26ho4Ng==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "android"
++      ],
++      "engines": {
++        "node": ">= 20"
++      }
++    },
++    "node_modules/@tailwindcss/oxide-darwin-arm64": {
++      "version": "4.3.0",
++      "resolved": "https://registry.npmjs.org/@tailwindcss/oxide-darwin-arm64/-/oxide-darwin-arm64-4.3.0.tgz",
++      "integrity": "sha512-oMN/WZRb+SO37BmUElEgeEWuU8E/HXRkiODxJxLe1UTHVXLrdVSgfaJV7pSlhRGMSOiXLuxTIjfsF3wYvz8cgQ==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "darwin"
++      ],
++      "engines": {
++        "node": ">= 20"
++      }
++    },
++    "node_modules/@tailwindcss/oxide-darwin-x64": {
++      "version": "4.3.0",
++      "resolved": "https://registry.npmjs.org/@tailwindcss/oxide-darwin-x64/-/oxide-darwin-x64-4.3.0.tgz",
++      "integrity": "sha512-N6CUmu4a6bKVADfw77p+iw6Yd9Q3OBhe0veaDX+QazfuVYlQsHfDgxBrsjQ/IW+zywL8mTrNd0SdJT/zgtvMdA==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "darwin"
++      ],
++      "engines": {
++        "node": ">= 20"
++      }
++    },
++    "node_modules/@tailwindcss/oxide-freebsd-x64": {
++      "version": "4.3.0",
++      "resolved": "https://registry.npmjs.org/@tailwindcss/oxide-freebsd-x64/-/oxide-freebsd-x64-4.3.0.tgz",
++      "integrity": "sha512-zDL5hBkQdH5C6MpqbK3gQAgP80tsMwSI26vjOzjJtNCMUo0lFgOItzHKBIupOZNQxt3ouPH7RPhvNhiTfCe5CQ==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "freebsd"
++      ],
++      "engines": {
++        "node": ">= 20"
++      }
++    },
++    "node_modules/@tailwindcss/oxide-linux-arm-gnueabihf": {
++      "version": "4.3.0",
++      "resolved": "https://registry.npmjs.org/@tailwindcss/oxide-linux-arm-gnueabihf/-/oxide-linux-arm-gnueabihf-4.3.0.tgz",
++      "integrity": "sha512-R06HdNi7A7OEoMsf6d4tjZ71RCWnZQPHj2mnotSFURjNLdBC+cIgXQ7l81CqeoiQftjf6OOblxXMInMgN2VzMA==",
++      "cpu": [
++        "arm"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">= 20"
++      }
++    },
++    "node_modules/@tailwindcss/oxide-linux-arm64-gnu": {
++      "version": "4.3.0",
++      "resolved": "https://registry.npmjs.org/@tailwindcss/oxide-linux-arm64-gnu/-/oxide-linux-arm64-gnu-4.3.0.tgz",
++      "integrity": "sha512-qTJHELX8jetjhRQHCLilkVLmybpzNQAtaI/gaoVoidn/ufbNDbAo8KlK2J+yPoc8wQxvDxCmh/5lr8nC1+lTbg==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">= 20"
++      }
++    },
++    "node_modules/@tailwindcss/oxide-linux-arm64-musl": {
++      "version": "4.3.0",
++      "resolved": "https://registry.npmjs.org/@tailwindcss/oxide-linux-arm64-musl/-/oxide-linux-arm64-musl-4.3.0.tgz",
++      "integrity": "sha512-Z6sukiQsngnWO+l39X4pPbiWT81IC+PLKF+PHxIlyZbGNb9MODfYlXEVlFvej5BOZInWX01kVyzeLvHsXhfczQ==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">= 20"
++      }
++    },
++    "node_modules/@tailwindcss/oxide-linux-x64-gnu": {
++      "version": "4.3.0",
++      "resolved": "https://registry.npmjs.org/@tailwindcss/oxide-linux-x64-gnu/-/oxide-linux-x64-gnu-4.3.0.tgz",
++      "integrity": "sha512-DRNdQRpSGzRGfARVuVkxvM8Q12nh19l4BF/G7zGA1oe+9wcC6saFBHTISrpIcKzhiXtSrlSrluCfvMuledoCTQ==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">= 20"
++      }
++    },
++    "node_modules/@tailwindcss/oxide-linux-x64-musl": {
++      "version": "4.3.0",
++      "resolved": "https://registry.npmjs.org/@tailwindcss/oxide-linux-x64-musl/-/oxide-linux-x64-musl-4.3.0.tgz",
++      "integrity": "sha512-Z0IADbDo8bh6I7h2IQMx601AdXBLfFpEdUotft86evd/8ZPflZe9COPO8Q1vw+pfLWIUo9zN/JGZvwuAJqduqg==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">= 20"
++      }
++    },
++    "node_modules/@tailwindcss/oxide-wasm32-wasi": {
++      "version": "4.3.0",
++      "resolved": "https://registry.npmjs.org/@tailwindcss/oxide-wasm32-wasi/-/oxide-wasm32-wasi-4.3.0.tgz",
++      "integrity": "sha512-HNZGOUxEmElksYR7S6sC5jTeNGpobAsy9u7Gu0AskJ8/20FR9GqebUyB+HBcU/ax6BHuiuJi+Oda4B+YX6H1yA==",
++      "bundleDependencies": [
++        "@napi-rs/wasm-runtime",
++        "@emnapi/core",
++        "@emnapi/runtime",
++        "@tybys/wasm-util",
++        "@emnapi/wasi-threads",
++        "tslib"
++      ],
++      "cpu": [
++        "wasm32"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "dependencies": {
++        "@emnapi/core": "^1.10.0",
++        "@emnapi/runtime": "^1.10.0",
++        "@emnapi/wasi-threads": "^1.2.1",
++        "@napi-rs/wasm-runtime": "^1.1.4",
++        "@tybys/wasm-util": "^0.10.1",
++        "tslib": "^2.8.1"
++      },
++      "engines": {
++        "node": ">=14.0.0"
++      }
++    },
++    "node_modules/@tailwindcss/oxide-win32-arm64-msvc": {
++      "version": "4.3.0",
++      "resolved": "https://registry.npmjs.org/@tailwindcss/oxide-win32-arm64-msvc/-/oxide-win32-arm64-msvc-4.3.0.tgz",
++      "integrity": "sha512-Pe+RPVTi1T+qymuuRpcdvwSVZjnll/f7n8gBxMMh3xLTctMDKqpdfGimbMyioqtLhUYZxdJ9wGNhV7MKHvgZsQ==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "win32"
++      ],
++      "engines": {
++        "node": ">= 20"
++      }
++    },
++    "node_modules/@tailwindcss/oxide-win32-x64-msvc": {
++      "version": "4.3.0",
++      "resolved": "https://registry.npmjs.org/@tailwindcss/oxide-win32-x64-msvc/-/oxide-win32-x64-msvc-4.3.0.tgz",
++      "integrity": "sha512-Mvrf2kXW/yeW/OTezZlCGOirXRcUuLIBx/5Y12BaPM7wJoryG6dfS/NJL8aBPqtTEx/Vm4T4vKzFUcKDT+TKUA==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "win32"
++      ],
++      "engines": {
++        "node": ">= 20"
++      }
++    },
++    "node_modules/@tailwindcss/vite": {
++      "version": "4.3.0",
++      "resolved": "https://registry.npmjs.org/@tailwindcss/vite/-/vite-4.3.0.tgz",
++      "integrity": "sha512-t6J3OrB5Fc0ExuhohouH0fWUGMYL6PTLhW+E7zIk/pdbnJARZDCwjBznFnkh5ynRnIRSI4YjtTH0t6USjJISrw==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@tailwindcss/node": "4.3.0",
++        "@tailwindcss/oxide": "4.3.0",
++        "tailwindcss": "4.3.0"
++      },
++      "peerDependencies": {
++        "vite": "^5.2.0 || ^6 || ^7 || ^8"
++      }
++    },
+     "node_modules/@tybys/wasm-util": {
+       "version": "0.10.2",
+       "resolved": "https://registry.npmjs.org/@tybys/wasm-util/-/wasm-util-0.10.2.tgz",
+@@ -953,6 +1210,15 @@
+         "acorn": "^6.0.0 || ^7.0.0 || ^8.0.0"
+       }
+     },
++    "node_modules/adler-32": {
++      "version": "1.3.1",
++      "resolved": "https://registry.npmjs.org/adler-32/-/adler-32-1.3.1.tgz",
++      "integrity": "sha512-ynZ4w/nUUv5rrsR8UUGoe1VC9hZj6V5hU9Qw1HlMDJGEJw5S7TfTErWTjMys6M7vr0YWcPqs3qAr4ss0nDfP+A==",
++      "license": "Apache-2.0",
++      "engines": {
++        "node": ">=0.8"
++      }
++    },
+     "node_modules/ajv": {
+       "version": "6.15.0",
+       "resolved": "https://registry.npmjs.org/ajv/-/ajv-6.15.0.tgz",
+@@ -1061,6 +1327,28 @@
+       ],
+       "license": "CC-BY-4.0"
+     },
++    "node_modules/cfb": {
++      "version": "1.2.2",
++      "resolved": "https://registry.npmjs.org/cfb/-/cfb-1.2.2.tgz",
++      "integrity": "sha512-KfdUZsSOw19/ObEWasvBP/Ac4reZvAGauZhs6S/gqNhXhI7cKwvlH7ulj+dOEYnca4bm4SGo8C1bTAQvnTjgQA==",
++      "license": "Apache-2.0",
++      "dependencies": {
++        "adler-32": "~1.3.0",
++        "crc-32": "~1.2.0"
++      },
++      "engines": {
++        "node": ">=0.8"
++      }
++    },
++    "node_modules/codepage": {
++      "version": "1.15.0",
++      "resolved": "https://registry.npmjs.org/codepage/-/codepage-1.15.0.tgz",
++      "integrity": "sha512-3g6NUTPd/YtuuGrhMnOMRjFc+LJw/bnMp3+0r/Wcz3IXUuCosKRJvMphm5+Q+bvTVGcJJuRvVLuYba+WojaFaA==",
++      "license": "Apache-2.0",
++      "engines": {
++        "node": ">=0.8"
++      }
++    },
+     "node_modules/convert-source-map": {
+       "version": "2.0.0",
+       "resolved": "https://registry.npmjs.org/convert-source-map/-/convert-source-map-2.0.0.tgz",
+@@ -1068,6 +1356,18 @@
+       "dev": true,
+       "license": "MIT"
+     },
++    "node_modules/crc-32": {
++      "version": "1.2.2",
++      "resolved": "https://registry.npmjs.org/crc-32/-/crc-32-1.2.2.tgz",
++      "integrity": "sha512-ROmzCKrTnOwybPcJApAA6WBWij23HVfGVNKqqrZpuyZOHqK2CwHSvpGuyt/UNNvaIjEd8X5IFGp4Mh+Ie1IHJQ==",
++      "license": "Apache-2.0",
++      "bin": {
++        "crc32": "bin/crc32.njs"
++      },
++      "engines": {
++        "node": ">=0.8"
++      }
++    },
+     "node_modules/cross-spawn": {
+       "version": "7.0.6",
+       "resolved": "https://registry.npmjs.org/cross-spawn/-/cross-spawn-7.0.6.tgz",
+@@ -1132,6 +1432,20 @@
+       "dev": true,
+       "license": "ISC"
+     },
++    "node_modules/enhanced-resolve": {
++      "version": "5.26.1",
++      "resolved": "https://registry.npmjs.org/enhanced-resolve/-/enhanced-resolve-5.26.1.tgz",
++      "integrity": "sha512-PPnnSJq3azKOIewXR/uppBV/6h98dprBJ/WaQ9Qgj10xX1lJLNfg+XShpbsrSqcDSy2yYYyhfXM1wWhftqgyzw==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "graceful-fs": "^4.2.4",
++        "tapable": "^2.3.3"
++      },
++      "engines": {
++        "node": ">=10.13.0"
++      }
++    },
+     "node_modules/escalade": {
+       "version": "3.2.0",
+       "resolved": "https://registry.npmjs.org/escalade/-/escalade-3.2.0.tgz",
+@@ -1427,6 +1741,15 @@
+       "dev": true,
+       "license": "ISC"
+     },
++    "node_modules/frac": {
++      "version": "1.1.2",
++      "resolved": "https://registry.npmjs.org/frac/-/frac-1.1.2.tgz",
++      "integrity": "sha512-w/XBfkibaTl3YDqASwfDUqkna4Z2p9cFSr1aHDt0WoMTECnRfBOv2WArlZILlqgWlmdIlALXGpM2AOhEk5W3IA==",
++      "license": "Apache-2.0",
++      "engines": {
++        "node": ">=0.8"
++      }
++    },
+     "node_modules/fsevents": {
+       "version": "2.3.3",
+       "resolved": "https://registry.npmjs.org/fsevents/-/fsevents-2.3.3.tgz",
+@@ -1478,6 +1801,13 @@
+         "url": "https://github.com/sponsors/sindresorhus"
+       }
+     },
++    "node_modules/graceful-fs": {
++      "version": "4.2.11",
++      "resolved": "https://registry.npmjs.org/graceful-fs/-/graceful-fs-4.2.11.tgz",
++      "integrity": "sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==",
++      "dev": true,
++      "license": "ISC"
++    },
+     "node_modules/hermes-estree": {
+       "version": "0.25.1",
+       "resolved": "https://registry.npmjs.org/hermes-estree/-/hermes-estree-0.25.1.tgz",
+@@ -1545,6 +1875,16 @@
+       "dev": true,
+       "license": "ISC"
+     },
++    "node_modules/jiti": {
++      "version": "2.7.0",
++      "resolved": "https://registry.npmjs.org/jiti/-/jiti-2.7.0.tgz",
++      "integrity": "sha512-AC/7JofJvZGrrneWNaEnJeOLUx+JlGt7tNa0wZiRPT4MY1wmfKjt2+6O2p2uz2+skll8OZZmJMNqeke7kKbNgQ==",
++      "dev": true,
++      "license": "MIT",
++      "bin": {
++        "jiti": "lib/jiti-cli.mjs"
++      }
++    },
+     "node_modules/js-tokens": {
+       "version": "4.0.0",
+       "resolved": "https://registry.npmjs.org/js-tokens/-/js-tokens-4.0.0.tgz",
+@@ -1766,9 +2106,6 @@
+         "arm64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "MPL-2.0",
+       "optional": true,
+       "os": [
+@@ -1790,9 +2127,6 @@
+         "arm64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "musl"
+-      ],
+       "license": "MPL-2.0",
+       "optional": true,
+       "os": [
+@@ -1814,9 +2148,6 @@
+         "x64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "glibc"
+-      ],
+       "license": "MPL-2.0",
+       "optional": true,
+       "os": [
+@@ -1838,9 +2169,6 @@
+         "x64"
+       ],
+       "dev": true,
+-      "libc": [
+-        "musl"
+-      ],
+       "license": "MPL-2.0",
+       "optional": true,
+       "os": [
+@@ -1922,6 +2250,16 @@
+         "yallist": "^3.0.2"
+       }
+     },
++    "node_modules/magic-string": {
++      "version": "0.30.21",
++      "resolved": "https://registry.npmjs.org/magic-string/-/magic-string-0.30.21.tgz",
++      "integrity": "sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@jridgewell/sourcemap-codec": "^1.5.5"
++      }
++    },
+     "node_modules/minimatch": {
+       "version": "10.2.5",
+       "resolved": "https://registry.npmjs.org/minimatch/-/minimatch-10.2.5.tgz",
+@@ -2224,6 +2562,39 @@
+         "node": ">=0.10.0"
+       }
+     },
++    "node_modules/ssf": {
++      "version": "0.11.2",
++      "resolved": "https://registry.npmjs.org/ssf/-/ssf-0.11.2.tgz",
++      "integrity": "sha512-+idbmIXoYET47hH+d7dfm2epdOMUDjqcB4648sTZ+t2JwoyBFL/insLfB/racrDmsKB3diwsDA696pZMieAC5g==",
++      "license": "Apache-2.0",
++      "dependencies": {
++        "frac": "~1.1.2"
++      },
++      "engines": {
++        "node": ">=0.8"
++      }
++    },
++    "node_modules/tailwindcss": {
++      "version": "4.3.0",
++      "resolved": "https://registry.npmjs.org/tailwindcss/-/tailwindcss-4.3.0.tgz",
++      "integrity": "sha512-y6nxMGB1nMW9R6k96e5gdIFzcfL/gTJRNaqGes1YvkLnPVXzWgbqFF2yLC0T8G774n24cx3Pe8XrKoniCOAH+Q==",
++      "dev": true,
++      "license": "MIT"
++    },
++    "node_modules/tapable": {
++      "version": "2.3.3",
++      "resolved": "https://registry.npmjs.org/tapable/-/tapable-2.3.3.tgz",
++      "integrity": "sha512-uxc/zpqFg6x7C8vOE7lh6Lbda8eEL9zmVm/PLeTPBRhh1xCgdWaQ+J1CUieGpIfm2HdtsUpRv+HshiasBMcc6A==",
++      "dev": true,
++      "license": "MIT",
++      "engines": {
++        "node": ">=6"
++      },
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/webpack"
++      }
++    },
+     "node_modules/tinyglobby": {
+       "version": "0.2.17",
+       "resolved": "https://registry.npmjs.org/tinyglobby/-/tinyglobby-0.2.17.tgz",
+@@ -2397,6 +2768,24 @@
+         "node": ">= 8"
+       }
+     },
++    "node_modules/wmf": {
++      "version": "1.0.2",
++      "resolved": "https://registry.npmjs.org/wmf/-/wmf-1.0.2.tgz",
++      "integrity": "sha512-/p9K7bEh0Dj6WbXg4JG0xvLQmIadrner1bi45VMJTfnbVHsc7yIajZyoSoK60/dtVBs12Fm6WkUI5/3WAVsNMw==",
++      "license": "Apache-2.0",
++      "engines": {
++        "node": ">=0.8"
++      }
++    },
++    "node_modules/word": {
++      "version": "0.3.0",
++      "resolved": "https://registry.npmjs.org/word/-/word-0.3.0.tgz",
++      "integrity": "sha512-OELeY0Q61OXpdUfTp+oweA/vtLVg5VDOXh+3he3PNzLGG/y0oylSOC1xRVj0+l4vQ3tj/bB1HVHv1ocXkQceFA==",
++      "license": "Apache-2.0",
++      "engines": {
++        "node": ">=0.8"
++      }
++    },
+     "node_modules/word-wrap": {
+       "version": "1.2.5",
+       "resolved": "https://registry.npmjs.org/word-wrap/-/word-wrap-1.2.5.tgz",
+@@ -2407,6 +2796,27 @@
+         "node": ">=0.10.0"
+       }
+     },
++    "node_modules/xlsx": {
++      "version": "0.18.5",
++      "resolved": "https://registry.npmjs.org/xlsx/-/xlsx-0.18.5.tgz",
++      "integrity": "sha512-dmg3LCjBPHZnQp5/F/+nnTa+miPJxUXB6vtk42YjBBKayDNagxGEeIdWApkYPOf3Z3pm3k62Knjzp7lMeTEtFQ==",
++      "license": "Apache-2.0",
++      "dependencies": {
++        "adler-32": "~1.3.0",
++        "cfb": "~1.2.1",
++        "codepage": "~1.15.0",
++        "crc-32": "~1.2.1",
++        "ssf": "~0.11.2",
++        "wmf": "~1.0.1",
++        "word": "~0.3.0"
++      },
++      "bin": {
++        "xlsx": "bin/xlsx.njs"
++      },
++      "engines": {
++        "node": ">=0.8"
++      }
++    },
+     "node_modules/yallist": {
+       "version": "3.1.1",
+       "resolved": "https://registry.npmjs.org/yallist/-/yallist-3.1.1.tgz",
+diff --git a/public/icons.svg b/public/icons.svg
+deleted file mode 100644
+index e952219..0000000
+--- a/public/icons.svg
++++ /dev/null
+@@ -1,24 +0,0 @@
+-<svg xmlns="http://www.w3.org/2000/svg">
+-  <symbol id="bluesky-icon" viewBox="0 0 16 17">
+-    <g clip-path="url(#bluesky-clip)"><path fill="#08060d" d="M7.75 7.735c-.693-1.348-2.58-3.86-4.334-5.097-1.68-1.187-2.32-.981-2.74-.79C.188 2.065.1 2.812.1 3.251s.241 3.602.398 4.13c.52 1.744 2.367 2.333 4.07 2.145-2.495.37-4.71 1.278-1.805 4.512 3.196 3.309 4.38-.71 4.987-2.746.608 2.036 1.307 5.91 4.93 2.746 2.72-2.746.747-4.143-1.747-4.512 1.702.189 3.55-.4 4.07-2.145.156-.528.397-3.691.397-4.13s-.088-1.186-.575-1.406c-.42-.19-1.06-.395-2.741.79-1.755 1.24-3.64 3.752-4.334 5.099"/></g>
+-    <defs><clipPath id="bluesky-clip"><path fill="#fff" d="M.1.85h15.3v15.3H.1z"/></clipPath></defs>
+-  </symbol>
+-  <symbol id="discord-icon" viewBox="0 0 20 19">
+-    <path fill="#08060d" d="M16.224 3.768a14.5 14.5 0 0 0-3.67-1.153c-.158.286-.343.67-.47.976a13.5 13.5 0 0 0-4.067 0c-.128-.306-.317-.69-.476-.976A14.4 14.4 0 0 0 3.868 3.77C1.546 7.28.916 10.703 1.231 14.077a14.7 14.7 0 0 0 4.5 2.306q.545-.748.965-1.587a9.5 9.5 0 0 1-1.518-.74q.191-.14.372-.293c2.927 1.369 6.107 1.369 8.999 0q.183.152.372.294-.723.437-1.52.74.418.838.963 1.588a14.6 14.6 0 0 0 4.504-2.308c.37-3.911-.63-7.302-2.644-10.309m-9.13 8.234c-.878 0-1.599-.82-1.599-1.82 0-.998.705-1.82 1.6-1.82.894 0 1.614.82 1.599 1.82.001 1-.705 1.82-1.6 1.82m5.91 0c-.878 0-1.599-.82-1.599-1.82 0-.998.705-1.82 1.6-1.82.893 0 1.614.82 1.599 1.82 0 1-.706 1.82-1.6 1.82"/>
+-  </symbol>
+-  <symbol id="documentation-icon" viewBox="0 0 21 20">
+-    <path fill="none" stroke="#aa3bff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.35" d="m15.5 13.333 1.533 1.322c.645.555.967.833.967 1.178s-.322.623-.967 1.179L15.5 18.333m-3.333-5-1.534 1.322c-.644.555-.966.833-.966 1.178s.322.623.966 1.179l1.534 1.321"/>
+-    <path fill="none" stroke="#aa3bff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.35" d="M17.167 10.836v-4.32c0-1.41 0-2.117-.224-2.68-.359-.906-1.118-1.621-2.08-1.96-.599-.21-1.349-.21-2.848-.21-2.623 0-3.935 0-4.983.369-1.684.591-3.013 1.842-3.641 3.428C3 6.449 3 7.684 3 10.154v2.122c0 2.558 0 3.838.706 4.726q.306.383.713.671c.76.536 1.79.64 3.581.66"/>
+-    <path fill="none" stroke="#aa3bff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.35" d="M3 10a2.78 2.78 0 0 1 2.778-2.778c.555 0 1.209.097 1.748-.047.48-.129.854-.503.982-.982.145-.54.048-1.194.048-1.749a2.78 2.78 0 0 1 2.777-2.777"/>
+-  </symbol>
+-  <symbol id="github-icon" viewBox="0 0 19 19">
+-    <path fill="#08060d" fill-rule="evenodd" d="M9.356 1.85C5.05 1.85 1.57 5.356 1.57 9.694a7.84 7.84 0 0 0 5.324 7.44c.387.079.528-.168.528-.376 0-.182-.013-.805-.013-1.454-2.165.467-2.616-.935-2.616-.935-.349-.91-.864-1.143-.864-1.143-.71-.48.051-.48.051-.48.787.051 1.2.805 1.2.805.695 1.194 1.817.857 2.268.649.064-.507.27-.857.49-1.052-1.728-.182-3.545-.857-3.545-3.87 0-.857.31-1.558.8-2.104-.078-.195-.349-1 .077-2.078 0 0 .657-.208 2.14.805a7.5 7.5 0 0 1 1.946-.26c.657 0 1.328.092 1.946.26 1.483-1.013 2.14-.805 2.14-.805.426 1.078.155 1.883.078 2.078.502.546.799 1.247.799 2.104 0 3.013-1.818 3.675-3.558 3.87.284.247.528.714.528 1.454 0 1.052-.012 1.896-.012 2.156 0 .208.142.455.528.377a7.84 7.84 0 0 0 5.324-7.441c.013-4.338-3.48-7.844-7.773-7.844" clip-rule="evenodd"/>
+-  </symbol>
+-  <symbol id="social-icon" viewBox="0 0 20 20">
+-    <path fill="none" stroke="#aa3bff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.35" d="M12.5 6.667a4.167 4.167 0 1 0-8.334 0 4.167 4.167 0 0 0 8.334 0"/>
+-    <path fill="none" stroke="#aa3bff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.35" d="M2.5 16.667a5.833 5.833 0 0 1 8.75-5.053m3.837.474.513 1.035c.07.144.257.282.414.309l.93.155c.596.1.736.536.307.965l-.723.73a.64.64 0 0 0-.152.531l.207.903c.164.715-.213.991-.84.618l-.872-.52a.63.63 0 0 0-.577 0l-.872.52c-.624.373-1.003.094-.84-.618l.207-.903a.64.64 0 0 0-.152-.532l-.723-.729c-.426-.43-.289-.864.306-.964l.93-.156a.64.64 0 0 0 .412-.31l.513-1.034c.28-.562.735-.562 1.012 0"/>
+-  </symbol>
+-  <symbol id="x-icon" viewBox="0 0 19 19">
+-    <path fill="#08060d" fill-rule="evenodd" d="M1.893 1.98c.052.072 1.245 1.769 2.653 3.77l2.892 4.114c.183.261.333.48.333.486s-.068.089-.152.183l-.522.593-.765.867-3.597 4.087c-.375.426-.734.834-.798.905a1 1 0 0 0-.118.148c0 .01.236.017.664.017h.663l.729-.83c.4-.457.796-.906.879-.999a692 692 0 0 0 1.794-2.038c.034-.037.301-.34.594-.675l.551-.624.345-.392a7 7 0 0 1 .34-.374c.006 0 .93 1.306 2.052 2.903l2.084 2.965.045.063h2.275c1.87 0 2.273-.003 2.266-.021-.008-.02-1.098-1.572-3.894-5.547-2.013-2.862-2.28-3.246-2.273-3.266.008-.019.282-.332 2.085-2.38l2-2.274 1.567-1.782c.022-.028-.016-.03-.65-.03h-.674l-.3.342a871 871 0 0 1-1.782 2.025c-.067.075-.405.458-.75.852a100 100 0 0 1-.803.91c-.148.172-.299.344-.99 1.127-.304.343-.32.358-.345.327-.015-.019-.904-1.282-1.976-2.808L6.365 1.85H1.8zm1.782.91 8.078 11.294c.772 1.08 1.413 1.973 1.425 1.984.016.017.241.02 1.05.017l1.03-.004-2.694-3.766L7.796 5.75 5.722 2.852l-1.039-.004-1.039-.004z" clip-rule="evenodd"/>
+-  </symbol>
+-</svg>
+diff --git a/public/pwa-192.png b/public/pwa-192.png
+deleted file mode 100644
+index 311c8dd..0000000
+--- a/public/pwa-192.png
++++ /dev/null
+@@ -1 +0,0 @@
+-PLACEHOLDER
+\ No newline at end of file
+diff --git a/src/App.css b/src/App.css
+index 27a7e71..42def98 100644
+--- a/src/App.css
++++ b/src/App.css
+@@ -799,3 +799,9 @@ label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280
+ .survey-sector-progress-row>b{text-align:right;font-size:11px;color:#e8d7a5}
+ @media(max-width:1000px){.survey-stat-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+ @media(max-width:700px){.survey-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.survey-progress-panel{padding:13px}.survey-sector-progress-row{grid-template-columns:minmax(0,1fr) 36px;gap:7px}.survey-sector-progress-label{grid-column:1 / -1}.survey-sector-progress-track{grid-column:1}.survey-sector-progress-row>b{grid-column:2;grid-row:2}}
++
++/* Button variants referenced by Survey, Statistics and Report Builder pages */
++@layer components {
++  .btn-gold { @apply bg-brand-gold/15 text-brand-gold border border-brand-gold/30 hover:bg-brand-gold/25; }
++  .btn-secondary { @apply bg-white/[0.05] text-brand-text border border-brand-gold/20 hover:bg-white/[0.09]; }
++}
+diff --git a/src/App.jsx b/src/App.jsx
+index 32e6999..699a12d 100644
+--- a/src/App.jsx
++++ b/src/App.jsx
+@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
+ import { Spinner } from "./components/Shared.jsx";
+ import { LoginPage } from "./components/LoginPage.jsx";
+ import { Sidebar } from "./components/Sidebar.jsx";
++import { ErrorBoundary } from "./components/ErrorBoundary.jsx";
+ const IEModal = lazy(() => import("./modals/IEModal.jsx").then((module) => ({ default: module.IEModal })));
+ const Dashboard = lazy(() => import("./pages/Dashboard.jsx").then((module) => ({ default: module.Dashboard })));
+ const MuminPage = lazy(() => import("./pages/MuminPage.jsx").then((module) => ({ default: module.MuminPage })));
+@@ -26,6 +27,8 @@ import { SubSectorModal } from "./modals/SubSectorModal.jsx";
+ import { TrashModal } from "./modals/TrashModal.jsx";
+ import { MuminPreview } from "./modals/MuminPreview.jsx";
+ import { Lightbox } from "./modals/Lightbox.jsx";
++const FamilyPage = lazy(() => import("./pages/FamilyPage.jsx").then((module) => ({ default: module.FamilyPage })));
++const SurveyManagementPage = lazy(() => import("./pages/SurveyManagementPage.jsx").then((module) => ({ default: module.SurveyManagementPage })));
+ const ReceptionPage = lazy(() => import("./pages/ReceptionPage.jsx").then((module) => ({ default: module.ReceptionPage })));
+ 
+ function ActivePage() {
+@@ -43,7 +46,9 @@ function ActivePage() {
+     case "reception": return <ReceptionPage />;
+     case "users": return <UsersPage />;
+     case "mohallah-survey": return <MohallahSurveyPage />;
+-      case "vajebaat": return <VajebaatPage />;
++    case "vajebaat": return <VajebaatPage />;
++    case "families": return <FamilyPage />;
++    case "survey-management": return <SurveyManagementPage />;
+     default: return <Dashboard />;
+   }
+ }
+@@ -57,6 +62,6 @@ function AppShell() {
+   var ctx = useAppContext(), auth = useAuth();
+   if (auth.authLoading) return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#0d1117",color:"#6b7280",gap:12,fontSize:14}}><Spinner /> Loading…</div>;
+   if (!auth.session) return <LoginPage onLogin={auth.login} />;
+-  return <div className="layout"><NetworkStatus /><Sidebar /><main className="main">{ctx.dbError && <div className="err-banner">⚠ {ctx.dbError}<button className="btn btn-ghost btn-sm" onClick={ctx.loadAll} style={{marginLeft:8}}>Retry</button></div>}<Suspense fallback={<div className="card" role="status" style={{ padding: 24, color: "#9ca3af" }}>Loading module…</div>}><ActivePage /></Suspense></main><MuminModal /><SectorModal /><SubSectorModal />{ctx.ieModal && <IEModal onClose={function(){ctx.setIeModal(false);}} muminData={ctx.muminData} filesData={[]} onImportMumin={ctx.handleImportMumin} onImportFiles={function(){}} importing={ctx.importing} />}<TrashModal /><MuminPreview /><Lightbox />{ctx.toast && <div className={"toast toast-"+ctx.toast.type}>{ctx.toast.type==="success"?"✓":"⚠"} {ctx.toast.msg}</div>}</div>;
++  return <div className="layout"><NetworkStatus /><Sidebar /><main className="main">{ctx.dbError && <div className="err-banner">⚠ {ctx.dbError}<button className="btn btn-ghost btn-sm" onClick={ctx.loadAll} style={{marginLeft:8}}>Retry</button></div>}<ErrorBoundary key={ctx.page}><Suspense fallback={<div className="card" role="status" style={{ padding: 24, color: "#9ca3af" }}>Loading module…</div>}><ActivePage /></Suspense></ErrorBoundary></main><MuminModal /><SectorModal /><SubSectorModal />{ctx.ieModal && <IEModal onClose={function(){ctx.setIeModal(false);}} muminData={ctx.muminData} filesData={[]} onImportMumin={ctx.handleImportMumin} onImportFiles={function(){}} importing={ctx.importing} />}<TrashModal /><MuminPreview /><Lightbox />{ctx.toast && <div className={"toast toast-"+ctx.toast.type}>{ctx.toast.type==="success"?"✓":"⚠"} {ctx.toast.msg}</div>}</div>;
+ }
+ export default function App() { return <AuthProvider><AppProvider><AppShell /></AppProvider></AuthProvider>; }
+diff --git a/src/assets/react.svg b/src/assets/react.svg
+deleted file mode 100644
+index 6c87de9..0000000
+--- a/src/assets/react.svg
++++ /dev/null
+@@ -1 +0,0 @@
+-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--logos" width="35.93" height="32" preserveAspectRatio="xMidYMid meet" viewBox="0 0 256 228"><path fill="#00D8FF" d="M210.483 73.824a171.49 171.49 0 0 0-8.24-2.597c.465-1.9.893-3.777 1.273-5.621c6.238-30.281 2.16-54.676-11.769-62.708c-13.355-7.7-35.196.329-57.254 19.526a171.23 171.23 0 0 0-6.375 5.848a155.866 155.866 0 0 0-4.241-3.917C100.759 3.829 77.587-4.822 63.673 3.233C50.33 10.957 46.379 33.89 51.995 62.588a170.974 170.974 0 0 0 1.892 8.48c-3.28.932-6.445 1.924-9.474 2.98C17.309 83.498 0 98.307 0 113.668c0 15.865 18.582 31.778 46.812 41.427a145.52 145.52 0 0 0 6.921 2.165a167.467 167.467 0 0 0-2.01 9.138c-5.354 28.2-1.173 50.591 12.134 58.266c13.744 7.926 36.812-.22 59.273-19.855a145.567 145.567 0 0 0 5.342-4.923a168.064 168.064 0 0 0 6.92 6.314c21.758 18.722 43.246 26.282 56.54 18.586c13.731-7.949 18.194-32.003 12.4-61.268a145.016 145.016 0 0 0-1.535-6.842c1.62-.48 3.21-.974 4.76-1.488c29.348-9.723 48.443-25.443 48.443-41.52c0-15.417-17.868-30.326-45.517-39.844Zm-6.365 70.984c-1.4.463-2.836.91-4.3 1.345c-3.24-10.257-7.612-21.163-12.963-32.432c5.106-11 9.31-21.767 12.459-31.957c2.619.758 5.16 1.557 7.61 2.4c23.69 8.156 38.14 20.213 38.14 29.504c0 9.896-15.606 22.743-40.946 31.14Zm-10.514 20.834c2.562 12.94 2.927 24.64 1.23 33.787c-1.524 8.219-4.59 13.698-8.382 15.893c-8.067 4.67-25.32-1.4-43.927-17.412a156.726 156.726 0 0 1-6.437-5.87c7.214-7.889 14.423-17.06 21.459-27.246c12.376-1.098 24.068-2.894 34.671-5.345a134.17 134.17 0 0 1 1.386 6.193ZM87.276 214.515c-7.882 2.783-14.16 2.863-17.955.675c-8.075-4.657-11.432-22.636-6.853-46.752a156.923 156.923 0 0 1 1.869-8.499c10.486 2.32 22.093 3.988 34.498 4.994c7.084 9.967 14.501 19.128 21.976 27.15a134.668 134.668 0 0 1-4.877 4.492c-9.933 8.682-19.886 14.842-28.658 17.94ZM50.35 144.747c-12.483-4.267-22.792-9.812-29.858-15.863c-6.35-5.437-9.555-10.836-9.555-15.216c0-9.322 13.897-21.212 37.076-29.293c2.813-.98 5.757-1.905 8.812-2.773c3.204 10.42 7.406 21.315 12.477 32.332c-5.137 11.18-9.399 22.249-12.634 32.792a134.718 134.718 0 0 1-6.318-1.979Zm12.378-84.26c-4.811-24.587-1.616-43.134 6.425-47.789c8.564-4.958 27.502 2.111 47.463 19.835a144.318 144.318 0 0 1 3.841 3.545c-7.438 7.987-14.787 17.08-21.808 26.988c-12.04 1.116-23.565 2.908-34.161 5.309a160.342 160.342 0 0 1-1.76-7.887Zm110.427 27.268a347.8 347.8 0 0 0-7.785-12.803c8.168 1.033 15.994 2.404 23.343 4.08c-2.206 7.072-4.956 14.465-8.193 22.045a381.151 381.151 0 0 0-7.365-13.322Zm-45.032-43.861c5.044 5.465 10.096 11.566 15.065 18.186a322.04 322.04 0 0 0-30.257-.006c4.974-6.559 10.069-12.652 15.192-18.18ZM82.802 87.83a323.167 323.167 0 0 0-7.227 13.238c-3.184-7.553-5.909-14.98-8.134-22.152c7.304-1.634 15.093-2.97 23.209-3.984a321.524 321.524 0 0 0-7.848 12.897Zm8.081 65.352c-8.385-.936-16.291-2.203-23.593-3.793c2.26-7.3 5.045-14.885 8.298-22.6a321.187 321.187 0 0 0 7.257 13.246c2.594 4.48 5.28 8.868 8.038 13.147Zm37.542 31.03c-5.184-5.592-10.354-11.779-15.403-18.433c4.902.192 9.899.29 14.978.29c5.218 0 10.376-.117 15.453-.343c-4.985 6.774-10.018 12.97-15.028 18.486Zm52.198-57.817c3.422 7.8 6.306 15.345 8.596 22.52c-7.422 1.694-15.436 3.058-23.88 4.071a382.417 382.417 0 0 0 7.859-13.026a347.403 347.403 0 0 0 7.425-13.565Zm-16.898 8.101a358.557 358.557 0 0 1-12.281 19.815a329.4 329.4 0 0 1-23.444.823c-7.967 0-15.716-.248-23.178-.732a310.202 310.202 0 0 1-12.513-19.846h.001a307.41 307.41 0 0 1-10.923-20.627a310.278 310.278 0 0 1 10.89-20.637l-.001.001a307.318 307.318 0 0 1 12.413-19.761c7.613-.576 15.42-.876 23.31-.876H128c7.926 0 15.743.303 23.354.883a329.357 329.357 0 0 1 12.335 19.695a358.489 358.489 0 0 1 11.036 20.54a329.472 329.472 0 0 1-11 20.722Zm22.56-122.124c8.572 4.944 11.906 24.881 6.52 51.026c-.344 1.668-.73 3.367-1.15 5.09c-10.622-2.452-22.155-4.275-34.23-5.408c-7.034-10.017-14.323-19.124-21.64-27.008a160.789 160.789 0 0 1 5.888-5.4c18.9-16.447 36.564-22.941 44.612-18.3ZM128 90.808c12.625 0 22.86 10.235 22.86 22.86s-10.235 22.86-22.86 22.86s-22.86-10.235-22.86-22.86s10.235-22.86 22.86-22.86Z"></path></svg>
+\ No newline at end of file
+diff --git a/src/assets/vite.svg b/src/assets/vite.svg
+deleted file mode 100644
+index 5101b67..0000000
+--- a/src/assets/vite.svg
++++ /dev/null
+@@ -1 +0,0 @@
+-<svg xmlns="http://www.w3.org/2000/svg" width="77" height="47" fill="none" aria-labelledby="vite-logo-title" viewBox="0 0 77 47"><title id="vite-logo-title">Vite</title><style>.parenthesis{fill:#000}@media (prefers-color-scheme:dark){.parenthesis{fill:#fff}}</style><path fill="#9135ff" d="M40.151 45.71c-.663.844-2.02.374-2.02-.699V34.708a2.26 2.26 0 0 0-2.262-2.262H24.493c-.92 0-1.457-1.04-.92-1.788l7.479-10.471c1.07-1.498 0-3.578-1.842-3.578H15.443c-.92 0-1.456-1.04-.92-1.788l9.696-13.576c.213-.297.556-.474.92-.474h28.894c.92 0 1.456 1.04.92 1.788l-7.48 10.472c-1.07 1.497 0 3.578 1.842 3.578h11.376c.944 0 1.474 1.087.89 1.83L40.153 45.712z"/><mask id="a" width="48" height="47" x="14" y="0" maskUnits="userSpaceOnUse" style="mask-type:alpha"><path fill="#000" d="M40.047 45.71c-.663.843-2.02.374-2.02-.699V34.708a2.26 2.26 0 0 0-2.262-2.262H24.389c-.92 0-1.457-1.04-.92-1.788l7.479-10.472c1.07-1.497 0-3.578-1.842-3.578H15.34c-.92 0-1.456-1.04-.92-1.788l9.696-13.575c.213-.297.556-.474.92-.474H53.93c.92 0 1.456 1.04.92 1.788L47.37 13.03c-1.07 1.498 0 3.578 1.842 3.578h11.376c.944 0 1.474 1.088.89 1.831L40.049 45.712z"/></mask><g mask="url(#a)"><g filter="url(#b)"><ellipse cx="5.508" cy="14.704" fill="#eee6ff" rx="5.508" ry="14.704" transform="rotate(269.814 20.96 11.29)scale(-1 1)"/></g><g filter="url(#c)"><ellipse cx="10.399" cy="29.851" fill="#eee6ff" rx="10.399" ry="29.851" transform="rotate(89.814 -16.902 -8.275)scale(1 -1)"/></g><g filter="url(#d)"><ellipse cx="5.508" cy="30.487" fill="#8900ff" rx="5.508" ry="30.487" transform="rotate(89.814 -19.197 -7.127)scale(1 -1)"/></g><g filter="url(#e)"><ellipse cx="5.508" cy="30.599" fill="#8900ff" rx="5.508" ry="30.599" transform="rotate(89.814 -25.928 4.177)scale(1 -1)"/></g><g filter="url(#f)"><ellipse cx="5.508" cy="30.599" fill="#8900ff" rx="5.508" ry="30.599" transform="rotate(89.814 -25.738 5.52)scale(1 -1)"/></g><g filter="url(#g)"><ellipse cx="14.072" cy="22.078" fill="#eee6ff" rx="14.072" ry="22.078" transform="rotate(93.35 31.245 55.578)scale(-1 1)"/></g><g filter="url(#h)"><ellipse cx="3.47" cy="21.501" fill="#8900ff" rx="3.47" ry="21.501" transform="rotate(89.009 35.419 55.202)scale(-1 1)"/></g><g filter="url(#i)"><ellipse cx="3.47" cy="21.501" fill="#8900ff" rx="3.47" ry="21.501" transform="rotate(89.009 35.419 55.202)scale(-1 1)"/></g><g filter="url(#j)"><ellipse cx="14.592" cy="9.743" fill="#8900ff" rx="4.407" ry="29.108" transform="rotate(39.51 14.592 9.743)"/></g><g filter="url(#k)"><ellipse cx="61.728" cy="-5.321" fill="#8900ff" rx="4.407" ry="29.108" transform="rotate(37.892 61.728 -5.32)"/></g><g filter="url(#l)"><ellipse cx="55.618" cy="7.104" fill="#00c2ff" rx="5.971" ry="9.665" transform="rotate(37.892 55.618 7.104)"/></g><g filter="url(#m)"><ellipse cx="12.326" cy="39.103" fill="#8900ff" rx="4.407" ry="29.108" transform="rotate(37.892 12.326 39.103)"/></g><g filter="url(#n)"><ellipse cx="12.326" cy="39.103" fill="#8900ff" rx="4.407" ry="29.108" transform="rotate(37.892 12.326 39.103)"/></g><g filter="url(#o)"><ellipse cx="49.857" cy="30.678" fill="#8900ff" rx="4.407" ry="29.108" transform="rotate(37.892 49.857 30.678)"/></g><g filter="url(#p)"><ellipse cx="52.623" cy="33.171" fill="#00c2ff" rx="5.971" ry="15.297" transform="rotate(37.892 52.623 33.17)"/></g></g><path d="M6.919 0c-9.198 13.166-9.252 33.575 0 46.789h6.215c-9.25-13.214-9.196-33.623 0-46.789zm62.424 0h-6.215c9.198 13.166 9.252 33.575 0 46.789h6.215c9.25-13.214 9.196-33.623 0-46.789" class="parenthesis"/><defs><filter id="b" width="60.045" height="41.654" x="-5.564" y="16.92" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="7.659"/></filter><filter id="c" width="90.34" height="51.437" x="-40.407" y="-6.762" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="7.659"/></filter><filter id="d" width="79.355" height="29.4" x="-35.435" y="2.801" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="e" width="79.579" height="29.4" x="-30.84" y="20.8" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="f" width="79.579" height="29.4" x="-29.307" y="21.949" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="g" width="74.749" height="58.852" x="29.961" y="-17.13" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="7.659"/></filter><filter id="h" width="61.377" height="25.362" x="37.754" y="3.055" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="i" width="61.377" height="25.362" x="37.754" y="3.055" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="j" width="56.045" height="63.649" x="-13.43" y="-22.082" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="k" width="54.814" height="64.646" x="34.321" y="-37.644" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="l" width="33.541" height="35.313" x="38.847" y="-10.552" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="m" width="54.814" height="64.646" x="-15.081" y="6.78" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="n" width="54.814" height="64.646" x="-15.081" y="6.78" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="o" width="54.814" height="64.646" x="22.45" y="-1.645" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="p" width="39.409" height="43.623" x="32.919" y="11.36" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter></defs></svg>
+diff --git a/src/components/ErrorBoundary.jsx b/src/components/ErrorBoundary.jsx
+new file mode 100644
+index 0000000..a54c899
+--- /dev/null
++++ b/src/components/ErrorBoundary.jsx
+@@ -0,0 +1,19 @@
++import { Component } from "react";
++
++// Catches render errors and failed lazy-chunk loads (common right after a deploy
++// when an old service-worker cache points at chunks that no longer exist).
++export class ErrorBoundary extends Component {
++  constructor(props) { super(props); this.state = { error: null }; }
++  static getDerivedStateFromError(error) { return { error: error }; }
++  componentDidCatch(error, info) { console.error("UI error:", error, info && info.componentStack); }
++  render() {
++    if (!this.state.error) return this.props.children;
++    return (
++      <div role="alert" style={{ minHeight: "60vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14, padding: 24, textAlign: "center", color: "#e2d9c9" }}>
++        <div style={{ fontSize: 18, fontWeight: 600 }}>Something went wrong loading this page</div>
++        <div style={{ fontSize: 13, color: "#9ca3af", maxWidth: 420 }}>This can happen right after an update. Reloading usually fixes it.</div>
++        <button className="btn btn-primary" onClick={function () { window.location.reload(); }}>Reload</button>
++      </div>
++    );
++  }
++}
+diff --git a/src/components/Sidebar.jsx b/src/components/Sidebar.jsx
+index 9b0583e..9b068af 100644
+--- a/src/components/Sidebar.jsx
++++ b/src/components/Sidebar.jsx
+@@ -14,8 +14,9 @@ export function Sidebar(){
+   function backup(){downloadFullBackup();setMobileOpen(false);} function restore(){document.getElementById("restore-file-input")?.click();setMobileOpen(false);}
+   var navItems=[
+     {id:"dashboard",icon:"◈",label:"Dashboard"},{id:"mohallah-survey",icon:"📋",label:"Mohallah Survey (Legacy)"},
+-    {id:"mumin",icon:"👤",label:"Mumin Data"},{id:"vajebaat",icon:"₹",label:"Vajebaat"},{id:"advanced-search",icon:"🔎",label:"Advanced Search"},
++    {id:"mumin",icon:"👤",label:"Mumin Data"},{id:"families",icon:"🏠",label:"Families & HOF"},{id:"masool",icon:"🧭",label:"Masool"},{id:"vajebaat",icon:"₹",label:"Vajebaat"},{id:"advanced-search",icon:"🔎",label:"Advanced Search"},
+     {id:"data-quality",icon:"✓",label:"Data Quality"},
+-    {id:"report-builder",icon:"🧰",label:"Advanced Report Builder"},{id:"activity",icon:"🕘",label:"Activity Log"},{id:"reception",icon:"🎟️",label:"Reception"},{id:"users",icon:"👥",label:"Users"}];
+-  return <><button className="mobile-menu-trigger" aria-label="Open navigation menu" aria-expanded={mobileOpen} onClick={function(){setMobileOpen(true);}}><span>☰</span></button>{mobileOpen&&<div className="mobile-nav-backdrop" onClick={function(){setMobileOpen(false);}}/>}<aside className={"sidebar"+(mobileOpen?" mobile-open":"")}><div className="sb-mobile-header"><div><div className="sb-mobile-title">Husaini Mohallah</div><div className="sb-mobile-sub">Database</div></div><button className="mobile-menu-close" aria-label="Close navigation menu" onClick={function(){setMobileOpen(false);}}>×</button></div><div className="sb-logo" style={{textAlign:"center"}}><img src={LOGO_URL} alt="Husaini Mohallah" style={{width:"118px",height:"118px",objectFit:"contain",display:"block",margin:"0 auto 10px"}}/><div className="sb-sub">Husaini Mohallah · Database</div><div className="cloud-badge">☁ Supabase Cloud</div></div><nav className="nav"><div className="nav-lbl">Main</div>{navItems.map(function(n){return <div key={n.id} className={"nav-item"+(page===n.id?" active":"")} onClick={function(){goTo(n.id);}}><span>{n.icon}</span> {n.label}</div>;})}<div className="nav-lbl nav-lbl-tools">Tools</div><div className="nav-item" style={{color:"#c9a84c",borderColor:"rgba(201,168,76,.15)"}} onClick={openImport}><span>⇅</span> Import / Export</div><input id="restore-file-input" type="file" accept=".json" style={{display:"none"}} onChange={function(e){if(e.target.files[0])restoreFromBackup(e.target.files[0]);e.target.value="";}}/><div className="nav-item" style={{color:"#9ca3af"}} onClick={openTrash}><span>🗑</span> Trash</div><div className="nav-item" style={{color:"#9ca3af"}} onClick={backup}><span>💾</span> Backup All Data</div><div className="nav-item" style={{color:"#9ca3af"}} onClick={restore}><span>📤</span> Restore Backup</div>{installPrompt&&<div className="nav-item pwa-install-item" onClick={installApp}><span>📲</span> Install App</div>}{updateReady&&<div className="nav-item pwa-install-item" onClick={updateApp}><span>↻</span> Update App</div>}<div className="nav-lbl nav-lbl-search">Search</div><GlobalSearch /></nav><div className="user-box"><div className="user-role">● Signed In</div><div className="user-email">{session&&session.user&&session.user.email}</div><button className="signout-btn" onClick={handleSignOut}>Sign Out</button></div><div className="sb-footer">Husaini Mohallah © 2026 · Developed by Juzer Dana</div></aside></>;
++    {id:"reports",icon:"🖨",label:"Reports"},{id:"report-builder",icon:"🧰",label:"Advanced Report Builder"},{id:"survey-management",icon:"📝",label:"Survey Management"},{id:"activity",icon:"🕘",label:"Activity Log"},{id:"reception",icon:"🎟️",label:"Reception"},{id:"users",icon:"👥",label:"Users"}];
++  var canEdit=!!ctx.canEdit,isAdmin=!!ctx.isAdmin;
++  return <><button className="mobile-menu-trigger" aria-label="Open navigation menu" aria-expanded={mobileOpen} onClick={function(){setMobileOpen(true);}}><span>☰</span></button>{mobileOpen&&<div className="mobile-nav-backdrop" onClick={function(){setMobileOpen(false);}}/>}<aside className={"sidebar"+(mobileOpen?" mobile-open":"")}><div className="sb-mobile-header"><div><div className="sb-mobile-title">Husaini Mohallah</div><div className="sb-mobile-sub">Database</div></div><button className="mobile-menu-close" aria-label="Close navigation menu" onClick={function(){setMobileOpen(false);}}>×</button></div><div className="sb-logo" style={{textAlign:"center"}}><img src={LOGO_URL} alt="Husaini Mohallah" style={{width:"118px",height:"118px",objectFit:"contain",display:"block",margin:"0 auto 10px"}}/><div className="sb-sub">Husaini Mohallah · Database</div><div className="cloud-badge">☁ Supabase Cloud</div></div><nav className="nav"><div className="nav-lbl">Main</div>{navItems.map(function(n){return <div key={n.id} className={"nav-item"+(page===n.id?" active":"")} onClick={function(){goTo(n.id);}}><span>{n.icon}</span> {n.label}</div>;})}<div className="nav-lbl nav-lbl-tools">Tools</div>{canEdit&&<div className="nav-item" style={{color:"#c9a84c",borderColor:"rgba(201,168,76,.15)"}} onClick={openImport}><span>⇅</span> Import / Export</div>}<input id="restore-file-input" type="file" accept=".json" style={{display:"none"}} onChange={function(e){if(e.target.files[0])restoreFromBackup(e.target.files[0]);e.target.value="";}}/>{canEdit&&<div className="nav-item" style={{color:"#9ca3af"}} onClick={openTrash}><span>🗑</span> Trash</div>}{isAdmin&&<div className="nav-item" style={{color:"#9ca3af"}} onClick={backup}><span>💾</span> Backup All Data</div>}{isAdmin&&<div className="nav-item" style={{color:"#9ca3af"}} onClick={restore}><span>📤</span> Restore Backup</div>}{installPrompt&&<div className="nav-item pwa-install-item" onClick={installApp}><span>📲</span> Install App</div>}{updateReady&&<div className="nav-item pwa-install-item" onClick={updateApp}><span>↻</span> Update App</div>}<div className="nav-lbl nav-lbl-search">Search</div><GlobalSearch /></nav><div className="user-box"><div className="user-role">● Signed In</div><div className="user-email">{session&&session.user&&session.user.email}</div><button className="signout-btn" onClick={handleSignOut}>Sign Out</button></div><div className="sb-footer">Husaini Mohallah © 2026 · Developed by Juzer Dana</div></aside></>;
+ }
+diff --git a/src/lib/excelMuminSync.js b/src/lib/excelMuminSync.js
+index 6bb6cb1..755cb01 100644
+--- a/src/lib/excelMuminSync.js
++++ b/src/lib/excelMuminSync.js
+@@ -289,8 +289,13 @@ export async function syncMuminExcel(rows, meta, progress) {
+   await Promise.all(Object.keys(sectorInchargeByName).map(async function (sector) {
+     var data = sectorInchargeByName[sector], id = sectorIdByName[sector]; if (!id) return;
+     var patch = {};
+-    if (data.its) { patch.incharge_its_id = data.its; patch.masool_its = String(data.its); }
+-    if (data.name) patch.masool_name = data.name;
++    // Never overwrite a Masool already assigned in the app; only fill blanks.
++    var currentSector = sectors.find(function (s) { return Number(s.id) === Number(id); }) || {};
++    var hasMasool = !!(text(currentSector.masool_its) || text(currentSector.masool_name) || currentSector.incharge_its_id);
++    if (!hasMasool) {
++      if (data.its) { patch.incharge_its_id = data.its; patch.masool_its = String(data.its); }
++      if (data.name) patch.masool_name = data.name;
++    }
+     if (Object.keys(patch).length) await sbUpdateWhere("sectors", "id=eq." + encodeURIComponent(id), patch);
+   }));
+ 
+@@ -306,8 +311,13 @@ export async function syncMuminExcel(rows, meta, progress) {
+   await Promise.all(Object.keys(subInchargeByKey).map(async function (key) {
+     var id = subSectorIdByKey[key]; if (!id) return;
+     var data = subInchargeByKey[key], patch = {};
+-    if (data.its) { patch.incharge_its_id = data.its; patch.musaid_its = String(data.its); }
+-    if (data.name) patch.musaid_name = data.name;
++    // Never overwrite a Musaid already assigned in the app; only fill blanks.
++    var currentSub = subSectors.find(function (s) { return Number(s.id) === Number(id); }) || {};
++    var hasMusaid = !!(text(currentSub.musaid_its) || text(currentSub.musaid_name) || currentSub.incharge_its_id);
++    if (!hasMusaid) {
++      if (data.its) { patch.incharge_its_id = data.its; patch.musaid_its = String(data.its); }
++      if (data.name) patch.musaid_name = data.name;
++    }
+     if (Object.keys(patch).length) await sbUpdateWhere("sub_sectors", "id=eq." + encodeURIComponent(id), patch);
+   }));
+ 
+diff --git a/src/lib/supabase.js b/src/lib/supabase.js
+index bf183ab..adf9d04 100644
+--- a/src/lib/supabase.js
++++ b/src/lib/supabase.js
+@@ -48,7 +48,30 @@ async function readError(res) {
+   return new SupabaseError(message, res.status, data && data.code, data && data.details);
+ }
+ 
+-async function request(url, options, retryable) {
++let refreshing = null;
++// Exchange the stored refresh_token for a new access token (one shared in-flight call).
++async function refreshSession() {
++  if (refreshing) return refreshing;
++  refreshing = (async function () {
++    var session = getSession();
++    if (!session || !session.refresh_token) return null;
++    try {
++      var res = await fetch(SUPABASE_URL + "/auth/v1/token?grant_type=refresh_token", {
++        method: "POST", headers: { "Content-Type": "application/json", "apikey": SUPABASE_ANON },
++        body: JSON.stringify({ refresh_token: session.refresh_token }),
++      });
++      if (!res.ok) return null;
++      var next = await res.json();
++      if (!next || !next.access_token) return null;
++      var merged = Object.assign({}, session, next);
++      try { localStorage.setItem("hm_session", JSON.stringify(merged)); } catch { /* storage unavailable; session still returned */ }
++      return merged;
++    } catch { return null; }
++  })();
++  try { return await refreshing; } finally { refreshing = null; }
++}
++
++async function request(url, options, retryable, alreadyRefreshed) {
+   var attempts = retryable ? 2 : 1;
+   var lastError = null;
+   for (var attempt = 0; attempt < attempts; attempt++) {
+@@ -56,6 +79,13 @@ async function request(url, options, retryable) {
+       var res = await fetch(url, options);
+       if (res.ok) return res;
+       var error = await readError(res);
++      if (res.status === 401 && !alreadyRefreshed) {
++        var fresh = await refreshSession();
++        if (fresh && fresh.access_token) {
++          var retryOptions = Object.assign({}, options, { headers: Object.assign({}, options.headers, { "Authorization": "Bearer " + fresh.access_token }) });
++          return request(url, retryOptions, retryable, true);
++        }
++      }
+       if (res.status === 401) clearStoredSession();
+       if (res.status >= 500 && attempt + 1 < attempts) {
+         await new Promise(function (resolve) { setTimeout(resolve, 300 * (attempt + 1)); });
+@@ -138,11 +168,17 @@ export async function sbDelete(table, id) {
+   await request(buildRestUrl(table, "id=eq." + encodeURIComponent(id)), { method: "DELETE", headers: Object.assign({}, getHeaders(), { Prefer: "return=minimal" }) }, false);
+ }
+ 
++function requireFilter(filterQuery) {
++  if (!filterQuery || !/[a-z_]+=(eq|in|is|lt|gt|lte|gte|neq)\./i.test(filterQuery)) throw new Error("Refusing a bulk write without a filter");
++}
++
+ export async function sbDeleteWhere(table, filterQuery) {
++  requireFilter(filterQuery);
+   await request(buildRestUrl(table, filterQuery), { method: "DELETE", headers: Object.assign({}, getHeaders(), { Prefer: "return=minimal" }) }, false);
+ }
+ 
+ export async function sbUpdateWhere(table, filterQuery, body) {
++  requireFilter(filterQuery);
+   var res = await request(buildRestUrl(table, filterQuery), { method: "PATCH", headers: getHeaders(), body: JSON.stringify(body) }, false);
+   return res.json();
+ }
+diff --git a/src/lib/utils.js b/src/lib/utils.js
+index c1a992b..1c51df4 100644
+--- a/src/lib/utils.js
++++ b/src/lib/utils.js
+@@ -48,20 +48,24 @@ export function downloadBlob(content, filename, mime) {
+   URL.revokeObjectURL(url);
+ }
+ 
++function xmlEsc(v) {
++  return String(v == null ? "" : v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
++}
++
+ export function toXLS(rows, cols, sheetName) {
+   var xml = '<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?>';
+   xml += '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" ';
+   xml += 'xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">';
+-  xml += '<Worksheet ss:Name="' + (sheetName || "Sheet1") + '"><Table>';
++  xml += '<Worksheet ss:Name="' + xmlEsc((sheetName || "Sheet1").slice(0, 31)) + '"><Table>';
+   xml += "<Row>";
+-  cols.forEach(function (c) { xml += "<Cell><Data ss:Type=\"String\">" + c + "</Data></Cell>"; });
++  cols.forEach(function (c) { xml += "<Cell><Data ss:Type=\"String\">" + xmlEsc(c) + "</Data></Cell>"; });
+   xml += "</Row>";
+   rows.forEach(function (r) {
+     xml += "<Row>";
+     cols.forEach(function (c) {
+       var v = r[c] == null ? "" : String(r[c]);
+-      var t = isNaN(v) || v === "" ? "String" : "Number";
+-      v = v.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
++      var t = (v === "" || v.trim() === "" || /^0\d/.test(v) || !/^-?\d+(\.\d+)?$/.test(v.trim())) ? "String" : "Number";
++      v = xmlEsc(v);
+       xml += "<Cell><Data ss:Type=\"" + t + "\">" + v + "</Data></Cell>";
+     });
+     xml += "</Row>";
+diff --git a/src/pages/RelationshipIntelligencePage.jsx b/src/pages/RelationshipIntelligencePage.jsx
+index c5c0760..b0c2546 100644
+--- a/src/pages/RelationshipIntelligencePage.jsx
++++ b/src/pages/RelationshipIntelligencePage.jsx
+@@ -1,5 +1,5 @@
+ import { useMemo, useState } from "react";
+-import { useApp } from "../context/AppContext.jsx";
++import { useAppContext as useApp } from "../context/AppContext.jsx";
+ 
+ function norm(v) { return String(v ?? "").trim().toLowerCase(); }
+ function label(v) { return v == null || v === "" ? "—" : String(v); }
+diff --git a/src/pages/ReportBuilderPage.jsx b/src/pages/ReportBuilderPage.jsx
+index 49253c3..b33e537 100644
+--- a/src/pages/ReportBuilderPage.jsx
++++ b/src/pages/ReportBuilderPage.jsx
+@@ -122,8 +122,9 @@ export function ReportBuilderPage(){
+     var age=getMuminAge(m),source=m.source_data||{},its=String(m.its_number||m.its_id||"").trim(),hofIts=String(source.HOF_ID||source.hof_id||m.HOF_ID||m.hof_id||"").trim(),text=(its+" "+(m.name||"")+" "+(m.phone||"")+" "+hofIts).toLowerCase();
+     if(q){if(multipleIts){if(itsTokens.indexOf(its)<0)return false;}else if(text.indexOf(q)<0)return false;}if(lo!==null&&(age===null||age<lo))return false;if(hi!==null&&(age===null||age>hi))return false;
+     if(sector&&m.area_sector!==sector)return false;if(gender&&m.gender!==gender)return false;if(status&&m.status!==status)return false;
+-    if(hofOnly||template==="hof"){var type=String(source.HOF_FM_TYPE||source.hof_fm_type||m.HOF_FM_TYPE||m.hof_fm_type||"").toUpperCase();if(type!=="HOF"&&!String(hofIts).trim())return false;}if(hasPhone&&!String(m.phone||"").trim())return false;return true;
++    if(hofOnly||template==="hof"){var type=String(source.HOF_FM_TYPE||source.hof_fm_type||m.HOF_FM_TYPE||m.hof_fm_type||"").toUpperCase();if(type!=="HOF"&&!(hofIts&&hofIts===its))return false;}if(hasPhone&&!String(m.phone||"").trim())return false;return true;
+   });},[data,search,startAge,endAge,sector,gender,status,hofOnly,hasPhone,template]);
++  var rowCtx=useMemo(function(){var c=data.slice();c._subSectors=ctx.subSectorsData||[];return c;},[data,ctx.subSectorsData]);
+   function filters(){return {search:search,startAge:startAge,endAge:endAge,sector:sector,gender:gender,status:status,hofOnly:hofOnly,hasPhone:hasPhone,template:template,columns:columns};}
+   function apply(f){setSearch(f.search||"");setStartAge(f.startAge||"");setEndAge(f.endAge||"");setSector(f.sector||"");setGender(f.gender||"");setStatus(f.status||"");setHofOnly(!!f.hofOnly);setHasPhone(!!f.hasPhone);setTemplate(f.template||"detailed");setColumns(normalizeColumns(f.columns));}
+   function saveReport(){var name=savedName.trim();if(!name){alert("Enter a report name.");return;}var next=saved.filter(function(x){return x.name.toLowerCase()!==name.toLowerCase();});next.unshift({name:name,filters:filters(),updatedAt:new Date().toISOString()});next=next.slice(0,20);window.localStorage.setItem(STORAGE,JSON.stringify(next));setSaved(next);setSavedName("");}
+@@ -159,6 +160,6 @@ export function ReportBuilderPage(){
+       {saved.length>0&&<div style={{padding:"0 14px 14px",display:"flex",gap:8,flexWrap:"wrap"}}>{saved.map(function(r){return <div key={r.name} style={{display:"flex",alignItems:"center",gap:6,border:"1px solid rgba(255,255,255,.08)",borderRadius:8,padding:"7px 9px"}}><button className="btn btn-ghost btn-sm" onClick={function(){apply(r.filters);}}>{r.name}</button><button className="btn btn-ghost btn-sm" title="Delete saved report" onClick={function(){removeReport(r.name);}}>×</button></div>;})}</div>}
+     </div>
+     <div className="card report-fields-card" style={{marginTop:16}}><div className="card-hdr"><span className="card-title">☰ Fields Name</span><span style={{fontSize:11,color:"#6b7280"}}>{columns.length} selected of {REPORT_COLUMNS.length}</span></div><div className="report-fields-selectall"><label><input type="checkbox" checked={columns.length===REPORT_COLUMNS.length} onChange={function(e){toggleAllFields(e.target.checked);}}/> Select all Fields</label></div><div className="report-fields-grid">{REPORT_COLUMNS.map(function(col){var selected=columns.indexOf(col.key)>=0;return <label key={col.key} className="report-field-option"><input type="checkbox" checked={selected} onChange={function(){toggleColumn(col.key);}}/><span>{col.label}</span></label>;})}</div>{columnError&&<div style={{color:"#b91c1c",fontSize:12,padding:"0 14px 12px"}}>{columnError}</div>}<div className="report-fields-footer"><span className="muted">Selected fields are used for the results table, Excel export and printed report.</span><button className="btn btn-primary btn-sm" onClick={exportExcel}>Download Data in Excel</button></div></div>
+-    <div className="card advanced-report-print-area" style={{marginTop:16}}><div className="card-hdr"><span className="card-title">{template==="hof"?"HOF Names Directory":"Results"} ({rows.length})</span></div><div className="print-header" style={{padding:"14px 0"}}><h2 style={{margin:"0 0 4px"}}>Husaini Mohallah Database</h2><p style={{margin:0}}>{template==="hof"?"HOF Names Directory":template==="compact"?"Compact Mumin Register":"Detailed Mumin Register"} · {rows.length} records</p></div><div style={{overflowX:"auto"}}><table><thead><tr>{columns.map(function(key){var col=REPORT_COLUMNS.find(function(x){return x.key===key;});return <th key={key}>{col?col.label:key}</th>;})}</tr></thead><tbody>{rows.map(function(m){return <tr key={m.id}>{columns.map(function(key){var value=rowValue(m,key,Object.assign(data,{_subSectors:ctx.subSectorsData||[]}));return <td key={key}>{value===""||value===null?"—":value}</td>;})}</tr>;})}</tbody></table></div><div className="muted no-print" style={{padding:12}}>Showing all {rows.length} filtered results. Use Print Report for the selected layout.</div></div>
++    <div className="card advanced-report-print-area" style={{marginTop:16}}><div className="card-hdr"><span className="card-title">{template==="hof"?"HOF Names Directory":"Results"} ({rows.length})</span></div><div className="print-header" style={{padding:"14px 0"}}><h2 style={{margin:"0 0 4px"}}>Husaini Mohallah Database</h2><p style={{margin:0}}>{template==="hof"?"HOF Names Directory":template==="compact"?"Compact Mumin Register":"Detailed Mumin Register"} · {rows.length} records</p></div><div style={{overflowX:"auto"}}><table><thead><tr>{columns.map(function(key){var col=REPORT_COLUMNS.find(function(x){return x.key===key;});return <th key={key}>{col?col.label:key}</th>;})}</tr></thead><tbody>{rows.map(function(m){return <tr key={m.id}>{columns.map(function(key){var value=rowValue(m,key,rowCtx);return <td key={key}>{value===""||value===null?"—":value}</td>;})}</tr>;})}</tbody></table></div><div className="muted no-print" style={{padding:12}}>Showing all {rows.length} filtered results. Use Print Report for the selected layout.</div></div>
+   </div>;
+ }
+diff --git a/src/pages/SurveyManagementPage.jsx b/src/pages/SurveyManagementPage.jsx
+index 6b53496..c4f52ac 100644
+--- a/src/pages/SurveyManagementPage.jsx
++++ b/src/pages/SurveyManagementPage.jsx
+@@ -258,6 +258,9 @@ export function SurveyManagementPage() {
+ 
+   function printReport() {
+     if (!reportRows.length) return;
++    var body = document.body;
++    body.dataset.print = "survey";
++    window.addEventListener("afterprint", function () { delete body.dataset.print; }, { once: true });
+     window.print();
+   }
+ 
+diff --git a/supabase/migrations/2026_09_complete_mumin_foreign_key_indexes.sql b/supabase/migrations/2026_09_complete_mumin_foreign_key_indexes.sql
+index 4ec92b2..944e6c6 100644
+--- a/supabase/migrations/2026_09_complete_mumin_foreign_key_indexes.sql
++++ b/supabase/migrations/2026_09_complete_mumin_foreign_key_indexes.sql
+@@ -19,4 +19,4 @@ create index if not exists sub_sectors_incharge_its_id_idx
+ drop policy if exists "users read own role" on public.user_roles;
+ create policy "users read own role" on public.user_roles
+   for select
+-  using ((user_id = (select auth.uid())) or (current_app_role() = 'admin'::text));
++  using ((user_id = (select auth.uid())) or (public.is_admin()));

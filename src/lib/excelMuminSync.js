@@ -289,8 +289,13 @@ export async function syncMuminExcel(rows, meta, progress) {
   await Promise.all(Object.keys(sectorInchargeByName).map(async function (sector) {
     var data = sectorInchargeByName[sector], id = sectorIdByName[sector]; if (!id) return;
     var patch = {};
-    if (data.its) { patch.incharge_its_id = data.its; patch.masool_its = String(data.its); }
-    if (data.name) patch.masool_name = data.name;
+    // Never overwrite a Masool already assigned in the app; only fill blanks.
+    var currentSector = sectors.find(function (s) { return Number(s.id) === Number(id); }) || {};
+    var hasMasool = !!(text(currentSector.masool_its) || text(currentSector.masool_name) || currentSector.incharge_its_id);
+    if (!hasMasool) {
+      if (data.its) { patch.incharge_its_id = data.its; patch.masool_its = String(data.its); }
+      if (data.name) patch.masool_name = data.name;
+    }
     if (Object.keys(patch).length) await sbUpdateWhere("sectors", "id=eq." + encodeURIComponent(id), patch);
   }));
 
@@ -306,8 +311,13 @@ export async function syncMuminExcel(rows, meta, progress) {
   await Promise.all(Object.keys(subInchargeByKey).map(async function (key) {
     var id = subSectorIdByKey[key]; if (!id) return;
     var data = subInchargeByKey[key], patch = {};
-    if (data.its) { patch.incharge_its_id = data.its; patch.musaid_its = String(data.its); }
-    if (data.name) patch.musaid_name = data.name;
+    // Never overwrite a Musaid already assigned in the app; only fill blanks.
+    var currentSub = subSectors.find(function (s) { return Number(s.id) === Number(id); }) || {};
+    var hasMusaid = !!(text(currentSub.musaid_its) || text(currentSub.musaid_name) || currentSub.incharge_its_id);
+    if (!hasMusaid) {
+      if (data.its) { patch.incharge_its_id = data.its; patch.musaid_its = String(data.its); }
+      if (data.name) patch.musaid_name = data.name;
+    }
     if (Object.keys(patch).length) await sbUpdateWhere("sub_sectors", "id=eq." + encodeURIComponent(id), patch);
   }));
 
