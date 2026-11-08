@@ -258,6 +258,9 @@ export function SurveyManagementPage() {
 
   function printReport() {
     if (!reportRows.length) return;
+    var body = document.body;
+    body.dataset.print = "survey";
+    window.addEventListener("afterprint", function () { delete body.dataset.print; }, { once: true });
     window.print();
   }
 

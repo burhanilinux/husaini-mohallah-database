@@ -48,7 +48,30 @@ async function readError(res) {
   return new SupabaseError(message, res.status, data && data.code, data && data.details);
 }
 
-async function request(url, options, retryable) {
+let refreshing = null;
+// Exchange the stored refresh_token for a new access token (one shared in-flight call).
+async function refreshSession() {
+  if (refreshing) return refreshing;
+  refreshing = (async function () {
+    var session = getSession();
+    if (!session || !session.refresh_token) return null;
+    try {
+      var res = await fetch(SUPABASE_URL + "/auth/v1/token?grant_type=refresh_token", {
+        method: "POST", headers: { "Content-Type": "application/json", "apikey": SUPABASE_ANON },
+        body: JSON.stringify({ refresh_token: session.refresh_token }),
+      });
+      if (!res.ok) return null;
+      var next = await res.json();
+      if (!next || !next.access_token) return null;
+      var merged = Object.assign({}, session, next);
+      try { localStorage.setItem("hm_session", JSON.stringify(merged)); } catch { /* storage unavailable; session still returned */ }
+      return merged;
+    } catch { return null; }
+  })();
+  try { return await refreshing; } finally { refreshing = null; }
+}
+
+async function request(url, options, retryable, alreadyRefreshed) {
   var attempts = retryable ? 2 : 1;
   var lastError = null;
   for (var attempt = 0; attempt < attempts; attempt++) {
@@ -56,6 +79,13 @@ async function request(url, options, retryable) {
       var res = await fetch(url, options);
       if (res.ok) return res;
       var error = await readError(res);
+      if (res.status === 401 && !alreadyRefreshed) {
+        var fresh = await refreshSession();
+        if (fresh && fresh.access_token) {
+          var retryOptions = Object.assign({}, options, { headers: Object.assign({}, options.headers, { "Authorization": "Bearer " + fresh.access_token }) });
+          return request(url, retryOptions, retryable, true);
+        }
+      }
       if (res.status === 401) clearStoredSession();
       if (res.status >= 500 && attempt + 1 < attempts) {
         await new Promise(function (resolve) { setTimeout(resolve, 300 * (attempt + 1)); });
@@ -138,11 +168,17 @@ export async function sbDelete(table, id) {
   await request(buildRestUrl(table, "id=eq." + encodeURIComponent(id)), { method: "DELETE", headers: Object.assign({}, getHeaders(), { Prefer: "return=minimal" }) }, false);
 }
 
+function requireFilter(filterQuery) {
+  if (!filterQuery || !/[a-z_]+=(eq|in|is|lt|gt|lte|gte|neq)\./i.test(filterQuery)) throw new Error("Refusing a bulk write without a filter");
+}
+
 export async function sbDeleteWhere(table, filterQuery) {
+  requireFilter(filterQuery);
   await request(buildRestUrl(table, filterQuery), { method: "DELETE", headers: Object.assign({}, getHeaders(), { Prefer: "return=minimal" }) }, false);
 }
 
 export async function sbUpdateWhere(table, filterQuery, body) {
+  requireFilter(filterQuery);
   var res = await request(buildRestUrl(table, filterQuery), { method: "PATCH", headers: getHeaders(), body: JSON.stringify(body) }, false);
   return res.json();
 }

@@ -19,4 +19,4 @@ create index if not exists sub_sectors_incharge_its_id_idx
 drop policy if exists "users read own role" on public.user_roles;
 create policy "users read own role" on public.user_roles
   for select
-  using ((user_id = (select auth.uid())) or (current_app_role() = 'admin'::text));
+  using ((user_id = (select auth.uid())) or (public.is_admin()));

@@ -48,20 +48,24 @@ export function downloadBlob(content, filename, mime) {
   URL.revokeObjectURL(url);
 }
 
+function xmlEsc(v) {
+  return String(v == null ? "" : v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
 export function toXLS(rows, cols, sheetName) {
   var xml = '<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?>';
   xml += '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" ';
   xml += 'xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">';
-  xml += '<Worksheet ss:Name="' + (sheetName || "Sheet1") + '"><Table>';
+  xml += '<Worksheet ss:Name="' + xmlEsc((sheetName || "Sheet1").slice(0, 31)) + '"><Table>';
   xml += "<Row>";
-  cols.forEach(function (c) { xml += "<Cell><Data ss:Type=\"String\">" + c + "</Data></Cell>"; });
+  cols.forEach(function (c) { xml += "<Cell><Data ss:Type=\"String\">" + xmlEsc(c) + "</Data></Cell>"; });
   xml += "</Row>";
   rows.forEach(function (r) {
     xml += "<Row>";
     cols.forEach(function (c) {
       var v = r[c] == null ? "" : String(r[c]);
-      var t = isNaN(v) || v === "" ? "String" : "Number";
-      v = v.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+      var t = (v === "" || v.trim() === "" || /^0\d/.test(v) || !/^-?\d+(\.\d+)?$/.test(v.trim())) ? "String" : "Number";
+      v = xmlEsc(v);
       xml += "<Cell><Data ss:Type=\"" + t + "\">" + v + "</Data></Cell>";
     });
     xml += "</Row>";
