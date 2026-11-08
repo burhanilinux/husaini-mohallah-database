@@ -37,11 +37,11 @@ function openA4(title, html) {
   setTimeout(function () { URL.revokeObjectURL(url); }, 15000);
 }
 
-export function printMuminA4(m, familyRecord, familyMembers, sectorInfo) {
+export function printMuminA4(m, familyRecord, familyMembers, sectorInfo, photoUrl) {
   var today = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
   var age = getMuminAge(m);
   var initial = esc((m.name || "?").trim().charAt(0).toUpperCase());
-  var photo = m.photo_url ? "<img src='" + esc(m.photo_url) + "' alt=''>" : initial;
+  var photo = (photoUrl || m.photo_url) ? "<img src=\'" + esc(photoUrl || m.photo_url) + "\' alt=\'\'>" : initial;
   var warnings = [];
   if (!m.its_number) warnings.push("Missing ITS number");
   if (!m.phone) warnings.push("Missing phone number");
