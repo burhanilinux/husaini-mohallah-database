@@ -1,0 +1,249 @@
+diff --git a/src/components/Shared.jsx b/src/components/Shared.jsx
+index d88fb63..ec47164 100644
+--- a/src/components/Shared.jsx
++++ b/src/components/Shared.jsx
+@@ -1,11 +1,30 @@
+-import { useRef } from "react";
++import { useRef, useState } from "react";
+ import { fileToBase64, fmtBytes } from "../lib/utils.js";
++import { usePhotoUrl } from "../lib/usePhotoUrl.js";
+ 
+ // ── Loading spinner ───────────────────────────────────────────────
+ export function Spinner() {
+   return <span className="spinner" />;
+ }
+ 
++// ── Avatar: signed photo with graceful fallback to the first initial ──
++export function Avatar({ url, name }) {
++  const src = usePhotoUrl(url);
++  const [failedSrc, setFailedSrc] = useState(null);
++  const initial = (name || "?").trim().charAt(0).toUpperCase() || "?";
++  if (src && failedSrc !== src) {
++    return <img src={src} alt="" onError={function () { setFailedSrc(src); }} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />;
++  }
++  return <span>{initial}</span>;
++}
++
++// ── Small rectangular photo preview (edit form) ───────────────────
++export function PhotoThumb({ url, style }) {
++  const src = usePhotoUrl(url);
++  if (!src) return <div style={Object.assign({ background: "rgba(201,168,76,.1)" }, style)} />;
++  return <img src={src} alt="" style={style} />;
++}
++
+ // ── Attachment thumbnail (image / pdf / generic file icon) ────────
+ export function AttThumb({ url, type }) {
+   if (url && type && type.indexOf("image/") === 0) {
+diff --git a/src/lib/storage.js b/src/lib/storage.js
+new file mode 100644
+index 0000000..5b7f102
+--- /dev/null
++++ b/src/lib/storage.js
+@@ -0,0 +1,64 @@
++// Private-bucket photo access.
++// photo_url may hold a legacy public URL (".../object/public/uploads/<path>") or a bare
++// storage path. Either way we extract the path and ask Storage for a short-lived signed
++// URL. Requests made in the same tick are batched into ONE call, so a list with hundreds
++// of avatars costs a single round-trip.
++import { SUPABASE_URL, SUPABASE_ANON, getToken } from "./supabase.js";
++
++var BUCKET = "uploads";
++var PUBLIC_MARK = "/storage/v1/object/public/" + BUCKET + "/";
++var TTL_SECONDS = 3600;
++var cache = new Map();   // path -> { url, exp }
++var queue = new Map();   // path -> [resolve, ...]
++var timer = null;
++
++export function photoPath(value) {
++  if (!value) return null;
++  var s = String(value);
++  var i = s.indexOf(PUBLIC_MARK);
++  if (i >= 0) {
++    var rest = s.slice(i + PUBLIC_MARK.length).split("?")[0];
++    try { return decodeURIComponent(rest); } catch { return rest; }
++  }
++  if (/^https?:/i.test(s)) return null; // external URL: leave untouched
++  return s.replace(/^\/+/, "");
++}
++
++async function flush() {
++  timer = null;
++  var batch = queue;
++  queue = new Map();
++  var paths = Array.from(batch.keys());
++  var signed = {};
++  try {
++    var res = await fetch(SUPABASE_URL + "/storage/v1/object/sign/" + BUCKET, {
++      method: "POST",
++      headers: { "Content-Type": "application/json", "apikey": SUPABASE_ANON, "Authorization": "Bearer " + getToken() },
++      body: JSON.stringify({ expiresIn: TTL_SECONDS, paths: paths }),
++    });
++    if (res.ok) {
++      var rows = await res.json();
++      (Array.isArray(rows) ? rows : []).forEach(function (r) {
++        if (r && r.path && r.signedURL) signed[r.path] = SUPABASE_URL + "/storage/v1" + r.signedURL;
++      });
++    }
++  } catch { /* network error: callers fall back to the stored value */ }
++  paths.forEach(function (p) {
++    var url = signed[p] || null;
++    if (url) cache.set(p, { url: url, exp: Date.now() + (TTL_SECONDS - 300) * 1000 });
++    batch.get(p).forEach(function (done) { done(url); });
++  });
++}
++
++// Resolves to a displayable URL, or null when signing failed.
++export function getPhotoUrl(value) {
++  var path = photoPath(value);
++  if (!path) return Promise.resolve(value || null);
++  var hit = cache.get(path);
++  if (hit && hit.exp > Date.now()) return Promise.resolve(hit.url);
++  return new Promise(function (resolve) {
++    if (!queue.has(path)) queue.set(path, []);
++    queue.get(path).push(resolve);
++    if (!timer) timer = setTimeout(flush, 20);
++  });
++}
+diff --git a/src/lib/usePhotoUrl.js b/src/lib/usePhotoUrl.js
+new file mode 100644
+index 0000000..76aeeba
+--- /dev/null
++++ b/src/lib/usePhotoUrl.js
+@@ -0,0 +1,16 @@
++import { useEffect, useState } from "react";
++import { getPhotoUrl } from "./storage.js";
++
++// Returns a displayable (signed) URL for a stored photo value, or null while loading.
++export function usePhotoUrl(value) {
++  const [state, setState] = useState({ value: null, url: null });
++  useEffect(function () {
++    if (!value) return undefined;
++    let active = true;
++    getPhotoUrl(value).then(function (url) {
++      if (active) setState({ value: value, url: url || value });
++    });
++    return function () { active = false; };
++  }, [value]);
++  return value && state.value === value ? state.url : null;
++}
+diff --git a/src/modals/MuminModal.jsx b/src/modals/MuminModal.jsx
+index 5674c75..ffc360b 100644
+--- a/src/modals/MuminModal.jsx
++++ b/src/modals/MuminModal.jsx
+@@ -1,5 +1,5 @@
+ import { useAppContext } from "../context/AppContext.jsx";
+-import { Spinner, UploadZone } from "../components/Shared.jsx";
++import { Spinner, UploadZone, PhotoThumb } from "../components/Shared.jsx";
+ import { calcAge } from "../lib/utils.js";
+ 
+ export function MuminModal() {
+@@ -92,7 +92,7 @@ export function MuminModal() {
+               <label>Profile Photo</label>
+               {form.photo_url && !muminPhotoFile && (
+                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+-                  <img src={form.photo_url} alt="" style={{ width: 48, height: 48, borderRadius: 8, objectFit: "cover", border: "1px solid rgba(184,152,90,.25)" }} />
++                  <PhotoThumb url={form.photo_url} style={{ width: 48, height: 48, borderRadius: 8, objectFit: "cover", border: "1px solid rgba(184,152,90,.25)" }} />
+                   <button className="btn btn-ghost btn-sm" onClick={function () { setForm(function (f) { return Object.assign({}, f, { photo_url: null }); }); }}>Remove Photo</button>
+                 </div>
+               )}
+diff --git a/src/modals/MuminPreview.jsx b/src/modals/MuminPreview.jsx
+index 937d3b5..823f694 100644
+--- a/src/modals/MuminPreview.jsx
++++ b/src/modals/MuminPreview.jsx
+@@ -1,5 +1,7 @@
+ import { useEffect, useState } from "react";
+ import { useAppContext } from "../context/AppContext.jsx";
++import { Avatar } from "../components/Shared.jsx";
++import { usePhotoUrl } from "../lib/usePhotoUrl.js";
+ import { sbGet } from "../lib/supabase.js";
+ import { getMuminAge } from "../lib/utils.js";
+ import { getExtendedProfile } from "../lib/muminProfile.js";
+@@ -49,9 +51,13 @@ export function MuminPreview() {
+ 
+   useEffect(function () { setShowFullProfile(false); }, [muminPreview && muminPreview.id]);
+ 
++  var signedPhoto = usePhotoUrl(muminPreview && muminPreview.photo_url);
++
+   if (!muminPreview) return null;
+ 
+   var m = muminPreview;
++  // Print windows open on a different origin, so give them the signed URL.
++  var printable = Object.assign({}, m, { photo_url: signedPhoto || m.photo_url });
+   var allMembers = (ctx.muminData || []).filter(function (o) { return !o.deleted_at; });
+   var mIts = String(m.its_id || m.its_number || "").trim();
+   var mHofId = String((m.source_data && m.source_data.HOF_ID) || "").trim();
+@@ -80,7 +86,6 @@ export function MuminPreview() {
+   var hof = familyHofIts && ctx.getMuminByIts ? ctx.getMuminByIts(familyHofIts) : null;
+   if (!hof && mIts && String((m.source_data && m.source_data.HOF_FM_TYPE) || "").toUpperCase() === "HOF") hof = m;
+   var age = getMuminAge(m);
+-  var initials = (m.name || "?").trim().charAt(0).toUpperCase();
+   var ext = getExtendedProfile(m);
+ 
+   var warnings = [];
+@@ -102,7 +107,7 @@ export function MuminPreview() {
+         <div className="preview-hdr">
+           <div style={{ display: "flex", alignItems: "center", gap: 16, minWidth: 0 }}>
+             <div className="preview-avatar" style={{ width: 76, height: 76, flexShrink: 0, fontSize: 28 }}>
+-              {m.photo_url ? <img src={m.photo_url} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} /> : initials}
++              <Avatar url={m.photo_url} name={m.name} />
+             </div>
+             <div style={{ minWidth: 0 }}>
+               <div className="preview-name" style={{ fontSize: 22 }}>{m.name || "Unnamed Mumin"}</div>
+@@ -188,9 +193,9 @@ export function MuminPreview() {
+ 
+           <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+             {canEdit && <button className="btn btn-primary" onClick={function () { setMuminPreview(null); openModal("mumin", "edit", m); }}>✎ Edit Record</button>}
+-            <button className="btn btn-ghost" onClick={function () { printIdCard(m, sabilFamily, sectorInfo); }}>🪪 ID Card</button>
+-            <button className="btn btn-primary" onClick={function () { printMuminA4(m, familyRecord, familyMembers, sectorInfo); }}>🖨 Print A4</button>
+-            <button className="btn btn-ghost" onClick={function () { printMuminFullProfile(m, familyRecord, familyMembers, sectorInfo); }}>📋 Print Full Profile</button>
++            <button className="btn btn-ghost" onClick={function () { printIdCard(printable, sabilFamily, sectorInfo); }}>🪪 ID Card</button>
++            <button className="btn btn-primary" onClick={function () { printMuminA4(printable, familyRecord, familyMembers, sectorInfo); }}>🖨 Print A4</button>
++            <button className="btn btn-ghost" onClick={function () { printMuminFullProfile(printable, familyRecord, familyMembers, sectorInfo); }}>📋 Print Full Profile</button>
+             {m.family_id && <button className="btn btn-ghost" onClick={function () { close(); setPage("families"); }}>🏠 Open Families</button>}
+             <button className="btn btn-ghost" onClick={close}>Close</button>
+           </div>
+diff --git a/src/pages/MuminPage.jsx b/src/pages/MuminPage.jsx
+index d843002..e5ec838 100644
+--- a/src/pages/MuminPage.jsx
++++ b/src/pages/MuminPage.jsx
+@@ -1,5 +1,5 @@
+ import { useAppContext } from "../context/AppContext.jsx";
+-import { Spinner } from "../components/Shared.jsx";
++import { Spinner, Avatar } from "../components/Shared.jsx";
+ import { getMuminAge } from "../lib/utils.js";
+ 
+ function norm(v) { return String(v ?? "").trim(); }
+@@ -146,7 +146,7 @@ export function MuminPage() {
+                     <thead><tr><th></th><th>ITS No.</th><th>Name</th><th>Relation</th><th>Age</th><th>Gender</th><th>Phone</th><th>Sector</th><th>Status</th><th>Actions</th></tr></thead>
+                     <tbody>
+                       <tr className="clickable-row" onClick={function () { setMuminPreview(hof); }}>
+-                        <td><div className="mumin-avatar-sm">{hof.photo_url ? <img src={hof.photo_url} alt="" /> : (hof.name ? hof.name.charAt(0).toUpperCase() : "?")}</div></td>
++                        <td><div className="mumin-avatar-sm"><Avatar url={hof.photo_url} name={hof.name} /></div></td>
+                         <td><span className="file-no">{hof.its_number}</span></td><td style={{ fontWeight: 600 }}>{hof.name} <span style={{ color: "#c9a84c", fontSize: 11 }}>★ HOF</span></td>
+                         <td>Head of Family</td><td>{getMuminAge(hof)}</td><td><span className={"badge badge-" + (hof.gender || "").toLowerCase()}>{hof.gender}</span></td>
+                         <td style={{ fontSize: 12, color: "#9ca3af" }}>{hof.phone}</td><td style={{ fontSize: 12, color: "#c9a84c" }}>{hof.area_sector || "—"}</td>
+@@ -155,7 +155,7 @@ export function MuminPage() {
+                       </tr>
+                       {group.members.map(function (m) {
+                         return <tr key={m.id} className="clickable-row" onClick={function () { setMuminPreview(m); }}>
+-                          <td><div className="mumin-avatar-sm">{m.photo_url ? <img src={m.photo_url} alt="" /> : (m.name ? m.name.charAt(0).toUpperCase() : "?")}</div></td>
++                          <td><div className="mumin-avatar-sm"><Avatar url={m.photo_url} name={m.name} /></div></td>
+                           <td><span className="file-no">{m.its_number}</span></td><td style={{ fontWeight: 500, paddingLeft: 28 }}>↳ {m.name}</td>
+                           <td>{m.spouse_its_id ? "Spouse linked" : "Family Member"}</td><td>{getMuminAge(m)}</td><td><span className={"badge badge-" + (m.gender || "").toLowerCase()}>{m.gender}</span></td>
+                           <td style={{ fontSize: 12, color: "#9ca3af" }}>{m.phone}</td><td style={{ fontSize: 12, color: "#c9a84c" }}>{m.area_sector || "—"}</td>
+diff --git a/supabase/migrations/20261108120000_private_uploads_bucket.sql b/supabase/migrations/20261108120000_private_uploads_bucket.sql
+new file mode 100644
+index 0000000..b3c3d77
+--- /dev/null
++++ b/supabase/migrations/20261108120000_private_uploads_bucket.sql
+@@ -0,0 +1,10 @@
++-- Member photos contain personal images: keep the bucket private and let only
++-- signed-in users read objects (the app requests short-lived signed URLs).
++update storage.buckets set public = false where id = 'uploads';
++
++drop policy if exists "uploads: signed-in users can read" on storage.objects;
++create policy "uploads: signed-in users can read"
++on storage.objects for select to authenticated
++using (bucket_id = 'uploads');
++
++-- Uploads already work through the existing insert policy; none is added here.

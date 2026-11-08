@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useAppContext } from "../context/AppContext.jsx";
-import { sbGet, getStorageDisplayUrl } from "../lib/supabase.js";
+import { Avatar } from "../components/Shared.jsx";
+import { usePhotoUrl } from "../lib/usePhotoUrl.js";
+import { sbGet } from "../lib/supabase.js";
 import { getMuminAge } from "../lib/utils.js";
 import { getExtendedProfile } from "../lib/muminProfile.js";
 import { printMumin, printIdCard } from "../lib/print.js";
@@ -60,9 +62,13 @@ export function MuminPreview() {
 
   useEffect(function () { setShowFullProfile(false); }, [muminPreview && muminPreview.id]);
 
+  var signedPhoto = usePhotoUrl(muminPreview && muminPreview.photo_url);
+
   if (!muminPreview) return null;
 
   var m = muminPreview;
+  // Print windows open on a different origin, so give them the signed URL.
+  var printable = Object.assign({}, m, { photo_url: signedPhoto || m.photo_url });
   var allMembers = (ctx.muminData || []).filter(function (o) { return !o.deleted_at; });
   var mIts = String(m.its_id || m.its_number || "").trim();
   var mHofId = String((m.source_data && m.source_data.HOF_ID) || "").trim();
@@ -91,7 +97,6 @@ export function MuminPreview() {
   var hof = familyHofIts && ctx.getMuminByIts ? ctx.getMuminByIts(familyHofIts) : null;
   if (!hof && mIts && String((m.source_data && m.source_data.HOF_FM_TYPE) || "").toUpperCase() === "HOF") hof = m;
   var age = getMuminAge(m);
-  var initials = (m.name || "?").trim().charAt(0).toUpperCase();
   var ext = getExtendedProfile(m);
 
   var warnings = [];
@@ -113,7 +118,7 @@ export function MuminPreview() {
         <div className="preview-hdr">
           <div style={{ display: "flex", alignItems: "center", gap: 16, minWidth: 0 }}>
             <div className="preview-avatar" style={{ width: 76, height: 76, flexShrink: 0, fontSize: 28 }}>
-              {photoDisplayUrl ? <img src={photoDisplayUrl} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} onError={function () { setPhotoDisplayUrl(null); }} /> : initials}
+              <Avatar url={m.photo_url} name={m.name} />
             </div>
             <div style={{ minWidth: 0 }}>
               <div className="preview-name" style={{ fontSize: 22 }}>{m.name || "Unnamed Mumin"}</div>
@@ -199,9 +204,9 @@ export function MuminPreview() {
 
           <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
             {canEdit && <button className="btn btn-primary" onClick={function () { setMuminPreview(null); openModal("mumin", "edit", m); }}>✎ Edit Record</button>}
-            <button className="btn btn-ghost" onClick={function () { printIdCard(m, sabilFamily, sectorInfo); }}>🪪 ID Card</button>
-            <button className="btn btn-primary" onClick={function () { printMuminA4(m, familyRecord, familyMembers, sectorInfo, photoDisplayUrl); }}>🖨 Print A4</button>
-            <button className="btn btn-ghost" onClick={function () { printMuminFullProfile(m, familyRecord, familyMembers, sectorInfo); }}>📋 Print Full Profile</button>
+            <button className="btn btn-ghost" onClick={function () { printIdCard(printable, sabilFamily, sectorInfo); }}>🪪 ID Card</button>
+            <button className="btn btn-primary" onClick={function () { printMuminA4(printable, familyRecord, familyMembers, sectorInfo); }}>🖨 Print A4</button>
+            <button className="btn btn-ghost" onClick={function () { printMuminFullProfile(printable, familyRecord, familyMembers, sectorInfo); }}>📋 Print Full Profile</button>
             {m.family_id && <button className="btn btn-ghost" onClick={function () { close(); setPage("families"); }}>🏠 Open Families</button>}
             <button className="btn btn-ghost" onClick={close}>Close</button>
           </div>

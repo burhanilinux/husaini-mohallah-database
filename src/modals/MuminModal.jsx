@@ -1,5 +1,5 @@
 import { useAppContext } from "../context/AppContext.jsx";
-import { Spinner, UploadZone } from "../components/Shared.jsx";
+import { Spinner, UploadZone, PhotoThumb } from "../components/Shared.jsx";
 import { calcAge } from "../lib/utils.js";
 
 export function MuminModal() {
@@ -92,7 +92,7 @@ export function MuminModal() {
               <label>Profile Photo</label>
               {form.photo_url && !muminPhotoFile && (
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                  <img src={form.photo_url} alt="" style={{ width: 48, height: 48, borderRadius: 8, objectFit: "cover", border: "1px solid rgba(184,152,90,.25)" }} />
+                  <PhotoThumb url={form.photo_url} style={{ width: 48, height: 48, borderRadius: 8, objectFit: "cover", border: "1px solid rgba(184,152,90,.25)" }} />
                   <button className="btn btn-ghost btn-sm" onClick={function () { setForm(function (f) { return Object.assign({}, f, { photo_url: null }); }); }}>Remove Photo</button>
                 </div>
               )}
