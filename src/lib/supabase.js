@@ -189,11 +189,31 @@ export async function logActivity(action, entityType, entityName, userEmail) {
   } catch (e) { console.warn("Activity log failed", e); }
 }
 
+// Resolve a stored upload URL to a short-lived authenticated URL. The
+// uploads bucket is private, so /object/public URLs cannot display its files.
+export async function getStorageDisplayUrl(photoUrl) {
+  if (!photoUrl) return null;
+  var marker = "/storage/v1/object/public/uploads/";
+  var index = String(photoUrl).indexOf(marker);
+  if (index < 0) return photoUrl; // Preserve externally hosted legacy photos.
+  var path = String(photoUrl).slice(index + marker.length);
+  if (!path || path.split("/").some(function (part) { return part === "." || part === ".."; })) return null;
+  var res = await request(SUPABASE_URL + "/storage/v1/object/sign/uploads/" + path, {
+    method: "POST",
+    headers: { "apikey": SUPABASE_ANON, "Authorization": "Bearer " + getToken(), "Content-Type": "application/json" },
+    body: JSON.stringify({ expiresIn: 3600 }),
+  }, true);
+  var data = await res.json();
+  if (!data || !data.signedURL) throw new Error("Supabase did not return a signed photo URL.");
+  return data.signedURL.startsWith("http") ? data.signedURL : SUPABASE_URL + "/storage/v1" + data.signedURL;
+}
+
 export async function uploadStorage(file, path) {
   var res2 = await fetch(file.dataUrl), blob = await res2.blob();
-  var res = await request(SUPABASE_URL + "/storage/v1/object/uploads/" + path, {
+  await request(SUPABASE_URL + "/storage/v1/object/uploads/" + path, {
     method: "POST", headers: { "apikey": SUPABASE_ANON, "Authorization": "Bearer " + getToken(), "Content-Type": blob.type }, body: blob,
   }, false);
+  // Store a stable object reference; display components request fresh signed URLs.
   return SUPABASE_URL + "/storage/v1/object/public/uploads/" + path;
 }
 
