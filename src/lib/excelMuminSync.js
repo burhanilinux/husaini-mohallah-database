@@ -137,13 +137,9 @@ function buildPayload(row, subSectorIdByKey, existing) {
     data_verification_date: "Data_Verification_Date",
     photo_verification_date: "Photo_Verification_Date",
     sector_incharge_its_number: "Sector_Incharge_ITSID",
-    sector_incharge_name: "Sector_Incharge_Name",
     sector_incharge_female_its_number: "Sector_Incharge_Female_ITSID",
-    sector_incharge_female_name: "Sector_Incharge_Female_Name",
     sub_sector_incharge_its_number: "Sub_Sector_Incharge_ITSID",
-    sub_sector_incharge_name: "Sub_Sector_Incharge_Name",
     sub_sector_incharge_female_its_number: "Sub_Sector_Incharge_Female_ITSID",
-    sub_sector_incharge_female_name: "Sub_Sector_Incharge_Female_Name",
   };
   Object.keys(textFields).forEach(function (key) {
     setIfPresent(payload, key, row[textFields[key]]);
