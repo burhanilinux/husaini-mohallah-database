@@ -1,5 +1,5 @@
 import { useAppContext } from "../context/AppContext.jsx";
-import { Spinner } from "../components/Shared.jsx";
+import { Spinner, Avatar } from "../components/Shared.jsx";
 import { getMuminAge } from "../lib/utils.js";
 
 function norm(v) { return String(v ?? "").trim(); }
@@ -146,7 +146,7 @@ export function MuminPage() {
                     <thead><tr><th></th><th>ITS No.</th><th>Name</th><th>Relation</th><th>Age</th><th>Gender</th><th>Phone</th><th>Sector</th><th>Status</th><th>Actions</th></tr></thead>
                     <tbody>
                       <tr className="clickable-row" onClick={function () { setMuminPreview(hof); }}>
-                        <td><div className="mumin-avatar-sm">{hof.photo_url ? <img src={hof.photo_url} alt="" /> : (hof.name ? hof.name.charAt(0).toUpperCase() : "?")}</div></td>
+                        <td><div className="mumin-avatar-sm"><Avatar url={hof.photo_url} name={hof.name} /></div></td>
                         <td><span className="file-no">{hof.its_number}</span></td><td style={{ fontWeight: 600 }}>{hof.name} <span style={{ color: "#c9a84c", fontSize: 11 }}>★ HOF</span></td>
                         <td>Head of Family</td><td>{getMuminAge(hof)}</td><td><span className={"badge badge-" + (hof.gender || "").toLowerCase()}>{hof.gender}</span></td>
                         <td style={{ fontSize: 12, color: "#9ca3af" }}>{hof.phone}</td><td style={{ fontSize: 12, color: "#c9a84c" }}>{hof.area_sector || "—"}</td>
@@ -155,7 +155,7 @@ export function MuminPage() {
                       </tr>
                       {group.members.map(function (m) {
                         return <tr key={m.id} className="clickable-row" onClick={function () { setMuminPreview(m); }}>
-                          <td><div className="mumin-avatar-sm">{m.photo_url ? <img src={m.photo_url} alt="" /> : (m.name ? m.name.charAt(0).toUpperCase() : "?")}</div></td>
+                          <td><div className="mumin-avatar-sm"><Avatar url={m.photo_url} name={m.name} /></div></td>
                           <td><span className="file-no">{m.its_number}</span></td><td style={{ fontWeight: 500, paddingLeft: 28 }}>↳ {m.name}</td>
                           <td>{m.spouse_its_id ? "Spouse linked" : "Family Member"}</td><td>{getMuminAge(m)}</td><td><span className={"badge badge-" + (m.gender || "").toLowerCase()}>{m.gender}</span></td>
                           <td style={{ fontSize: 12, color: "#9ca3af" }}>{m.phone}</td><td style={{ fontSize: 12, color: "#c9a84c" }}>{m.area_sector || "—"}</td>
