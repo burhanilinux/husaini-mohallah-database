@@ -16,7 +16,6 @@ export function MuminPreview() {
   var getFamilyBySabil = ctx.getFamilyBySabil, getSectorInfo = ctx.getSectorInfo;
   var [familyRecord, setFamilyRecord] = useState(null);
   var [showFullProfile, setShowFullProfile] = useState(false);
-  var [photoDisplayUrl, setPhotoDisplayUrl] = useState(null);
 
   useEffect(function () {
     var cancelled = false;
@@ -49,16 +48,6 @@ export function MuminPreview() {
 
     return function () { cancelled = true; };
   }, [muminPreview]);
-
-  useEffect(function () {
-    var cancelled = false;
-    setPhotoDisplayUrl(null);
-    if (!muminPreview || !muminPreview.photo_url) return function () {};
-    getStorageDisplayUrl(muminPreview.photo_url)
-      .then(function (url) { if (!cancelled) setPhotoDisplayUrl(url); })
-      .catch(function (err) { console.warn("Profile photo could not be loaded:", err); if (!cancelled) setPhotoDisplayUrl(null); });
-    return function () { cancelled = true; };
-  }, [muminPreview && muminPreview.id, muminPreview && muminPreview.photo_url]);
 
   useEffect(function () { setShowFullProfile(false); }, [muminPreview && muminPreview.id]);
 
