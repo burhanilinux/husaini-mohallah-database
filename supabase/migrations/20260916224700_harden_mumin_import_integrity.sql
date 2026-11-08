@@ -1,13 +1,19 @@
 -- Database integrity and import reliability hardening.
 -- Applied to the Husaini Mohallah Supabase project.
 
-alter table public.mumin_data
-  add constraint mumin_data_age_range_check
-  check (age is null or (age >= 0 and age <= 130));
-
-alter table public.mumin_data
-  add constraint mumin_data_spouse_not_self_check
-  check (spouse_its_id is null or spouse_its_id <> its_id);
+do $
+begin
+  if not exists (select 1 from pg_constraint where conname = 'mumin_data_age_range_check' and conrelid = 'public.mumin_data'::regclass) then
+    alter table public.mumin_data
+      add constraint mumin_data_age_range_check
+      check (age is null or (age >= 0 and age <= 130));
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'mumin_data_spouse_not_self_check' and conrelid = 'public.mumin_data'::regclass) then
+    alter table public.mumin_data
+      add constraint mumin_data_spouse_not_self_check
+      check (spouse_its_id is null or spouse_its_id <> its_id);
+  end if;
+end $;
 
 create unique index if not exists mumin_data_its_number_unique_idx
   on public.mumin_data (its_number)
@@ -42,9 +48,14 @@ alter table public.import_log
 alter table public.import_log
   add column if not exists error_message text;
 
-alter table public.import_log
-  add constraint import_log_status_check
-  check (status in ('running','completed','failed','cancelled'));
+do $
+begin
+  if not exists (select 1 from pg_constraint where conname = 'import_log_status_check' and conrelid = 'public.import_log'::regclass) then
+    alter table public.import_log
+      add constraint import_log_status_check
+      check (status in ('running','completed','failed','cancelled'));
+  end if;
+end $;
 
 create or replace view public.mumin_integrity_summary
 with (security_invoker = true) as
