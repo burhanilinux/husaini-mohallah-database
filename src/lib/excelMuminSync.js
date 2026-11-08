@@ -82,6 +82,12 @@ function buildPayload(row, subSectorIdByKey, existing) {
     payload.sub_sector_id = subSectorIdByKey[subKey];
   }
 
+  if (!existing) {
+    // Keep the legacy defaults for newly created records only.
+    payload.name = text(row.Full_Name);
+    payload.gender = text(row.Gender) || "Male";
+  }
+
   // An empty Inactive_Status means "no update", not "set Active".
   if (text(row.Inactive_Status)) {
     payload.status = "Inactive";
@@ -90,7 +96,6 @@ function buildPayload(row, subSectorIdByKey, existing) {
   var textFields = {
     occupation: "Occupation",
     sub_occupation: "Sub_Occupation",
-    sub_occupation2: "Sub_Occupation2",
     qualification: "Qualification",
     languages: "Languages",
     hunars: "Hunars",
@@ -112,34 +117,6 @@ function buildPayload(row, subSectorIdByKey, existing) {
     warakatul_tarkhis: "Warakatul_Tarkhis",
     last_scanned_event: "Last_Scanned_Event",
     last_scanned_place: "Last_Scanned_Place",
-    building: "Building",
-    street: "Street",
-    area: "Area",
-    state: "State",
-    pincode: "Pincode",
-    jamaat: "Jamaat",
-    jamiaat: "Jamiaat",
-    title: "Title",
-    tanzeem_file_no: "TanzeemFile_No",
-    full_name_arabic: "Full_Name_Arabic",
-    first_prefix: "First_Prefix",
-    prefix_year: "Prefix_Year",
-    first_name: "First_Name",
-    father_prefix: "Father_Prefix",
-    father_name: "Father_Name",
-    father_surname: "Father_Surname",
-    husband_prefix: "Husband_Prefix",
-    husband_name: "Husband_Name",
-    surname: "Surname",
-    date_of_nikah: "Date_Of_Nikah",
-    date_of_nikah_hijri: "Date_Of_Nikah_Hijri",
-    hijri_age: "Hijri_Age",
-    data_verification_date: "Data_Verification_Date",
-    photo_verification_date: "Photo_Verification_Date",
-    sector_incharge_its_number: "Sector_Incharge_ITSID",
-    sector_incharge_female_its_number: "Sector_Incharge_Female_ITSID",
-    sub_sector_incharge_its_number: "Sub_Sector_Incharge_ITSID",
-    sub_sector_incharge_female_its_number: "Sub_Sector_Incharge_Female_ITSID",
   };
   Object.keys(textFields).forEach(function (key) {
     setIfPresent(payload, key, row[textFields[key]]);
