@@ -30,7 +30,20 @@ function openA4(title, html) {
     ".no-print{display:none!important}",
     "@media screen{body{background:#eee;padding:18px}.sheet{background:#fff;padding:12mm;box-shadow:0 2px 12px rgba(0,0,0,.12)}}",
   ].join("");
-  var doc = "<!doctype html><html><head><meta charset='utf-8'><title>" + esc(title) + "</title><style>" + css + "</style></head><body>" + html + "<script>window.onload=function(){setTimeout(function(){window.print()},120)};</script></body></html>";
+  var doc = "<!doctype html><html><head><meta charset='utf-8'><title>" + esc(title) + "</title><style>" + css + "</style></head><body>" + html + "<script>
+    window.onload = function () {
+      var images = Array.prototype.slice.call(document.images);
+      Promise.all(images.map(function (img) {
+        if (img.complete) return Promise.resolve();
+        return new Promise(function (resolve) {
+          img.onload = resolve;
+          img.onerror = resolve;
+        });
+      })).then(function () {
+        setTimeout(function () { window.print(); }, 250);
+      });
+    };
+  </script></body></html>";
   var url = URL.createObjectURL(new Blob([doc], { type: "text/html;charset=utf-8" }));
   var win = window.open(url, "_blank");
   if (!win) { alert("Please allow popups for printing."); return; }
@@ -72,11 +85,16 @@ export function printMuminA4(m, familyRecord, familyMembers, sectorInfo, photoUr
   h += "<div class='field'><div class='label'>Family ID</div><div class='value'>" + esc(m.family_id || "—") + "</div></div>";
   h += "<div class='field'><div class='label'>Head of Family ITS</div><div class='value'>" + esc(familyRecord && familyRecord.hof_its_id || "—") + "</div></div></div>";
   if (familyMembers && familyMembers.length) {
-    h += "<div class='family' style='margin-top:6px'><div class='family-head'><span>Family Member</span><span>ITS</span><span>Age</span><span>Role</span></div>";
+    h += "<div class='family' style='margin-top:6px'><div class='family-head'><span>Photo</span><span>Family Member</span><span>ITS</span><span>Age</span><span>Role</span></div>";
     familyMembers.forEach(function (member) {
       var isHof = familyRecord && familyRecord.hof_its_id && (String(member.its_id) === String(familyRecord.hof_its_id) || String(member.its_number) === String(familyRecord.hof_its_id));
       var memberAge = getMuminAge(member);
-      h += "<div class='member" + (isHof ? " hof" : "") + "'><span>" + (isHof ? "★ " : "") + esc(member.name || "—") + "</span><span>" + esc(member.its_number || "—") + "</span><span>" + esc(memberAge == null ? "—" : memberAge) + "</span><span class='role'>" + (isHof ? "Head of Family" : "Family Member") + "</span></div>";
+      var memberPhotoUrl = member.photo_url || member.photoUrl || member.profile_photo_url || "";
+      var memberInitial = esc((member.name || "?").trim().charAt(0).toUpperCase());
+      var memberPhoto = memberPhotoUrl
+        ? "<img class='member-photo' src='" + esc(memberPhotoUrl) + "' alt=''>"
+        : "<span class='member-photo empty'>" + memberInitial + "</span>";
+      h += "<div class='member" + (isHof ? " hof" : "") + "'>" + memberPhoto + "<span>" + (isHof ? "★ " : "") + esc(member.name || "—") + "</span><span>" + esc(member.its_number || "—") + "</span><span>" + esc(memberAge == null ? "—" : memberAge) + "</span><span class='role'>" + (isHof ? "Head of Family" : "Family Member") + "</span></div>";
     });
     h += "</div>";
   }
@@ -243,8 +261,8 @@ export function printMuminFullProfile(m, familyRecord, familyMembers, sectorInfo
     ".label{font-size:6.5pt;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:1px}",
     ".value{font-size:8.5pt;font-weight:600;word-break:break-word;line-height:1.3}",
     ".family{border:1px solid #e7dcc0;border-radius:5px;overflow:hidden;margin-top:6px}",
-    ".family-head{display:grid;grid-template-columns:1fr 26mm 27mm;background:#faf7ef;font-size:7pt;text-transform:uppercase;color:#777;padding:4px 7px}",
-    ".member{display:grid;grid-template-columns:1fr 26mm 27mm;padding:4px 7px;border-top:1px solid #eee;font-size:8pt}",
+    ".family-head{display:grid;grid-template-columns:12mm 1fr 26mm 27mm;background:#faf7ef;font-size:7pt;text-transform:uppercase;color:#777;padding:4px 7px}",
+    ".member{display:grid;grid-template-columns:12mm 1fr 26mm 27mm;align-items:center;padding:4px 7px;border-top:1px solid #eee;font-size:8pt}.member-photo{width:9mm;height:10mm;object-fit:cover;border:1px solid #ddd;border-radius:3px;background:#f4f0e7}.member-photo.empty{display:flex;align-items:center;justify-content:center;color:#9b7625;font-size:8pt;font-weight:700}",
     ".member.hof{font-weight:700}",
     ".footer{margin-top:10px;padding-top:6px;border-top:1px solid #ddd;display:flex;justify-content:space-between;font-size:7pt;color:#888}",
     ".no-source{border:1px solid #e3c66d;background:#fffaf0;border-radius:5px;padding:7px 9px;font-size:8pt;color:#674e12;margin-bottom:8px}",
@@ -286,10 +304,15 @@ export function printMuminFullProfile(m, familyRecord, familyMembers, sectorInfo
   h += "<div class='field'><div class='label'>HOF ITS</div><div class='value'>" + esc((familyRecord && familyRecord.hof_its_id) || "—") + "</div></div>";
   h += "</div>";
   if (familyMembers && familyMembers.length) {
-    h += "<div class='family'><div class='family-head'><span>Family Member</span><span>ITS</span><span>Role</span></div>";
+    h += "<div class='family'><div class='family-head'><span>Photo</span><span>Family Member</span><span>ITS</span><span>Role</span></div>";
     familyMembers.forEach(function (member) {
       var isHof = familyRecord && familyRecord.hof_its_id && (String(member.its_id) === String(familyRecord.hof_its_id) || String(member.its_number) === String(familyRecord.hof_its_id));
-      h += "<div class='member" + (isHof ? " hof" : "") + "'><span>" + (isHof ? "★ " : "") + esc(member.name || "—") + "</span><span>" + esc(member.its_number || "—") + "</span><span>" + (isHof ? "Head of Family" : "Family Member") + "</span></div>";
+      var memberPhotoUrl = member.photo_url || member.photoUrl || member.profile_photo_url || "";
+      var memberInitial = esc((member.name || "?").trim().charAt(0).toUpperCase());
+      var memberPhoto = memberPhotoUrl
+        ? "<img class='member-photo' src='" + esc(memberPhotoUrl) + "' alt=''>"
+        : "<span class='member-photo empty'>" + memberInitial + "</span>";
+      h += "<div class='member" + (isHof ? " hof" : "") + "'>" + memberPhoto + "<span>" + (isHof ? "★ " : "") + esc(member.name || "—") + "</span><span>" + esc(member.its_number || "—") + "</span><span>" + (isHof ? "Head of Family" : "Family Member") + "</span></div>";
     });
     h += "</div>";
   }
