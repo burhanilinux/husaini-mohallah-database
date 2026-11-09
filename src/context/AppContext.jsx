@@ -134,16 +134,30 @@ export function AppProvider({ children }) {
     return subSectorsData.filter(function (s) { return s.sector_id === sectorId; });
   }
   function getMuminByIts(its) {
-    return muminData.find(function (m) { return m.its_number === its; });
+    if (its === null || its === undefined || String(its).trim() === "") return null;
+    var wanted = String(its).trim();
+    return muminData.find(function (m) {
+      return String(m.its_number || m.its_id || "").trim() === wanted;
+    }) || null;
   }
   function getSectorInfo(m) {
     if (!m) return null;
-    var sector = sectorsData.find(function (s) { return s.name === m.area_sector; });
-    var subSector = m.sub_sector_id ? subSectorsData.find(function (s) { return s.id === m.sub_sector_id; }) : null;
-    var masoolLabel = sector ? (sector.masool_its ? (getMuminByIts(sector.masool_its) ? getMuminByIts(sector.masool_its).name : sector.masool_its) : (sector.masool_name || "")) : "";
-    var musaidLabel = subSector ? (subSector.musaid_its ? (getMuminByIts(subSector.musaid_its) ? getMuminByIts(subSector.musaid_its).name : subSector.musaid_its) : (subSector.musaid_name || "")) : "";
+    // Supabase can return numeric IDs while imported/profile records may hold
+    // their string equivalents. Normalize keys before resolving assignments.
+    var sectorName = String(m.area_sector || "").trim();
+    var sector = sectorsData.find(function (s) {
+      return String(s.name || "").trim().toLowerCase() === sectorName.toLowerCase();
+    });
+    var subSectorId = m.sub_sector_id;
+    var subSector = subSectorId !== null && subSectorId !== undefined && String(subSectorId).trim() !== ""
+      ? subSectorsData.find(function (s) { return String(s.id) === String(subSectorId); })
+      : null;
+    var masool = sector && sector.masool_its ? getMuminByIts(sector.masool_its) : null;
+    var musaid = subSector && subSector.musaid_its ? getMuminByIts(subSector.musaid_its) : null;
+    var masoolLabel = masool ? masool.name : (sector ? (sector.masool_name || sector.masool_its || "") : "");
+    var musaidLabel = musaid ? musaid.name : (subSector ? (subSector.musaid_name || subSector.musaid_its || "") : "");
     return {
-      sectorName: m.area_sector || "",
+      sectorName: sector ? sector.name : sectorName,
       masoolName: masoolLabel,
       subSectorName: subSector ? subSector.name : "",
       musaidName: musaidLabel,
