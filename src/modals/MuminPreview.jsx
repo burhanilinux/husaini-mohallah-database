@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAppContext } from "../context/AppContext.jsx";
 import { Avatar } from "../components/Shared.jsx";
 import { usePhotoUrl } from "../lib/usePhotoUrl.js";
+import { getPhotoUrl } from "../lib/storage.js";
 import { sbGet } from "../lib/supabase.js";
 import { getMuminAge } from "../lib/utils.js";
 import { getExtendedProfile } from "../lib/muminProfile.js";
@@ -101,6 +102,26 @@ export function MuminPreview() {
   function close() { setMuminPreview(null); }
   function openSibling(member) { setMuminPreview(member); }
 
+  function printWithFamilyPhotos(printFn) {
+    // Open synchronously from the click gesture; resolve private Storage paths
+    // before writing the print document into this tab.
+    var printWindow = window.open("", "_blank");
+    if (!printWindow) { alert("Please allow popups for printing."); return; }
+    Promise.all(familyMembers.map(function (member) {
+      var stored = member.photo_url || member.photoUrl || member.profile_photo_url || "";
+      return getPhotoUrl(stored);
+    })).then(function (urls) {
+      var printableMembers = familyMembers.map(function (member, index) {
+        var stored = member.photo_url || member.photoUrl || member.profile_photo_url || "";
+        return Object.assign({}, member, { photo_url: urls[index] || stored });
+      });
+      printFn(printableMembers, printWindow);
+    }).catch(function () {
+      printWindow.close();
+      alert("Unable to prepare family photos for printing. Please try again.");
+    });
+  }
+
   return (
     <div className="preview-overlay" onClick={close}>
       <div className="preview-box" onClick={function (e) { e.stopPropagation(); }} style={{ maxWidth: 920, width: "min(920px, 96vw)" }}>
@@ -194,8 +215,8 @@ export function MuminPreview() {
           <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
             {canEdit && <button className="btn btn-primary" onClick={function () { setMuminPreview(null); openModal("mumin", "edit", m); }}>✎ Edit Record</button>}
             <button className="btn btn-ghost" onClick={function () { printIdCard(printable, sabilFamily, sectorInfo); }}>🪪 ID Card</button>
-            <button className="btn btn-primary" onClick={function () { printMuminA4(printable, familyRecord, familyMembers, sectorInfo); }}>🖨 Print A4</button>
-            <button className="btn btn-ghost" onClick={function () { printMuminFullProfile(printable, familyRecord, familyMembers, sectorInfo); }}>📋 Print Full Profile</button>
+            <button className="btn btn-primary" onClick={function () { printWithFamilyPhotos(function (members, win) { printMuminA4(printable, familyRecord, members, sectorInfo, undefined, win); }); }}>🖨 Print A4</button>
+            <button className="btn btn-ghost" onClick={function () { printWithFamilyPhotos(function (members, win) { printMuminFullProfile(printable, familyRecord, members, sectorInfo, win); }); }}>📋 Print Full Profile</button>
             {m.family_id && <button className="btn btn-ghost" onClick={function () { close(); setPage("families"); }}>🏠 Open Families</button>}
             <button className="btn btn-ghost" onClick={close}>Close</button>
           </div>
