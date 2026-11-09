@@ -53,13 +53,22 @@ function incharge(row, prefix) {
   return { its: intOrNull(row[prefix + "_ITSID"]), name: text(row[prefix + "_Name"]) };
 }
 
-function buildPayload(row, subSectorIdByKey, existing) {
+// The Excel export is the source of truth for every column it contains.
+// Every row carries the SAME keys (required for PostgREST bulk upserts) and
+// blanks become NULL / empty. photo_url and sabil_no are deliberately never
+// included, so app-side profile photos and Sabil numbers are never touched.
+// spouse_its_id is also excluded here and linked in a second pass.
+function buildPayload(row, subSectorIdByKey) {
   var its = intOrNull(row.ITS_ID), sector = text(row.Sector), sub = text(row.Sub_Sector), subKey = sector + "\u0000" + sub;
-  var payload = {
+  return {
     its_id: its, its_number: its === null ? "" : String(its), name: text(row.Full_Name),
     gender: text(row.Gender) || "Male", phone: text(row.Mobile), email: text(row.Email),
     address: text(row.Address), area_sector: sector, sub_sector_id: subSectorIdByKey[subKey] || null,
     status: text(row.Inactive_Status) ? "Inactive" : "Active", source_data: row,
+    age: intOrNullAllowZero(row.Age),
+    dob: text(row.Date_Of_Birth) || null,
+    family_id: intOrNull(row.Family_ID),
+    ashara_mubaraka: intOrNullAllowZero(row.Ashara_Mubaraka),
     occupation: text(row.Occupation) || null,
     sub_occupation: text(row.Sub_Occupation) || null,
     qualification: text(row.Qualification) || null,
@@ -84,17 +93,6 @@ function buildPayload(row, subSectorIdByKey, existing) {
     last_scanned_event: text(row.Last_Scanned_Event) || null,
     last_scanned_place: text(row.Last_Scanned_Place) || null,
   };
-  // Excel blanks must never erase values maintained in the app.
-  if (text(row.Age) !== "") payload.age = intOrNullAllowZero(row.Age);
-  if (text(row.Ashara_Mubaraka) !== "") payload.ashara_mubaraka = intOrNullAllowZero(row.Ashara_Mubaraka);
-  if (text(row.Date_Of_Birth)) payload.dob = text(row.Date_Of_Birth);
-  if (existing) {
-    if (existing.dob) delete payload.dob;
-    if (existing.sabil_no) delete payload.sabil_no;
-    if (existing.family_id !== null && existing.family_id !== undefined) payload.family_id = existing.family_id;
-    else if (intOrNull(row.Family_ID) !== null) payload.family_id = intOrNull(row.Family_ID);
-  } else if (intOrNull(row.Family_ID) !== null) payload.family_id = intOrNull(row.Family_ID);
-  return payload;
 }
 
 async function chunksUpsert(table, rows, conflict, chunkSize) {
@@ -181,43 +179,49 @@ export async function syncMuminExcel(rows, meta, progress) {
     subSectors.forEach(function (s) { var sec = sectors.find(function (x) { return Number(x.id) === Number(s.sector_id); }); if (sec) subSectorIdByKey[text(sec.name) + "\u0000" + text(s.name)] = Number(s.id); });
   }
 
-  // Preserve app-maintained fields on existing records. Fetch by ITS in bounded batches.
+  // ── Mumin records: Excel overwrites everything except photo_url / sabil_no ──
   report("Synchronizing Mumin records", 0, source.length);
-  var existingByIts = {};
-  var sourceIts = source.map(function (r) { return intOrNull(r.ITS_ID); }).filter(function (v) { return v !== null; });
-  for (var ep = 0; ep < sourceIts.length; ep += 500) {
-    var existingChunk = await sbGet("mumin_data", "its_id=in.(" + sourceIts.slice(ep, ep + 500).join(",") + ")");
-    (existingChunk || []).forEach(function (m) { existingByIts[Number(m.its_id)] = m; });
-  }
-  var muminRows = source.map(function (r) { return buildPayload(r, subSectorIdByKey, existingByIts[intOrNull(r.ITS_ID)]); });
-  // Avoid the spouse-normalization trigger nulling links to members in later chunks.
-  muminRows.forEach(function (m) { delete m.spouse_its_id; });
+  var muminRows = source.map(function (r) { return buildPayload(r, subSectorIdByKey); });
   await chunksUpsert("mumin_data", muminRows, "its_id", 200);
-  // Second pass: link only spouse ITS values explicitly supplied and now present.
+
+  // Second pass: spouse links are written only after every member exists, so the
+  // spouse-normalization trigger cannot null a link to a member in a later chunk.
+  // Excel is the source of truth: links it doesn't state are cleared.
   var spouseLinks = {};
   source.forEach(function (r) {
     var its = intOrNull(r.ITS_ID), spouse = intOrNull(r.Spouse_ITS_ID);
-    if (its !== null && spouse !== null) spouseLinks[its] = spouse;
+    if (its !== null && spouse !== null && spouse !== its) spouseLinks[its] = spouse;
   });
   var spouseIds = Object.keys(spouseLinks).map(Number);
+  var neededIds = {};
+  spouseIds.forEach(function (id) { neededIds[id] = true; neededIds[spouseLinks[id]] = true; });
+  var neededList = Object.keys(neededIds);
   var presentIts = {};
-  for (var sp = 0; sp < spouseIds.length; sp += 500) {
-    var present = await sbGet("mumin_data", "its_id=in.(" + spouseIds.slice(sp, sp + 500).concat(spouseIds.slice(sp, sp + 500).map(function (id) { return spouseLinks[id]; })).filter(function (id, index, arr) { return arr.indexOf(id) === index; }).join(",") + ")&select=its_id");
+  for (var sp = 0; sp < neededList.length; sp += 500) {
+    var present = await sbGet("mumin_data", "its_id=in.(" + neededList.slice(sp, sp + 500).join(",") + ")&select=its_id");
     (present || []).forEach(function (m) { presentIts[Number(m.its_id)] = true; });
   }
+  var linked = {};
   for (var sl = 0; sl < spouseIds.length; sl++) {
     var personIts = spouseIds[sl], spouseIts = spouseLinks[personIts];
-    if (presentIts[personIts] && presentIts[spouseIts]) await sbUpdateWhere("mumin_data", "its_id=eq." + personIts, { spouse_its_id: spouseIts });
+    if (presentIts[personIts] && presentIts[spouseIts]) {
+      await sbUpdateWhere("mumin_data", "its_id=eq." + personIts, { spouse_its_id: spouseIts });
+      linked[personIts] = true;
+    }
+  }
+  var toClear = source.map(function (r) { return intOrNull(r.ITS_ID); })
+    .filter(function (its) { return its !== null && !linked[its]; });
+  for (var cl = 0; cl < toClear.length; cl += 500) {
+    await sbUpdateWhere("mumin_data", "its_id=in.(" + toClear.slice(cl, cl + 500).join(",") + ")&spouse_its_id=not.is.null", { spouse_its_id: null });
   }
   report("Mumin records synchronized", source.length, source.length);
 
   // ── Families ────────────────────────────────────────────────────
   // NOTE: the ensure_family_for_mumin_import trigger creates a blank family
   // row (hof_its_id = NULL) as each Mumin row is upserted above. So by this
-  // point nearly every family already exists, and "only insert missing
-  // families" would never set a HOF. We therefore (a) insert any family still
-  // missing, and (b) back-fill hof_its_id on existing families where it is
-  // NULL. A HOF already set in the app is never overwritten.
+  // point nearly every family already exists. We therefore (a) insert any
+  // family still missing, and (b) set hof_its_id on existing families whenever
+  // it differs from the Excel (Excel is the source of truth).
   report("Synchronizing families", 0, source.length);
   var familyMap = {};
   source.forEach(function (r) {
@@ -245,21 +249,21 @@ export async function syncMuminExcel(rows, meta, progress) {
   }
   families.forEach(function (f) { if (f.hof_its_id !== null && !existingHofIds[f.hof_its_id]) f.hof_its_id = null; });
 
-  var existingFamilyRows = await sbGet("families", "select=family_id,hof_its_id");
+  var existingFamilyRows = await sbGet("families", "select=family_id,hof_its_id&order=family_id.asc");
   var existingFamilyById = {};
   (existingFamilyRows || []).forEach(function (f) { existingFamilyById[String(f.family_id)] = f; });
 
   var newFamilies = families.filter(function (f) { return !existingFamilyById[String(f.family_id)]; });
   if (newFamilies.length) await chunksUpsert("families", newFamilies, "family_id", 200);
 
-  // Back-fill HOF on existing families that still have none.
-  var hofBackfill = families.filter(function (f) {
+  // Excel wins: update the HOF on existing families whenever it differs.
+  var hofUpdates = families.filter(function (f) {
     var row = existingFamilyById[String(f.family_id)];
-    return row && (row.hof_its_id === null || row.hof_its_id === undefined) && f.hof_its_id !== null;
+    return row && f.hof_its_id !== null && String(row.hof_its_id) !== String(f.hof_its_id);
   });
-  for (var hb = 0; hb < hofBackfill.length; hb += 20) {
-    await Promise.all(hofBackfill.slice(hb, hb + 20).map(function (f) {
-      return sbUpdateWhere("families", "family_id=eq." + encodeURIComponent(f.family_id) + "&hof_its_id=is.null", { hof_its_id: f.hof_its_id });
+  for (var hb = 0; hb < hofUpdates.length; hb += 20) {
+    await Promise.all(hofUpdates.slice(hb, hb + 20).map(function (f) {
+      return sbUpdateWhere("families", "family_id=eq." + encodeURIComponent(f.family_id), { hof_its_id: f.hof_its_id });
     }));
   }
 
@@ -275,30 +279,25 @@ export async function syncMuminExcel(rows, meta, progress) {
     (found || []).forEach(function (m) { existingInchargeIds[Number(m.its_id)] = true; });
   }
 
+  // ── Masool (sector incharge): Excel always wins ─────────────────
   report("Linking sector incharges", 0, source.length);
   var sectorInchargeByName = {};
   source.forEach(function (r) {
     var sector = text(r.Sector); if (!sector) return;
-    var current = sectorInchargeByName[sector] || {}, ic = incharge(r, "Sector_Incharge"), female = incharge(r, "Sector_Incharge_Female");
+    var current = sectorInchargeByName[sector] || {}, ic = incharge(r, "Sector_Incharge");
     if (!current.its && ic.its && existingInchargeIds[ic.its]) current.its = ic.its;
     if (!current.name && ic.name) current.name = ic.name;
-    if (!current.femaleIts && female.its && existingInchargeIds[female.its]) current.femaleIts = female.its;
-    if (!current.femaleName && female.name) current.femaleName = female.name;
     sectorInchargeByName[sector] = current;
   });
   await Promise.all(Object.keys(sectorInchargeByName).map(async function (sector) {
     var data = sectorInchargeByName[sector], id = sectorIdByName[sector]; if (!id) return;
     var patch = {};
-    // Never overwrite a Masool already assigned in the app; only fill blanks.
-    var currentSector = sectors.find(function (s) { return Number(s.id) === Number(id); }) || {};
-    var hasMasool = !!(text(currentSector.masool_its) || text(currentSector.masool_name) || currentSector.incharge_its_id);
-    if (!hasMasool) {
-      if (data.its) { patch.incharge_its_id = data.its; patch.masool_its = String(data.its); }
-      if (data.name) patch.masool_name = data.name;
-    }
+    if (data.its) { patch.incharge_its_id = data.its; patch.masool_its = String(data.its); }
+    if (data.name) patch.masool_name = data.name;
     if (Object.keys(patch).length) await sbUpdateWhere("sectors", "id=eq." + encodeURIComponent(id), patch);
   }));
 
+  // ── Musaid (sub-sector incharge): Excel always wins ─────────────
   report("Linking sub-sector incharges", 0, source.length);
   var subInchargeByKey = {};
   source.forEach(function (r) {
@@ -311,19 +310,14 @@ export async function syncMuminExcel(rows, meta, progress) {
   await Promise.all(Object.keys(subInchargeByKey).map(async function (key) {
     var id = subSectorIdByKey[key]; if (!id) return;
     var data = subInchargeByKey[key], patch = {};
-    // Never overwrite a Musaid already assigned in the app; only fill blanks.
-    var currentSub = subSectors.find(function (s) { return Number(s.id) === Number(id); }) || {};
-    var hasMusaid = !!(text(currentSub.musaid_its) || text(currentSub.musaid_name) || currentSub.incharge_its_id);
-    if (!hasMusaid) {
-      if (data.its) { patch.incharge_its_id = data.its; patch.musaid_its = String(data.its); }
-      if (data.name) patch.musaid_name = data.name;
-    }
+    if (data.its) { patch.incharge_its_id = data.its; patch.musaid_its = String(data.its); }
+    if (data.name) patch.musaid_name = data.name;
     if (Object.keys(patch).length) await sbUpdateWhere("sub_sectors", "id=eq." + encodeURIComponent(id), patch);
   }));
 
   report("Synchronizing organisations", 0, source.length);
   var result = {
-    imported: source.length, families: families.length, hofsBackfilled: hofBackfill.length,
+    imported: source.length, families: families.length, hofsBackfilled: hofUpdates.length,
     sectors: Object.keys(sectorNames).length, subSectors: Object.keys(subKeySet).length,
     organisations: 0, memberships: 0,
   };
