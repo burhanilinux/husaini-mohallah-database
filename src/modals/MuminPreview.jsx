@@ -107,13 +107,19 @@ export function MuminPreview() {
     // before writing the print document into this tab.
     var printWindow = window.open("", "_blank");
     if (!printWindow) { alert("Please allow popups for printing."); return; }
+    function memberPhotoValue(member) {
+      var src = member && member.source_data || {};
+      return member.photo_url || member.photoUrl || member.profile_photo_url ||
+        member.profilePhotoUrl || member.photo_path || member.photoPath ||
+        member.avatar_url || member.avatarUrl ||
+        src.photo_url || src.Photo_URL || src.Photo_Url || src.Profile_Photo ||
+        src.Profile_Photo_URL || src.profile_photo_url || "";
+    }
     Promise.all(familyMembers.map(function (member) {
-      var stored = member.photo_url || member.photoUrl || member.profile_photo_url || "";
-      return getPhotoUrl(stored);
+      return getPhotoUrl(memberPhotoValue(member));
     })).then(function (urls) {
       var printableMembers = familyMembers.map(function (member, index) {
-        var stored = member.photo_url || member.photoUrl || member.profile_photo_url || "";
-        return Object.assign({}, member, { photo_url: urls[index] || stored });
+        return Object.assign({}, member, { photo_url: urls[index] || memberPhotoValue(member) });
       });
       printFn(printableMembers, printWindow);
     }).catch(function () {
