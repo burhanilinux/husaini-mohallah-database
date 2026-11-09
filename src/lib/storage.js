@@ -7,6 +7,7 @@ import { SUPABASE_URL, SUPABASE_ANON, getToken } from "./supabase.js";
 
 var BUCKET = "uploads";
 var PUBLIC_MARK = "/storage/v1/object/public/" + BUCKET + "/";
+var SIGN_MARK = "/storage/v1/object/sign/" + BUCKET + "/";
 var TTL_SECONDS = 3600;
 var cache = new Map();   // path -> { url, exp }
 var queue = new Map();   // path -> [resolve, ...]
@@ -15,9 +16,16 @@ var timer = null;
 export function photoPath(value) {
   if (!value) return null;
   var s = String(value);
+  // Re-sign both legacy public URLs and previously signed URLs. A signed URL
+  // may have expired while the record remains in the database.
   var i = s.indexOf(PUBLIC_MARK);
+  var markerLength = PUBLIC_MARK.length;
+  if (i < 0) {
+    i = s.indexOf(SIGN_MARK);
+    markerLength = SIGN_MARK.length;
+  }
   if (i >= 0) {
-    var rest = s.slice(i + PUBLIC_MARK.length).split("?")[0];
+    var rest = s.slice(i + markerLength).split("?")[0];
     try { return decodeURIComponent(rest); } catch { return rest; }
   }
   if (/^https?:/i.test(s)) return null; // external URL: leave untouched
