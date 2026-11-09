@@ -9,7 +9,7 @@ function esc(value) {
     .replace(/'/g, "&#39;");
 }
 
-function openA4(title, html) {
+function openA4(title, html, targetWindow) {
   var css = [
     "@page{size:A4;margin:12mm}",
     "*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}",
@@ -31,13 +31,18 @@ function openA4(title, html) {
     "@media screen{body{background:#eee;padding:18px}.sheet{background:#fff;padding:12mm;box-shadow:0 2px 12px rgba(0,0,0,.12)}}",
   ].join("");
   var doc = "<!doctype html><html><head><meta charset='utf-8'><title>" + esc(title) + "</title><style>" + css + "</style></head><body>" + html + "<script>window.onload=function(){var images=Array.prototype.slice.call(document.images);Promise.all(images.map(function(img){if(img.complete)return Promise.resolve();return new Promise(function(resolve){img.onload=resolve;img.onerror=resolve;});})).then(function(){setTimeout(function(){window.print();},250);});};</script></body></html>";
-  var url = URL.createObjectURL(new Blob([doc], { type: "text/html;charset=utf-8" }));
-  var win = window.open(url, "_blank");
+  var win = targetWindow || window.open("", "_blank");
   if (!win) { alert("Please allow popups for printing."); return; }
-  setTimeout(function () { URL.revokeObjectURL(url); }, 15000);
+  if (targetWindow) {
+    win.document.open(); win.document.write(doc); win.document.close();
+  } else {
+    var url = URL.createObjectURL(new Blob([doc], { type: "text/html;charset=utf-8" }));
+    win.location.href = url;
+    setTimeout(function () { URL.revokeObjectURL(url); }, 15000);
+  }
 }
 
-export function printMuminA4(m, familyRecord, familyMembers, sectorInfo, photoUrl) {
+export function printMuminA4(m, familyRecord, familyMembers, sectorInfo, photoUrl, targetWindow) {
   var today = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
   var age = getMuminAge(m);
   var initial = esc((m.name || "?").trim().charAt(0).toUpperCase());
@@ -91,7 +96,7 @@ export function printMuminA4(m, familyRecord, familyMembers, sectorInfo, photoUr
     h += "<div class='section'><div class='section-title'>Data Quality</div><div class='quality'>" + warnings.map(esc).join(" &nbsp;•&nbsp; ") + "</div></div>";
   }
   h += "<div class='footer'><span>Husaini Mohallah Database</span><span>Confidential community record</span><span>Printed: " + esc(new Date().toLocaleString()) + "</span></div></div>";
-  openA4("Mumin Profile - " + (m.name || ""), h);
+  openA4("Mumin Profile - " + (m.name || ""), h, targetWindow);
 }
 
 // ── Full Profile print (all 77 Jamaat-export fields) ──────────────
@@ -197,7 +202,7 @@ function manualFallbackValue(m, sourceKey) {
   return Object.prototype.hasOwnProperty.call(map, sourceKey) ? map[sourceKey] : "";
 }
 
-export function printMuminFullProfile(m, familyRecord, familyMembers, sectorInfo) {
+export function printMuminFullProfile(m, familyRecord, familyMembers, sectorInfo, targetWindow) {
   var today = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
   var src = m.source_data || {};
   var hasSource = !!m.source_data;
@@ -308,8 +313,13 @@ export function printMuminFullProfile(m, familyRecord, familyMembers, sectorInfo
   h += "<div class='footer'><span>Husaini Mohallah Database</span><span>Confidential — full community record</span><span>Printed: " + esc(new Date().toLocaleString()) + "</span></div></div>";
 
   var doc = "<!doctype html><html><head><meta charset='utf-8'><title>" + esc("Full Profile - " + (m.name || "")) + "</title><style>" + css + "</style></head><body>" + h + "<script>window.onload=function(){setTimeout(function(){window.print()},120)};</script></body></html>";
-  var url = URL.createObjectURL(new Blob([doc], { type: "text/html;charset=utf-8" }));
-  var win = window.open(url, "_blank");
+  var win = targetWindow || window.open("", "_blank");
   if (!win) { alert("Please allow popups for printing."); return; }
-  setTimeout(function () { URL.revokeObjectURL(url); }, 15000);
+  if (targetWindow) {
+    win.document.open(); win.document.write(doc); win.document.close();
+  } else {
+    var url = URL.createObjectURL(new Blob([doc], { type: "text/html;charset=utf-8" }));
+    win.location.href = url;
+    setTimeout(function () { URL.revokeObjectURL(url); }, 15000);
+  }
 }
