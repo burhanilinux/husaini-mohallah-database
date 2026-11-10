@@ -43,12 +43,6 @@ export function DataQualityPage() {
       if (hofId && !hofMap[hofId]) {
         add("invalid_hof", "Invalid HOF link", m, "HOF_ID " + hofId + " does not resolve to a HOF record.");
       }
-      if (isHof && its && rows.some(function (o) {
-        var otherSource = o.source_data || {};
-        return String(o.source_data && otherSource.HOF_ID || "").trim() === its && String(otherSource.HOF_FM_TYPE || "").toUpperCase() !== "HOF";
-      })) {
-        // Informational consistency check: HOF has members pointing back to it.
-      }
       if (isHof && its && itsMap[its].length > 1) {
         add("duplicate_hof_its", "Duplicate HOF ITS", m, "More than one record uses this HOF ITS number.");
       }
