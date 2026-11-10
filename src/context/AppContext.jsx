@@ -407,8 +407,8 @@ export function AppProvider({ children }) {
     // the whole app failing to load.
     try {
       var refResults = await Promise.all([
-        sbGet("organisations", ""),
-        sbGet("mumineen_organisations", ""),
+        sbGet("organisations", "order=org_id.asc"),
+        sbGet("mumineen_organisations", "order=mumin_id.asc,org_id.asc"),
         sbGet("import_log", "order=imported_at.desc&limit=200"),
       ]);
       setOrganisationsData(refResults[0] || []);
