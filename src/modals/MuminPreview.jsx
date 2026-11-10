@@ -6,7 +6,7 @@ import { getPhotoUrl } from "../lib/storage.js";
 import { sbGet } from "../lib/supabase.js";
 import { getMuminAge } from "../lib/utils.js";
 import { getExtendedProfile } from "../lib/muminProfile.js";
-import { printMumin, printIdCard } from "../lib/print.js";
+import { printIdCard } from "../lib/print.js";
 import { printMuminA4, printMuminFullProfile } from "../lib/muminA4Print.js";
 
 export function MuminPreview() {
