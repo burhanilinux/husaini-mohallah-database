@@ -94,11 +94,11 @@ function rawValue(m,aliases){
 }
 function rowValue(m,key,data){
   var field=FIELD_OPTIONS.find(function(x){return x.key===key;});
-  var source=m.source_data||{},hofKey=source.HOF_ID||source.hof_id||m.HOF_ID||m.hof_id||"",hof=data.find(function(x){return String(x.its_number||x.its_id||"")===String(hofKey);});
+  var source=m.source_data||{},hofKey=source.HOF_ID||source.hof_id||m.HOF_ID||m.hof_id||"";
   if(key==="hofId")return hofKey;
   if(key==="hofFmType"){var type=rawValue(m,["HOF_FM_TYPE","hof_fm_type"]);return type;}
   if(key==="hofIts")return hofKey;
-  if(key==="hofName")return hof?hof.name:"";
+  if(key==="hofName"){var hof=data.find(function(x){return String(x.its_number||x.its_id||"")===String(hofKey);});return hof?hof.name:"";}
   if(key==="age"){var age=getMuminAge(m);return age===null?rawValue(m,field.aliases):age;}
   if(key==="name")return m.name||rawValue(m,field.aliases);
   if(key==="its")return m.its_number||m.its_id||rawValue(m,field.aliases);
@@ -140,7 +140,6 @@ export function ReportBuilderPage(){
   function exportExcel(){var exportData=data.slice();exportData._subSectors=ctx.subSectorsData||[];var out=rows.map(function(m){var item={};columns.forEach(function(key){var col=REPORT_COLUMNS.find(function(x){return x.key===key;});if(col)item[col.label]=rowValue(m,key,exportData);});return item;});var headers=columns.map(function(key){var col=REPORT_COLUMNS.find(function(x){return x.key===key;});return col?col.label:key;});toXLS(out,headers,"advanced_report");}
   function toggleAllFields(all){setColumnError("");setColumns(all?REPORT_COLUMNS.map(function(c){return c.key;}):DEFAULT_COLUMNS.slice());}
   function toggleColumn(key){setColumnError("");setColumns(function(prev){if(prev.indexOf(key)>=0){if(prev.length===1){setColumnError("Select at least one column.");return prev;}return prev.filter(function(x){return x!==key;});}return prev.concat(key);});}
-  function moveColumn(key,direction){setColumns(function(prev){var i=prev.indexOf(key),j=i+direction;if(i<0||j<0||j>=prev.length)return prev;var next=prev.slice(),tmp=next[i];next[i]=next[j];next[j]=tmp;return next;});}
   return <div>
     <div className="page-hdr"><div className="page-title">Advanced Report Builder</div><div className="page-sub">Build, save and export filtered Mumin reports.</div></div>
     <div className="card"><div className="advanced-search-filters">
