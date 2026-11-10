@@ -50,7 +50,7 @@ async function readError(res) {
 
 let refreshing = null;
 // Exchange the stored refresh_token for a new access token (one shared in-flight call).
-async function refreshSession() {
+export async function refreshSession() {
   if (refreshing) return refreshing;
   refreshing = (async function () {
     var session = getSession();
