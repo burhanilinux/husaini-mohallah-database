@@ -7,7 +7,7 @@ function masoolPrintEscape(value) {
   });
 }
 
-function printMasoolSector(sector, subSectors, getMuminByIts) {
+function printMasoolSector(sector, subSectors, getMuminByIts, muminData) {
   var popup = window.open("", "_blank", "width=1000,height=750");
   if (!popup) {
     window.alert("Please allow pop-ups to print Sector Details.");
@@ -36,14 +36,38 @@ function printMasoolSector(sector, subSectors, getMuminByIts) {
       return "<div class='member-field'><b>" + masoolPrintEscape(item[0]) + ":</b> " + masoolPrintEscape(item[1]) + "</div>";
     }).join("");
   }
+  var sectorMembers = (muminData || []).filter(function (member) {
+    return String(member.area_sector || "").trim().toLowerCase() === String(sector.name || "").trim().toLowerCase();
+  });
+  function memberRow(member) {
+    return "<tr><td>" + masoolPrintEscape(member.name || "—") + "</td><td>" +
+      masoolPrintEscape(member.its_number || member.its_id || "—") + "</td><td>" +
+      masoolPrintEscape(member.age || "—") + "</td><td>" + masoolPrintEscape(member.phone || "—") +
+      "</td><td>" + masoolPrintEscape(member.sabil_no || "—") + "</td><td>" +
+      masoolPrintEscape(member.address || "—") + "</td></tr>";
+  }
+  function memberTable(members) {
+    return members.length ? "<table class='members-table'><thead><tr><th>Name</th><th>ITS</th><th>Age</th><th>Phone</th><th>Sabil No.</th><th>Address</th></tr></thead><tbody>" +
+      members.map(memberRow).join("") + "</tbody></table>" :
+      "<p class='empty'>No members assigned to this sub-sector.</p>";
+  }
+  var assignedSubIds = subSectors.map(function (sub) { return String(sub.id); });
+  var unassignedMembers = sectorMembers.filter(function (member) {
+    return !member.sub_sector_id || assignedSubIds.indexOf(String(member.sub_sector_id)) < 0;
+  });
   var masoolMember = memberByIts(sector.masool_its);
   var masoolFallback = sector.masool_name || "Not assigned";
   var masoolHtml = memberDetails(masoolMember, masoolFallback, sector.masool_its, sector.masool_phone);
-  var rows = subSectors.map(function (sub) {
+  var subSectorSections = subSectors.map(function (sub) {
     var musaidMember = memberByIts(sub.musaid_its);
     var musaidFallback = sub.musaid_name || "Not assigned";
-    return "<tr><td>" + masoolPrintEscape(sub.name) + "</td><td>" +
-      memberDetails(musaidMember, musaidFallback, sub.musaid_its, sub.musaid_phone) + "</td></tr>";
+    var members = sectorMembers.filter(function (member) {
+      return String(member.sub_sector_id || "") === String(sub.id);
+    });
+    return "<section class='subsector-section'><h2>" + masoolPrintEscape(sub.name) +
+      " <span class='count'>(" + members.length + " members)</span></h2><div class='musaid-details'><h3>Musaid Details</h3><div class='member-fields'>" +
+      memberDetails(musaidMember, musaidFallback, sub.musaid_its, sub.musaid_phone) +
+      "</div></div>" + memberTable(members) + "</section>";
   }).join("");
   popup.onload = function () { popup.print(); };
   popup.document.open();
@@ -56,8 +80,14 @@ body { font-family: Arial, sans-serif; color: #171717; margin: 0; }
 header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 12px; margin-bottom: 18px; }
 h1 { font-size: 20px; margin: 0 0 5px; }
 header p { font-size: 11px; margin: 0; color: #555; }
-h2 { font-size: 16px; margin: 0 0 10px; }
-.details { border: 1px solid #aaa; padding: 12px 14px; margin-bottom: 18px; }
+h2 { font-size: 16px; margin: 18px 0 10px; }
+h3 { font-size: 12px; margin: 0 0 7px; }
+.subsector-section { margin: 18px 0 24px; break-inside: auto; }
+.musaid-details { border: 1px solid #aaa; padding: 10px 12px; margin-bottom: 10px; }
+.count { font-size: 12px; font-weight: normal; color: #555; }
+.members-table { margin-top: 8px; font-size: 9px; }
+.members-table th, .members-table td { padding: 5px; }
+.members-table tr:nth-child(even) { background: #f7f7f7; }
 .member-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 16px; font-size: 11px; }
 .member-field { padding: 2px 0; overflow-wrap: anywhere; }
 .member-field b { color: #444; }
@@ -69,12 +99,10 @@ th { background: #eee; }
 </style></head><body>
 <header><h1>Husaini Mohallah - Database</h1><p>Masool Module · Sector Details</p></header>
 <h2>Sector: ${masoolPrintEscape(sector.name)}</h2>
-<section class="details">
-<h2>Masool Details</h2>
-<div class="member-fields">${masoolHtml}</div>
-</section>
-<h2>Sub-Sectors &amp; Musaid Details</h2>
-${subSectors.length ? "<table><thead><tr><th style='width:25%'>Sub-Sector</th><th>Musaid Mumin Details</th></tr></thead><tbody>" + rows + "</tbody></table>" : '<p class="empty">No sub-sectors assigned to this sector.</p>'}
+<p class="sector-summary"><b>${sectorMembers.length}</b> members · <b>${subSectors.length}</b> sub-sectors</p>
+<h2>Sub-Sector Members &amp; Musaid Details</h2>
+${subSectors.length ? subSectorSections : '<p class="empty">No sub-sectors assigned to this sector.</p>'}
+${unassignedMembers.length ? "<section class='subsector-section'><h2>Members Not Assigned to a Sub-Sector (" + unassignedMembers.length + ")</h2>" + memberTable(unassignedMembers) + "</section>" : ""}
 </body></html>`);
   popup.document.close();
   popup.focus();
@@ -88,6 +116,7 @@ export function MasoolPage() {
   var openSubSectorModal = ctx.openSubSectorModal, deleteSubSector = ctx.deleteSubSector;
   var getSubSectorsFor = ctx.getSubSectorsFor, getMuminCountForSector = ctx.getMuminCountForSector;
   var getMuminCountForSubSector = ctx.getMuminCountForSubSector, getMuminByIts = ctx.getMuminByIts;
+  var muminData = ctx.muminData || [];
 
   return (
     <div>
@@ -123,7 +152,7 @@ export function MasoolPage() {
                       <div className="masool-sector-meta">{memberCount} member{memberCount !== 1 ? "s" : ""} · {subs.length} sub-sector{subs.length !== 1 ? "s" : ""}</div>
                     </div>
                   </div>
-                  <button className="btn btn-ghost btn-sm no-print" onClick={function (e) { e.stopPropagation(); printMasoolSector(sec, subs, getMuminByIts); }}>🖨 Print</button>
+                  <button className="btn btn-ghost btn-sm no-print" onClick={function (e) { e.stopPropagation(); printMasoolSector(sec, subs, getMuminByIts, muminData); }}>🖨 Print</button>
                   <div className="masool-badge">
                     <span className="masool-badge-label">Masool</span>
                     <span className="masool-badge-name">{masoolLabel}</span>
