@@ -26,6 +26,8 @@ function printMasoolSector(sector, subSectors, getMuminByIts) {
       ["Name", memberValue(data, "name", fallbackName)],
       ["ITS", memberValue(data, "its_number", memberValue(data, "its_id", fallbackIts))],
       ["Age", memberValue(data, "age", "—")],
+      ["Date of Birth", memberValue(data, "dob", "—")],
+      ["Gender", memberValue(data, "gender", "—")],
       ["Phone", memberValue(data, "phone", fallbackPhone)],
       ["Email", memberValue(data, "email", "—")],
       ["Sabil No.", memberValue(data, "sabil_no", "—")],
@@ -43,6 +45,7 @@ function printMasoolSector(sector, subSectors, getMuminByIts) {
     return "<tr><td>" + masoolPrintEscape(sub.name) + "</td><td>" +
       memberDetails(musaidMember, musaidFallback, sub.musaid_its, sub.musaid_phone) + "</td></tr>";
   }).join("");
+  popup.onload = function () { popup.print(); };
   popup.document.open();
   popup.document.write(`<!doctype html>
 <html><head><meta charset="utf-8"><title>Husaini Mohallah - Database | ${masoolPrintEscape(sector.name)}</title>
@@ -75,7 +78,6 @@ ${subSectors.length ? "<table><thead><tr><th style='width:25%'>Sub-Sector</th><t
 </body></html>`);
   popup.document.close();
   popup.focus();
-  popup.onload = function () { popup.print(); };
 }
 export function MasoolPage() {
   var ctx = useAppContext();
