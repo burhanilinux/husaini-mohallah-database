@@ -6,7 +6,7 @@ export function Sidebar(){
   var ctx=useAppContext(),page=ctx.page,setPage=ctx.setPage,setSearch=ctx.setSearch;
   var setIeModal=ctx.setIeModal,setTrashModal=ctx.setTrashModal,loadTrash=ctx.loadTrash,downloadFullBackup=ctx.downloadFullBackup,restoreFromBackup=ctx.restoreFromBackup,session=ctx.session,handleSignOut=ctx.handleSignOut;
   var [mobileOpen,setMobileOpen]=useState(false),[installPrompt,setInstallPrompt]=useState(null),[updateReady,setUpdateReady]=useState(false);
-  useEffect(function(){function onBeforeInstallPrompt(e){e.preventDefault();setInstallPrompt(e);}window.addEventListener("beforeinstallprompt",onBeforeInstallPrompt);return function(){window.removeEventListener("beforeinstallprompt",onBeforeInstallPrompt);};},[]);
+  useEffect(function(){function onBeforeInstallPrompt(e){e.preventDefault();setInstallPrompt(e);}window.addEventListener("beforeinstallprompt",onBeforeInstallPrompt);if(navigator.serviceWorker){navigator.serviceWorker.getRegistration().then(function(reg){if(!reg)return;if(reg.waiting)setUpdateReady(true);reg.addEventListener("updatefound",function(){setUpdateReady(true);});});}return function(){window.removeEventListener("beforeinstallprompt",onBeforeInstallPrompt);};},[]);
   function goTo(id){setPage(id);setSearch("");setMobileOpen(false);}
   function installApp(){if(!installPrompt)return;installPrompt.prompt();installPrompt.userChoice.finally(function(){setInstallPrompt(null);});}
   function updateApp(){if(!navigator.serviceWorker)return; navigator.serviceWorker.getRegistration().then(function(reg){if(reg&&reg.waiting){reg.waiting.postMessage({type:"SKIP_WAITING"});window.location.reload();}else if(reg){reg.update().finally(function(){window.location.reload();});}});}
