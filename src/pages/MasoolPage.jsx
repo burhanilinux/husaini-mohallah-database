@@ -1,6 +1,60 @@
 import { useAppContext } from "../context/AppContext.jsx";
 import { Spinner } from "../components/Shared.jsx";
 
+function masoolPrintEscape(value) {
+  return String(value == null ? "" : value).replace(/[&<>"']/g, function (char) {
+    return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char];
+  });
+}
+
+function printMasoolSector(sector, subSectors, getMuminByIts) {
+  var popup = window.open("", "_blank", "width=900,height=700");
+  if (!popup) {
+    window.alert("Please allow pop-ups to print Sector Details.");
+    return;
+  }
+  var masool = sector.masool_its
+    ? ((getMuminByIts(sector.masool_its) || {}).name || sector.masool_its)
+    : (sector.masool_name || "Not assigned");
+  var rows = subSectors.map(function (sub) {
+    var musaid = sub.musaid_its
+      ? ((getMuminByIts(sub.musaid_its) || {}).name || sub.musaid_its)
+      : (sub.musaid_name || "Not assigned");
+    return "<tr><td>" + masoolPrintEscape(sub.name) + "</td><td>" + masoolPrintEscape(musaid) + "</td></tr>";
+  }).join("");
+  popup.document.open();
+  popup.document.write(`<!doctype html>
+<html><head><meta charset="utf-8"><title>Husaini Mohallah - Database | ${masoolPrintEscape(sector.name)}</title>
+<style>
+@page { size: A4 portrait; margin: 18mm; }
+* { box-sizing: border-box; }
+body { font-family: Arial, sans-serif; color: #171717; margin: 0; }
+header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 14px; margin-bottom: 22px; }
+h1 { font-size: 20px; margin: 0 0 5px; }
+header p { font-size: 12px; margin: 0; color: #555; }
+h2 { font-size: 18px; margin: 0 0 16px; }
+.details { border: 1px solid #aaa; padding: 14px 16px; margin-bottom: 22px; }
+.detail { display: flex; gap: 12px; padding: 7px 0; font-size: 13px; }
+.detail strong { width: 115px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th, td { border: 1px solid #999; padding: 9px 10px; text-align: left; }
+th { background: #eee; }
+.empty { font-size: 12px; color: #555; padding: 12px 0; }
+</style></head><body>
+<header><h1>Husaini Mohallah - Database</h1><p>Masool Module · Sector Details</p></header>
+<h2>Sector: ${masoolPrintEscape(sector.name)}</h2>
+<section class="details">
+<div class="detail"><strong>Sector Name</strong><span>${masoolPrintEscape(sector.name)}</span></div>
+<div class="detail"><strong>Masool</strong><span>${masoolPrintEscape(masool)}</span></div>
+</section>
+<h2>Sub-Sectors &amp; Musaid Details</h2>
+${subSectors.length ? "<table><thead><tr><th>Sub-Sector</th><th>Musaid Name</th></tr></thead><tbody>" + rows + "</tbody></table>" : '<p class="empty">No sub-sectors assigned to this sector.</p>'}
+</body></html>`);
+  popup.document.close();
+  popup.focus();
+  popup.onload = function () { popup.print(); };
+}
+
 export function MasoolPage() {
   var ctx = useAppContext();
   var canEdit = ctx.canEdit, canDelete = ctx.canDelete;
@@ -45,6 +99,7 @@ export function MasoolPage() {
                       <div className="masool-sector-meta">{memberCount} member{memberCount !== 1 ? "s" : ""} · {subs.length} sub-sector{subs.length !== 1 ? "s" : ""}</div>
                     </div>
                   </div>
+                  <button className="btn btn-ghost btn-sm no-print" onClick={function (e) { e.stopPropagation(); printMasoolSector(sec, subs, getMuminByIts); }}>🖨 Print</button>
                   <div className="masool-badge">
                     <span className="masool-badge-label">Masool</span>
                     <span className="masool-badge-name">{masoolLabel}</span>
