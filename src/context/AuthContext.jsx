@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { getSession, sbGet, sbGetUser, sbSignIn, sbSignOut } from "../lib/supabase.js";
+import { getSession, sbGet, sbGetUser, sbSignIn, sbSignOut, refreshSession } from "../lib/supabase.js";
 
 const AuthContext = createContext(null);
 
@@ -41,6 +41,14 @@ export function AuthProvider({ children }) {
     var stored = getSession();
     if (!stored) { setAuthLoading(false); return function () { active = false; }; }
     sbGetUser(stored.access_token).then(async function (nextUser) {
+      // An expired access token must not log the user out while a valid refresh token exists.
+      if (!nextUser || !nextUser.id) {
+        var fresh = await refreshSession();
+        if (fresh && fresh.access_token) {
+          stored = fresh;
+          nextUser = fresh.user || await sbGetUser(fresh.access_token);
+        }
+      }
       if (!active) return;
       if (nextUser && nextUser.id) {
         setSession(stored);
