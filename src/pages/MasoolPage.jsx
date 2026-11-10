@@ -8,53 +8,75 @@ function masoolPrintEscape(value) {
 }
 
 function printMasoolSector(sector, subSectors, getMuminByIts) {
-  var popup = window.open("", "_blank", "width=900,height=700");
+  var popup = window.open("", "_blank", "width=1000,height=750");
   if (!popup) {
     window.alert("Please allow pop-ups to print Sector Details.");
     return;
   }
-  var masool = sector.masool_its
-    ? ((getMuminByIts(sector.masool_its) || {}).name || sector.masool_its)
-    : (sector.masool_name || "Not assigned");
+  function memberByIts(its) {
+    return its ? getMuminByIts(its) : null;
+  }
+  function memberValue(member, field, fallback) {
+    return member && member[field] !== null && member[field] !== undefined && String(member[field]).trim() !== ""
+      ? member[field] : (fallback || "—");
+  }
+  function memberDetails(member, fallbackName, fallbackIts, fallbackPhone) {
+    var data = member || {};
+    return [
+      ["Name", memberValue(data, "name", fallbackName)],
+      ["ITS", memberValue(data, "its_number", memberValue(data, "its_id", fallbackIts))],
+      ["Age", memberValue(data, "age", "—")],
+      ["Phone", memberValue(data, "phone", fallbackPhone)],
+      ["Email", memberValue(data, "email", "—")],
+      ["Sabil No.", memberValue(data, "sabil_no", "—")],
+      ["Address", memberValue(data, "address", "—")]
+    ].map(function (item) {
+      return "<div class='member-field'><b>" + masoolPrintEscape(item[0]) + ":</b> " + masoolPrintEscape(item[1]) + "</div>";
+    }).join("");
+  }
+  var masoolMember = memberByIts(sector.masool_its);
+  var masoolFallback = sector.masool_name || "Not assigned";
+  var masoolHtml = memberDetails(masoolMember, masoolFallback, sector.masool_its, sector.masool_phone);
   var rows = subSectors.map(function (sub) {
-    var musaid = sub.musaid_its
-      ? ((getMuminByIts(sub.musaid_its) || {}).name || sub.musaid_its)
-      : (sub.musaid_name || "Not assigned");
-    return "<tr><td>" + masoolPrintEscape(sub.name) + "</td><td>" + masoolPrintEscape(musaid) + "</td></tr>";
+    var musaidMember = memberByIts(sub.musaid_its);
+    var musaidFallback = sub.musaid_name || "Not assigned";
+    return "<tr><td>" + masoolPrintEscape(sub.name) + "</td><td>" +
+      memberDetails(musaidMember, musaidFallback, sub.musaid_its, sub.musaid_phone) + "</td></tr>";
   }).join("");
   popup.document.open();
   popup.document.write(`<!doctype html>
 <html><head><meta charset="utf-8"><title>Husaini Mohallah - Database | ${masoolPrintEscape(sector.name)}</title>
 <style>
-@page { size: A4 portrait; margin: 18mm; }
+@page { size: A4 portrait; margin: 14mm; }
 * { box-sizing: border-box; }
 body { font-family: Arial, sans-serif; color: #171717; margin: 0; }
-header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 14px; margin-bottom: 22px; }
+header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 12px; margin-bottom: 18px; }
 h1 { font-size: 20px; margin: 0 0 5px; }
-header p { font-size: 12px; margin: 0; color: #555; }
-h2 { font-size: 18px; margin: 0 0 16px; }
-.details { border: 1px solid #aaa; padding: 14px 16px; margin-bottom: 22px; }
-.detail { display: flex; gap: 12px; padding: 7px 0; font-size: 13px; }
-.detail strong { width: 115px; }
-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-th, td { border: 1px solid #999; padding: 9px 10px; text-align: left; }
+header p { font-size: 11px; margin: 0; color: #555; }
+h2 { font-size: 16px; margin: 0 0 10px; }
+.details { border: 1px solid #aaa; padding: 12px 14px; margin-bottom: 18px; }
+.member-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 16px; font-size: 11px; }
+.member-field { padding: 2px 0; overflow-wrap: anywhere; }
+.member-field b { color: #444; }
+table { width: 100%; border-collapse: collapse; font-size: 11px; }
+th, td { border: 1px solid #999; padding: 8px; text-align: left; vertical-align: top; }
 th { background: #eee; }
 .empty { font-size: 12px; color: #555; padding: 12px 0; }
+@media print { tr { break-inside: avoid; } .details { break-inside: avoid; } }
 </style></head><body>
 <header><h1>Husaini Mohallah - Database</h1><p>Masool Module · Sector Details</p></header>
 <h2>Sector: ${masoolPrintEscape(sector.name)}</h2>
 <section class="details">
-<div class="detail"><strong>Sector Name</strong><span>${masoolPrintEscape(sector.name)}</span></div>
-<div class="detail"><strong>Masool</strong><span>${masoolPrintEscape(masool)}</span></div>
+<h2>Masool Details</h2>
+<div class="member-fields">${masoolHtml}</div>
 </section>
 <h2>Sub-Sectors &amp; Musaid Details</h2>
-${subSectors.length ? "<table><thead><tr><th>Sub-Sector</th><th>Musaid Name</th></tr></thead><tbody>" + rows + "</tbody></table>" : '<p class="empty">No sub-sectors assigned to this sector.</p>'}
+${subSectors.length ? "<table><thead><tr><th style='width:25%'>Sub-Sector</th><th>Musaid Mumin Details</th></tr></thead><tbody>" + rows + "</tbody></table>" : '<p class="empty">No sub-sectors assigned to this sector.</p>'}
 </body></html>`);
   popup.document.close();
   popup.focus();
   popup.onload = function () { popup.print(); };
 }
-
 export function MasoolPage() {
   var ctx = useAppContext();
   var canEdit = ctx.canEdit, canDelete = ctx.canDelete;
