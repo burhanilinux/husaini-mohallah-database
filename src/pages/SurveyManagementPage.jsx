@@ -57,7 +57,7 @@ export function SurveyManagementPage() {
   var subSectorOptions = (ctx.subSectorsData || []).filter(function (s) {
     return !sectorFilter || String(s.sector_id) === String(sectorFilter);
   });
-  var householdRows = useMemo(function () {
+  var allHouseholds = useMemo(function () {
     var byIts = new Map((ctx.muminData || []).map(function (m) { return [String(m.its_id || m.its_number || ""), m]; }));
     return (families || []).map(function (f) {
       var m = byIts.get(String(f.hof_its_id));
@@ -66,13 +66,17 @@ export function SurveyManagementPage() {
       var sector = sub && (ctx.sectorsData || []).find(function (s) { return String(s.id) === String(sub.sector_id); });
       if (!sector) sector = (ctx.sectorsData || []).find(function (s) { return String(s.name || "").toLowerCase() === String(m.area_sector || "").toLowerCase(); });
       return { family: f, mumin: m, sector: sector || null, subSector: sub || null };
-    }).filter(Boolean).filter(function (h) {
+    }).filter(Boolean).sort(function (a, b) { return String(a.mumin.name || "").localeCompare(String(b.mumin.name || "")); });
+  }, [families, ctx.muminData, ctx.sectorsData, ctx.subSectorsData]);
+  // Filters narrow only the assignment list; reports and labels use allHouseholds.
+  var householdRows = useMemo(function () {
+    var q = householdSearch.trim().toLowerCase();
+    return allHouseholds.filter(function (h) {
       if (sectorFilter && String((h.sector && h.sector.id) || "") !== String(sectorFilter)) return false;
       if (subSectorFilter && String((h.subSector && h.subSector.id) || "") !== String(subSectorFilter)) return false;
-      var q = householdSearch.trim().toLowerCase();
       return !q || String(h.family.hof_its_id).includes(q) || String(h.mumin.name || "").toLowerCase().includes(q);
-    }).sort(function (a, b) { return String(a.mumin.name || "").localeCompare(String(b.mumin.name || "")); });
-  }, [families, ctx.muminData, ctx.sectorsData, ctx.subSectorsData, sectorFilter, subSectorFilter, householdSearch]);
+    });
+  }, [allHouseholds, sectorFilter, subSectorFilter, householdSearch]);
 
   var reload = useCallback(async function (preferredId) {
     setLoading(true); setError("");
@@ -231,7 +235,7 @@ export function SurveyManagementPage() {
     return true;
   }).map(function (v) {
     var a = assignments.find(function (x) { return x.id === v.assignment_id; });
-    var h = householdRows.find(function (x) { return String(x.family.hof_its_id) === String(a && a.hof_its_id); });
+    var h = allHouseholds.find(function (x) { return String(x.family.hof_its_id) === String(a && a.hof_its_id); });
     var answerMap = {};
     reportResponses.filter(function (r) { return r.visit_id === v.id; }).forEach(function (r) { answerMap[r.question_id] = r.answer; });
     return { visit:v, assignment:a, hof:h, answerMap:answerMap };
@@ -351,7 +355,7 @@ export function SurveyManagementPage() {
             </>}
             {!reportLoaded && <p className="survey-note">Load the report to fetch visit records and answers for this survey.</p>}
           </div>
-          {activeAssignment && <SurveyVisitEntry key={activeAssignment.id} survey={selectedSurvey} assignment={activeAssignment} hofLabel={(householdRows.find(function (h) { return String(h.family.hof_its_id) === String(activeAssignment.hof_its_id); }) || {}).mumin?.name ? (householdRows.find(function (h) { return String(h.family.hof_its_id) === String(activeAssignment.hof_its_id); }).mumin.name + " · ITS " + activeAssignment.hof_its_id) : "ITS " + activeAssignment.hof_its_id} questions={questions} user={auth.user} canEdit={canEdit} onClose={function () { setActiveAssignment(null); }} onChanged={function () { return reload(selectedId); }} />}
+          {activeAssignment && <SurveyVisitEntry key={activeAssignment.id} survey={selectedSurvey} assignment={activeAssignment} hofLabel={(allHouseholds.find(function (h) { return String(h.family.hof_its_id) === String(activeAssignment.hof_its_id); }) || {}).mumin?.name ? (allHouseholds.find(function (h) { return String(h.family.hof_its_id) === String(activeAssignment.hof_its_id); }).mumin.name + " · ITS " + activeAssignment.hof_its_id) : "ITS " + activeAssignment.hof_its_id} questions={questions} user={auth.user} canEdit={canEdit} onClose={function () { setActiveAssignment(null); }} onChanged={function () { return reload(selectedId); }} />}
 
         </>}
       </section>
