@@ -16,25 +16,9 @@ function printMasoolSector(sector, subSectors, getMuminByIts, muminData) {
   function memberByIts(its) {
     return its ? getMuminByIts(its) : null;
   }
-  function memberValue(member, field, fallback) {
-    return member && member[field] !== null && member[field] !== undefined && String(member[field]).trim() !== ""
-      ? member[field] : (fallback || "—");
-  }
-  function memberDetails(member, fallbackName, fallbackIts, fallbackPhone) {
-    var data = member || {};
-    return [
-      ["Name", memberValue(data, "name", fallbackName)],
-      ["ITS", memberValue(data, "its_number", memberValue(data, "its_id", fallbackIts))],
-      ["Age", memberValue(data, "age", "—")],
-      ["Date of Birth", memberValue(data, "dob", "—")],
-      ["Gender", memberValue(data, "gender", "—")],
-      ["Phone", memberValue(data, "phone", fallbackPhone)],
-      ["Email", memberValue(data, "email", "—")],
-      ["Sabil No.", memberValue(data, "sabil_no", "—")],
-      ["Address", memberValue(data, "address", "—")]
-    ].map(function (item) {
-      return "<div class='member-field'><b>" + masoolPrintEscape(item[0]) + ":</b> " + masoolPrintEscape(item[1]) + "</div>";
-    }).join("");
+  function assignedPersonName(its, fallbackName) {
+    var member = memberByIts(its);
+    return (member && member.name) || fallbackName || "Not assigned";
   }
   var sectorMembers = (muminData || []).filter(function (member) {
     return String(member.area_sector || "").trim().toLowerCase() === String(sector.name || "").trim().toLowerCase();
@@ -55,19 +39,15 @@ function printMasoolSector(sector, subSectors, getMuminByIts, muminData) {
   var unassignedMembers = sectorMembers.filter(function (member) {
     return !member.sub_sector_id || assignedSubIds.indexOf(String(member.sub_sector_id)) < 0;
   });
-  var masoolMember = memberByIts(sector.masool_its);
-  var masoolFallback = sector.masool_name || "Not assigned";
-  var masoolHtml = memberDetails(masoolMember, masoolFallback, sector.masool_its, sector.masool_phone);
+  var masoolName = assignedPersonName(sector.masool_its, sector.masool_name);
   var subSectorSections = subSectors.map(function (sub) {
-    var musaidMember = memberByIts(sub.musaid_its);
-    var musaidFallback = sub.musaid_name || "Not assigned";
+    var musaidName = assignedPersonName(sub.musaid_its, sub.musaid_name);
     var members = sectorMembers.filter(function (member) {
       return String(member.sub_sector_id || "") === String(sub.id);
     });
     return "<section class='subsector-section'><h2>" + masoolPrintEscape(sub.name) +
-      " <span class='count'>(" + members.length + " members)</span></h2><div class='musaid-details'><h3>Musaid Details</h3><div class='member-fields'>" +
-      memberDetails(musaidMember, musaidFallback, sub.musaid_its, sub.musaid_phone) +
-      "</div></div>" + memberTable(members) + "</section>";
+      " <span class='count'>(" + members.length + " members)</span></h2><p class='assigned-name'><b>Musaid:</b> " +
+      masoolPrintEscape(musaidName) + "</p>" + memberTable(members) + "</section>";
   }).join("");
   popup.onload = function () { popup.print(); };
   popup.document.open();
@@ -83,7 +63,7 @@ header p { font-size: 11px; margin: 0; color: #555; }
 h2 { font-size: 16px; margin: 18px 0 10px; }
 h3 { font-size: 12px; margin: 0 0 7px; }
 .subsector-section { margin: 18px 0 24px; break-inside: auto; }
-.musaid-details { border: 1px solid #aaa; padding: 10px 12px; margin-bottom: 10px; }
+.assigned-name { font-size: 11px; margin: 0 0 8px; }
 .count { font-size: 12px; font-weight: normal; color: #555; }
 .members-table { margin-top: 8px; font-size: 9px; }
 .members-table th, .members-table td { padding: 5px; }
@@ -99,8 +79,9 @@ th { background: #eee; }
 </style></head><body>
 <header><h1>Husaini Mohallah - Database</h1><p>Masool Module · Sector Details</p></header>
 <h2>Sector: ${masoolPrintEscape(sector.name)}</h2>
+<p class="assigned-name"><b>Masool:</b> ${masoolPrintEscape(masoolName)}</p>
 <p class="sector-summary"><b>${sectorMembers.length}</b> members · <b>${subSectors.length}</b> sub-sectors</p>
-<h2>Sub-Sector Members &amp; Musaid Details</h2>
+<h2>Sub-Sector Members</h2>
 ${subSectors.length ? subSectorSections : '<p class="empty">No sub-sectors assigned to this sector.</p>'}
 ${unassignedMembers.length ? "<section class='subsector-section'><h2>Members Not Assigned to a Sub-Sector (" + unassignedMembers.length + ")</h2>" + memberTable(unassignedMembers) + "</section>" : ""}
 </body></html>`);
