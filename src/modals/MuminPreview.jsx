@@ -155,7 +155,7 @@ export function MuminPreview() {
         <div className="preview-body">
           {warnings.length > 0 && <div style={{ border: "1px solid #7c5a17", background: "rgba(124,90,23,.12)", borderRadius: 8, padding: "10px 12px", marginBottom: 14 }}><div style={{ fontWeight: 700, marginBottom: 5 }}>⚠ Data quality ({warnings.length})</div><div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{warnings.map(function (w) { return <span key={w} style={{ fontSize: 12, padding: "4px 8px", borderRadius: 14, background: "rgba(245,158,11,.12)" }}>{w}</span>; })}</div></div>}
 
-          <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.15fr) minmax(0, .85fr)", gap: 14 }}>
+          <div className="preview-split" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.15fr) minmax(0, .85fr)", gap: 14 }}>
             <div className="preview-section" style={{ margin: 0 }}><div className="preview-sec-title">Personal & Contact Details</div><div className="preview-grid">
               <div className="preview-field"><div className="preview-field-label">Age / DOB</div><div className="preview-field-val">{age || "—"}{m.dob ? " • " + m.dob : ""}</div></div>
               <div className="preview-field"><div className="preview-field-label">Gender</div><div className="preview-field-val">{m.gender || "—"}</div></div>
@@ -173,14 +173,14 @@ export function MuminPreview() {
           </div>
 
           <div className="preview-section"><div className="preview-sec-title">Family & HOF · 360° Household View</div>
-            <div style={{ display: "grid", gridTemplateColumns: "minmax(120px,.6fr) minmax(180px,1fr) minmax(180px,1.4fr)", gap: 10, marginBottom: 10 }}>
+            <div className="preview-family-top" style={{ display: "grid", gridTemplateColumns: "minmax(120px,.6fr) minmax(180px,1fr) minmax(180px,1.4fr)", gap: 10, marginBottom: 10 }}>
               <div className="preview-field"><div className="preview-field-label">Family ID</div><div className="preview-field-val">{m.family_id || "—"}</div></div>
               <div className="preview-field"><div className="preview-field-label">Sabil No.</div><div className="preview-field-val">{(familyRecord && familyRecord.sabil_no) || m.sabil_no || "—"}</div></div>
               <div className="preview-field"><div className="preview-field-label">Head of Family</div><div className="preview-field-val">{hof ? hof.name + " • " + hof.its_number : (familyRecord && familyRecord.hof_its_id ? "ITS " + familyRecord.hof_its_id : "Not assigned")}</div></div>
             </div>
             {sabilFamily.length > 0 ? <div>
               <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 7 }}>{sabilFamily.length} linked member{sabilFamily.length === 1 ? "" : "s"} · HOF relationship resolved from database linkage</div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(210px,1fr))", gap: 7 }}>{sabilFamily.map(function (o) {
+              <div className="preview-chip-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(210px,1fr))", gap: 7 }}>{sabilFamily.map(function (o) {
                 var oIts = String(o.its_id || o.its_number || "").trim();
                 var isHof = hof && String(hof.id) === String(o.id);
                 return <div className="preview-family-chip" key={o.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }} onClick={function () { openSibling(o); }}><span>{isHof ? "👑 " : "🏠 "}{o.name}</span><span style={{ color: "#6b7280", fontSize: 11 }}>{oIts || "—"}</span></div>;
@@ -195,7 +195,7 @@ export function MuminPreview() {
                 {!showFullProfile && <span style={{ fontSize: 10, color: "#c9a84c", textTransform: "none", letterSpacing: 0 }}>Occupation, qualification, ziyarat, organisations & more</span>}
               </div>
               {showFullProfile && (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                <div className="preview-full-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
                   {[
                     ["Occupation", ext.occupation], ["Sub-Occupation", ext.subOccupation], ["Qualification", ext.qualification],
                     ["Languages", ext.languages], ["Hunars", ext.hunars], ["Marital Status", ext.maritalStatus],
@@ -218,7 +218,7 @@ export function MuminPreview() {
             </div>
           )}
 
-          <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+          <div className="preview-actions" style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
             {canEdit && <button className="btn btn-primary" onClick={function () { setMuminPreview(null); openModal("mumin", "edit", m); }}>✎ Edit Record</button>}
             <button className="btn btn-ghost" onClick={function () { printIdCard(printable, sabilFamily, sectorInfo); }}>🪪 ID Card</button>
             <button className="btn btn-primary" onClick={function () { printWithFamilyPhotos(function (members, win) { printMuminA4(printable, familyRecord, members, sectorInfo, undefined, win); }); }}>🖨 Print A4</button>
