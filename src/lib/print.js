@@ -210,3 +210,31 @@ export function printFile(f, atts) {
   h += "<div class='print-footer'><span>Husaini Mohallah Database</span><span>Printed: " + new Date().toLocaleString() + "</span></div>";
   openPrint("File - " + (f.title || ""), h);
 }
+// ── Sector details (Masool / Musaid) ──────────────────────────────
+// sectors: [{ name, masoolName, masoolPhone, memberCount, subs: [{ name, musaidName, musaidPhone, memberCount }] }]
+export function printSectorDetails(sectors, title) {
+  var today = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
+  var extra = "<style>table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #ddd;padding:7px 10px;text-align:left;font-size:12px}th{background:#faf7ef;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#777}.sector-block{page-break-after:always;margin-bottom:30px}.sector-block:last-of-type{page-break-after:auto}</style>";
+  var h = extra;
+  sectors.forEach(function (s) {
+    h += "<div class='sector-block'>";
+    h += "<div class='print-header'><div><div class='print-logo'>Husaini Mohallah</div><div class='print-logo-sub'>Sector Details</div></div><div class='print-date'><strong>" + esc(title || "Sector Report") + "</strong><br/>" + today + "</div></div>";
+    h += "<div class='print-title'>" + esc(s.name) + "</div>";
+    h += "<div class='print-subtitle'>" + s.memberCount + " member" + (s.memberCount !== 1 ? "s" : "") + " · " + s.subs.length + " sub-sector" + (s.subs.length !== 1 ? "s" : "") + "</div>";
+    h += "<div class='print-section-title'>Masool</div><div class='print-grid'>";
+    h += "<div class='print-field'><div class='print-field-label'>Masool</div><div class='print-field-val'>" + esc(s.masoolName || "Not assigned") + "</div></div>";
+    h += "<div class='print-field'><div class='print-field-label'>Phone</div><div class='print-field-val'>" + esc(s.masoolPhone || "\u2014") + "</div></div></div>";
+    h += "<div class='print-section-title'>Sub-Sectors & Musaid</div>";
+    if (!s.subs.length) {
+      h += "<div class='print-desc'>No sub-sectors under this sector.</div>";
+    } else {
+      h += "<table><thead><tr><th>Sub-Sector</th><th>Musaid</th><th>Phone</th><th>Members</th></tr></thead><tbody>";
+      s.subs.forEach(function (sub) {
+        h += "<tr><td>" + esc(sub.name) + "</td><td>" + esc(sub.musaidName || "Not assigned") + "</td><td>" + esc(sub.musaidPhone || "\u2014") + "</td><td>" + sub.memberCount + "</td></tr>";
+      });
+      h += "</tbody></table>";
+    }
+    h += "<div class='print-footer'><span>Husaini Mohallah Database</span><span>Printed: " + new Date().toLocaleString() + "</span></div></div>";
+  });
+  openPrint(title || "Sector Details", h);
+}
