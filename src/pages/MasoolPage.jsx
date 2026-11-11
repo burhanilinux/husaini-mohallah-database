@@ -1,3 +1,4 @@
+import { printSectorDetails } from "../lib/print.js";
 import { useAppContext } from "../context/AppContext.jsx";
 import { Spinner } from "../components/Shared.jsx";
 
