@@ -11,7 +11,28 @@ export function MasoolPage() {
   var openSubSectorModal = ctx.openSubSectorModal, deleteSubSector = ctx.deleteSubSector;
   var getSubSectorsFor = ctx.getSubSectorsFor, getMuminCountForSector = ctx.getMuminCountForSector;
   var getMuminCountForSubSector = ctx.getMuminCountForSubSector, getMuminByIts = ctx.getMuminByIts;
-
+  
+function sectorPrintData(sec) {
+  var subs = getSubSectorsFor(sec.id);
+  var nameOf = function (its, fallback) {
+    if (its) { var m = getMuminByIts(its); return m ? m.name : String(its); }
+    return fallback || "";
+  };
+  return {
+    name: sec.name,
+    masoolName: nameOf(sec.masool_its, sec.masool_name),
+    masoolPhone: sec.masool_phone || "",
+    memberCount: getMuminCountForSector(sec.name),
+    subs: subs.map(function (sub) {
+      return {
+        name: sub.name,
+        musaidName: nameOf(sub.musaid_its, sub.musaid_name),
+        musaidPhone: sub.musaid_phone || "",
+        memberCount: getMuminCountForSubSector(sub.id),
+      };
+    }),
+  };
+}
   return (
     <div>
       <div className="page-hdr" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
