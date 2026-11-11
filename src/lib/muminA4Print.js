@@ -295,17 +295,18 @@ export function printMuminFullProfile(m, familyRecord, familyMembers, sectorInfo
   h += "<div class='field'><div class='label'>HOF ITS</div><div class='value'>" + esc((familyRecord && familyRecord.hof_its_id) || "—") + "</div></div>";
   h += "</div>";
   if (familyMembers && familyMembers.length) {
-    h += "<div class='family'><div class='family-head'><span>Photo</span><span>Family Member</span><span>ITS</span><span>Role</span></div>";
-    familyMembers.forEach(function (member) {
-      var isHof = familyRecord && familyRecord.hof_its_id && (String(member.its_id) === String(familyRecord.hof_its_id) || String(member.its_number) === String(familyRecord.hof_its_id));
-      var memberPhotoUrl = member.photo_url || member.photoUrl || member.profile_photo_url || "";
-      var memberInitial = esc((member.name || "?").trim().charAt(0).toUpperCase());
-      var memberPhoto = memberPhotoUrl
-        ? "<img class='member-photo' src='" + esc(memberPhotoUrl) + "' alt=''>"
-        : "<span class='member-photo empty'>" + memberInitial + "</span>";
-      h += "<div class='member" + (isHof ? " hof" : "") + "'>" + memberPhoto + "<span>" + (isHof ? "★ " : "") + esc(member.name || "—") + "</span><span>" + esc(member.its_number || "—") + "</span><span>" + (isHof ? "Head of Family" : "Family Member") + "</span></div>";
-    });
-    h += "</div>";
+    h += "<div class='family'><div class='family-head'><span>Photo</span><span>Family Member</span><span>ITS</span><span>Age</span><span>Role</span></div>";
+familyMembers.forEach(function (member) {
+  var isHof = familyRecord && familyRecord.hof_its_id && (String(member.its_id) === String(familyRecord.hof_its_id) || String(member.its_number) === String(familyRecord.hof_its_id));
+  var memberAge = getMuminAge(member);
+  var memberPhotoUrl = member.photo_url || member.photoUrl || member.profile_photo_url || "";
+  var memberInitial = esc((member.name || "?").trim().charAt(0).toUpperCase());
+  var memberPhoto = memberPhotoUrl
+    ? "<img class='member-photo' src='" + esc(memberPhotoUrl) + "' alt=''>"
+    : "<span class='member-photo empty'>" + memberInitial + "</span>";
+  h += "<div class='member" + (isHof ? " hof" : "") + "'>" + memberPhoto + "<span>" + (isHof ? "★ " : "") + esc(member.name || "—") + "</span><span>" + esc(member.its_number || "—") + "</span><span>" + esc(memberAge == null ? "—" : memberAge) + "</span><span>" + (isHof ? "Head of Family" : "Family Member") + "</span></div>";
+});
+h += "</div>";
   }
   h += "</div>";
 
