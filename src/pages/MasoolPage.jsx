@@ -81,10 +81,11 @@ function sectorPrintData(sec) {
                     )}
                   </div>
                   {canEdit && (
-                    <div style={{ display: "flex", gap: 6 }} onClick={function (e) { e.stopPropagation(); }}>
-                      <button className="btn btn-ghost btn-sm" onClick={function () { openSectorModal("edit", sec); }}>Edit</button>
-                      {canDelete && <button className="btn btn-danger" onClick={function () { deleteSector(sec); }}>🗑</button>}
-                    </div>
+                   <div style={{ display: "flex", gap: 6 }} onClick={function (e) { e.stopPropagation(); }}>
+  <button className="btn btn-ghost btn-sm" onClick={function () { printSectorDetails([sectorPrintData(sec)], sec.name + " — Sector Details"); }}>🖨 Print</button>
+  {canEdit && <button className="btn btn-ghost btn-sm" onClick={function () { openSectorModal("edit", sec); }}>Edit</button>}
+  {canDelete && <button className="btn btn-danger" onClick={function () { deleteSector(sec); }}>🗑</button>}
+</div>
                   )}
                 </div>
 
