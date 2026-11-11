@@ -40,7 +40,10 @@ function sectorPrintData(sec) {
           <div className="page-title">Masool</div>
           <div className="page-sub">Sectors, their Masool, sub-sectors and Musaid</div>
         </div>
-        {canEdit && <button className="btn btn-primary" onClick={function () { openSectorModal("add"); }}>+ New Sector</button>}
+        <div style={{ display: "flex", gap: 8 }}>
+  {sectorsData.length > 0 && <button className="btn btn-ghost" onClick={function () { printSectorDetails(sectorsData.map(sectorPrintData), "All Sectors"); }}>🖨 Print All</button>}
+  {canEdit && <button className="btn btn-primary" onClick={function () { openSectorModal("add"); }}>+ New Sector</button>}
+</div>
       </div>
 
       {loading ? <div className="loading"><Spinner /> Loading…</div> : sectorsData.length === 0 ? (
