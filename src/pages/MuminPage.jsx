@@ -1,6 +1,6 @@
 import { useAppContext } from "../context/AppContext.jsx";
 import { Spinner, Avatar } from "../components/Shared.jsx";
-import { getMuminAge } from "../lib/utils.js";
+import { getMuminAge, compareMuminByAge } from "../lib/utils.js";
 
 function norm(v) { return String(v ?? "").trim(); }
 function isHof(m) { return norm(m?.source_data?.HOF_FM_TYPE).toUpperCase() === "HOF"; }
