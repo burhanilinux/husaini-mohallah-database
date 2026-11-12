@@ -1,3 +1,5 @@
+ import { sortFamilyMembers } from "./utils.js";   // reports.js
+ import { getMuminAge, sortFamilyMembers } from "../lib/utils.js";   // ReportsPage.jsx (extend the existing import)
 // ── Report row builders ──────────────────────────────────────────
 // Each function takes whatever slice of app state it needs and returns
 // { cols, rows, filename } — consumed by both the Reports page print
