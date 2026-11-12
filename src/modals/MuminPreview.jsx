@@ -4,7 +4,7 @@ import { Avatar } from "../components/Shared.jsx";
 import { usePhotoUrl } from "../lib/usePhotoUrl.js";
 import { getPhotoUrl } from "../lib/storage.js";
 import { sbGet } from "../lib/supabase.js";
-import { getMuminAge } from "../lib/utils.js";
+import { getMuminAge, sortFamilyMembers } from "../lib/utils.js";
 import { getExtendedProfile } from "../lib/muminProfile.js";
 import { printIdCard } from "../lib/print.js";
 import { printMuminA4, printMuminFullProfile } from "../lib/muminA4Print.js";
@@ -80,7 +80,7 @@ export function MuminPreview() {
     familyMembers = getFamilyBySabil(m.sabil_no);
   }
   if (mIts && !familyMembers.some(function (o) { return String(o.id) === String(m.id); })) familyMembers.unshift(m);
-
+  familyMembers = sortFamilyMembers(familyMembers, (familyRecord && familyRecord.hof_its_id) || mHofId);
   var sabilFamily = familyMembers.filter(function (o) { return String(o.id) !== String(m.id); });
   var sectorInfo = getSectorInfo(m) || {};
   var familyHofIts = familyRecord && familyRecord.hof_its_id ? String(familyRecord.hof_its_id).trim() : mHofId;
