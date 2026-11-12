@@ -23,6 +23,32 @@ export function getMuminAge(m) {
   return fromDob !== null ? fromDob : (m.age === 0 || m.age ? Number(m.age) : null);
 }
 
+// ── Family member ordering ────────────────────────────────────────
+// Oldest first; members with no known age go last; ties fall back to ITS.
+export function compareMuminByAge(a, b) {
+  var ageA = getMuminAge(a), ageB = getMuminAge(b);
+  var hasA = ageA !== null && ageA !== undefined && !isNaN(ageA);
+  var hasB = ageB !== null && ageB !== undefined && !isNaN(ageB);
+  if (hasA && hasB && ageA !== ageB) return ageB - ageA;
+  if (hasA !== hasB) return hasA ? -1 : 1;
+  return String(a.its_id || a.its_number || "").localeCompare(String(b.its_id || b.its_number || ""));
+}
+
+// HOF always first, then everyone else by age. Pass the family's HOF ITS if
+// known; otherwise the HOF is detected from source_data.HOF_FM_TYPE.
+export function sortFamilyMembers(members, hofIts) {
+  var hof = hofIts === null || hofIts === undefined ? "" : String(hofIts).trim();
+  function isHead(m) {
+    if (hof) return String(m.its_id) === hof || String(m.its_number) === hof;
+    return String((m.source_data && m.source_data.HOF_FM_TYPE) || "").toUpperCase() === "HOF";
+  }
+  return (members || []).slice().sort(function (a, b) {
+    var ha = isHead(a), hb = isHead(b);
+    if (ha !== hb) return ha ? -1 : 1;
+    return compareMuminByAge(a, b);
+  });
+}
+
 // ── File helpers ──────────────────────────────────────────────────
 export function fileToBase64(file) {
   return new Promise(function (res, rej) {
