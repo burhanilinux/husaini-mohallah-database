@@ -3,6 +3,7 @@ import { useAppContext } from "../context/AppContext.jsx";
 import { sbGet } from "../lib/supabase.js";
 import { createFamily, updateFamily, moveMember, mergeFamilies, splitFamily } from "../lib/familyManagement.js";
 import { Spinner } from "../components/Shared.jsx";
+import { sortFamilyMembers } from "../lib/utils.js";
 
 export function FamilyPage() {
   var ctx = useAppContext();
@@ -48,8 +49,7 @@ export function FamilyPage() {
       byFamily[key].push(m);
     });
     return families.map(function (f) {
-      var members = byFamily[String(f.family_id)] || [];
-      var hof = members.find(function (m) { return String(m.its_id) === String(f.hof_its_id); });
+      var members = sortFamilyMembers(byFamily[String(f.family_id)] || [], f.hof_its_id);      var hof = members.find(function (m) { return String(m.its_id) === String(f.hof_its_id); });
       var q = search.trim().toLowerCase();
       var hay = [f.family_id, f.hof_its_id, f.sabil_no, hof && hof.name, hof && hof.its_number].join(" ").toLowerCase();
       return { family: f, members: members, hof: hof, matches: !q || hay.indexOf(q) !== -1 };
