@@ -7,15 +7,6 @@ function isHof(m) { return norm(m?.source_data?.HOF_FM_TYPE).toUpperCase() === "
 function hofIdOf(m) { return norm(m?.source_data?.HOF_ID); }
 function itsOf(m) { return norm(m?.its_id || m?.its_number); }
 
-// Oldest first; members with no known age go last. Ties fall back to ITS.
-function compareByAge(a, b) {
-  var ageA = getMuminAge(a), ageB = getMuminAge(b);
-  var hasA = ageA !== null && ageA !== undefined && !isNaN(ageA);
-  var hasB = ageB !== null && ageB !== undefined && !isNaN(ageB);
-  if (hasA && hasB && ageA !== ageB) return ageB - ageA;
-  if (hasA !== hasB) return hasA ? -1 : 1;
-  return itsOf(a).localeCompare(itsOf(b));
-}
 
 // Build lossless family trees. HOF_ID is authoritative; Family_ID is only a
 // fallback for records that genuinely have no usable HOF_ID. Every database
@@ -77,7 +68,7 @@ function buildFamilyGroups(muminData) {
       hof: g.hof,
       // HOF is always rendered first by the page; everyone else is ordered by age.
       members: g.members.filter(function (m) { return itsOf(m) !== itsOf(g.hof); })
-        .sort(compareByAge)
+        .sort(compareMuminByAge)
     };
   }).filter(function (g) { return !!g.hof; });
 
