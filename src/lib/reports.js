@@ -76,7 +76,7 @@ export function buildReportRows(reportId, extra, ctx) {
     return {
       cols: ["sabil_no", "members", "names"],
       rows: sabilKeys.map(function (k) {
-        var grp = sabilGroups[k];
+        var grp = sortFamilyMembers(sabilGroups[k]);
         return { sabil_no: k, members: grp.length, names: grp.map(function (m) { return m.name; }).join(", ") };
       }),
       filename: "family_directory_by_sabil",
