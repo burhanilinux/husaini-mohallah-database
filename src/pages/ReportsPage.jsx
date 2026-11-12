@@ -1,7 +1,5 @@
 import { useAppContext } from "../context/AppContext.jsx";
-import { getMuminAge } from "../lib/utils.js";
-import { sortFamilyMembers } from "./utils.js";   // reports.js
-import { getMuminAge, sortFamilyMembers } from "../lib/utils.js";   // ReportsPage.jsx (extend the existing import)
+import { getMuminAge, sortFamilyMembers } from "../lib/utils.js";
 
 function ext(m) { return m.source_data || {}; }
 function getVal(m, col, key) { return m[col] || ext(m)[key] || ""; }
