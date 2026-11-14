@@ -7,6 +7,7 @@ import { getPhotoUrl } from "../lib/storage.js";
 var STORAGE="husaini_saved_reports_v1";
 var FIELD_OPTIONS=[
   {key:"its",label:"ITS ID",aliases:["its_number","its_id","itsid"]},
+  {key:"photo",label:"Profile Photo",aliases:["photo_url","photourl"]},
   {key:"hofFmType",label:"HOF FM TYPE",aliases:["HOF_FM_TYPE","hof_fm_type"]},
   {key:"hofId",label:"HOF ID",aliases:["HOF_ID","hof_id"]},
   {key:"familyId",label:"Family ID",aliases:["family_id","familyid"]},
@@ -15,7 +16,6 @@ var FIELD_OPTIONS=[
   {key:"spouseItsId",label:"Spouse ITS ID",aliases:["spouse_its_id","spouseitsid"]},
   {key:"tanzeemFileNo",label:"TanzeemFile No",aliases:["tanzeem_file_no","tanzeemfileno","tanzeem_file"]},
   {key:"name",label:"Full Name",aliases:["name","full_name","fullname"]},
-  {key:"photo",label:"Profile Photo",aliases:["photo_url","photourl"]},
   {key:"fullNameArabic",label:"Full Name Arabic",aliases:["full_name_arabic","fullnamearabic","name_arabic"]},
   {key:"firstPrefix",label:"First Prefix",aliases:["first_prefix","firstprefix"]},
   {key:"prefixYear",label:"Prefix Year",aliases:["prefix_year","prefixyear"]},
@@ -128,6 +128,8 @@ export function ReportBuilderPage(){
   var [template,setTemplate]=useState("detailed");
   var [columns,setColumns]=useState(DEFAULT_COLUMNS.slice());
   var [columnError,setColumnError]=useState("");
+  // Keep the photo immediately next to ITS ID wherever both are selected.
+  var shownColumns=useMemo(function(){if(columns.indexOf("photo")<0||columns.indexOf("its")<0)return columns;var rest=columns.filter(function(k){return k!=="photo";});rest.splice(rest.indexOf("its")+1,0,"photo");return rest;},[columns]);
   var sectors=useMemo(function(){return Array.from(new Set(data.map(function(m){return String(m.area_sector||"").trim();}).filter(Boolean))).sort();},[data]);
   var rows=useMemo(function(){var q=search.trim().toLowerCase(),itsTokens=search.split(/[\s,;\n\r]+/).map(function(v){return v.trim();}).filter(Boolean),multipleIts=itsTokens.length>1||/[,;\n\r]/.test(search),lo=startAge===""?null:Number(startAge),hi=endAge===""?null:Number(endAge);return data.filter(function(m){
     var age=getMuminAge(m),source=m.source_data||{},its=String(m.its_number||m.its_id||"").trim(),hofIts=String(source.HOF_ID||source.hof_id||m.HOF_ID||m.hof_id||"").trim(),text=(its+" "+(m.name||"")+" "+(m.phone||"")+" "+hofIts).toLowerCase();
@@ -160,7 +162,7 @@ export function ReportBuilderPage(){
       try{photos=await Promise.all(rows.map(function(m){return m.photo_url?getPhotoUrl(m.photo_url):Promise.resolve(null);}));}
       catch(e){try{w.close();}catch(_e){}alert("Unable to prepare photos for the PDF. Please try again.");return;}
     }
-    var n=columns.length;
+    var n=shownColumns.length;
     var landscape=n>6;
     var fontPx=n<=8?10:n<=14?8:n<=24?6.5:5.5;
     var title=template==="hof"?"HOF Names Directory":template==="compact"?"Compact Mumin Register":"Detailed Mumin Register";
@@ -172,8 +174,8 @@ export function ReportBuilderPage(){
     if(status)filterBits.push("Status: "+status);
     if(hofOnly)filterBits.push("HOF only");
     if(hasPhone)filterBits.push("Has phone");
-    var head=columns.map(function(key){var col=REPORT_COLUMNS.find(function(x){return x.key===key;});return "<th>"+esc(col?col.label:key)+"</th>";}).join("");
-    var bodyRows=rows.map(function(m,i){return "<tr><td class='sr'>"+(i+1)+"</td>"+columns.map(function(key){if(key==="photo"){var pu=photos[i];return "<td>"+(pu?"<img class='ph' src='"+esc(pu)+"' alt=''>":"<span class='ph e'>"+esc((m.name||"?").trim().charAt(0).toUpperCase())+"</span>")+"</td>";}var v=rowValue(m,key,rowCtx);return "<td>"+esc(v===""||v===null||v===undefined?"—":v)+"</td>";}).join("")+"</tr>";}).join("");
+    var head=shownColumns.map(function(key){var col=REPORT_COLUMNS.find(function(x){return x.key===key;});return "<th>"+esc(col?col.label:key)+"</th>";}).join("");
+    var bodyRows=rows.map(function(m,i){return "<tr><td class='sr'>"+(i+1)+"</td>"+shownColumns.map(function(key){if(key==="photo"){var pu=photos[i];return "<td>"+(pu?"<img class='ph' src='"+esc(pu)+"' alt=''>":"<span class='ph e'>"+esc((m.name||"?").trim().charAt(0).toUpperCase())+"</span>")+"</td>";}var v=rowValue(m,key,rowCtx);return "<td>"+esc(v===""||v===null||v===undefined?"—":v)+"</td>";}).join("")+"</tr>";}).join("");
     var css="@page{size:A4 "+(landscape?"landscape":"portrait")+";margin:10mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}body{margin:0;font-family:Arial,Helvetica,sans-serif;color:#111;background:#fff}"+
       "h1{font-size:18px;margin:0 0 2px}.sub{font-size:11px;color:#555;margin-bottom:6px}.meta{display:flex;justify-content:space-between;gap:12px;border-top:2px solid #b08a2e;border-bottom:1px solid #bbb;padding:6px 0;margin-bottom:8px;font-size:10px;color:#333}"+
       "table{width:100%;border-collapse:collapse;table-layout:auto;font-size:"+fontPx+"px}thead{display:table-header-group}tr{break-inside:avoid;page-break-inside:avoid}th,td{border:1px solid #aaa;padding:3px 4px;text-align:left;vertical-align:top;word-break:break-word}th{background:#eee;font-weight:700}td.sr{color:#666;text-align:right}.ph{width:9mm;height:11mm;object-fit:cover;border:1px solid #ccc;border-radius:2px;display:block}.ph.e{display:flex;align-items:center;justify-content:center;background:#f4f0e7;color:#9b7625;font-weight:700}"+
@@ -187,7 +189,7 @@ export function ReportBuilderPage(){
       "<script>window.addEventListener('load',function(){setTimeout(function(){window.print()},300)});<\/script></body></html>";
     w.document.open();w.document.write(doc);w.document.close();
   }
-  function exportExcel(){var exportData=data.slice();exportData._subSectors=ctx.subSectorsData||[];var out=rows.map(function(m){var item={};columns.forEach(function(key){var col=REPORT_COLUMNS.find(function(x){return x.key===key;});if(col)item[col.label]=key==="photo"?(m.photo_url?"Yes":""):rowValue(m,key,exportData);});return item;});var headers=columns.map(function(key){var col=REPORT_COLUMNS.find(function(x){return x.key===key;});return col?col.label:key;});toXLS(out,headers,"advanced_report");}
+  function exportExcel(){var exportData=data.slice();exportData._subSectors=ctx.subSectorsData||[];var out=rows.map(function(m){var item={};shownColumns.forEach(function(key){var col=REPORT_COLUMNS.find(function(x){return x.key===key;});if(col)item[col.label]=key==="photo"?(m.photo_url?"Yes":""):rowValue(m,key,exportData);});return item;});var headers=shownColumns.map(function(key){var col=REPORT_COLUMNS.find(function(x){return x.key===key;});return col?col.label:key;});toXLS(out,headers,"advanced_report");}
   function toggleAllFields(all){setColumnError("");setColumns(all?REPORT_COLUMNS.map(function(c){return c.key;}):DEFAULT_COLUMNS.slice());}
   function toggleColumn(key){setColumnError("");setColumns(function(prev){if(prev.indexOf(key)>=0){if(prev.length===1){setColumnError("Select at least one column.");return prev;}return prev.filter(function(x){return x!==key;});}return prev.concat(key);});}
   return <div>
@@ -209,6 +211,6 @@ export function ReportBuilderPage(){
       {saved.length>0&&<div style={{padding:"0 14px 14px",display:"flex",gap:8,flexWrap:"wrap"}}>{saved.map(function(r){return <div key={r.name} style={{display:"flex",alignItems:"center",gap:6,border:"1px solid rgba(255,255,255,.08)",borderRadius:8,padding:"7px 9px"}}><button className="btn btn-ghost btn-sm" onClick={function(){apply(r.filters);}}>{r.name}</button><button className="btn btn-ghost btn-sm" title="Delete saved report" onClick={function(){removeReport(r.name);}}>×</button></div>;})}</div>}
     </div>
     <div className="card report-fields-card" style={{marginTop:16}}><div className="card-hdr"><span className="card-title">☰ Fields Name</span><span style={{fontSize:11,color:"#6b7280"}}>{columns.length} selected of {REPORT_COLUMNS.length}</span></div><div className="report-fields-selectall"><label><input type="checkbox" checked={columns.length===REPORT_COLUMNS.length} onChange={function(e){toggleAllFields(e.target.checked);}}/> Select all Fields</label></div><div className="report-fields-grid">{REPORT_COLUMNS.map(function(col){var selected=columns.indexOf(col.key)>=0;return <label key={col.key} className="report-field-option"><input type="checkbox" checked={selected} onChange={function(){toggleColumn(col.key);}}/><span>{col.label}</span></label>;})}</div>{columnError&&<div style={{color:"#b91c1c",fontSize:12,padding:"0 14px 12px"}}>{columnError}</div>}<div className="report-fields-footer"><span className="muted">Selected fields are used for the results table, Excel export, printed report and PDF.</span><div style={{display:"flex",gap:8,flexWrap:"wrap"}}><button className="btn btn-gold btn-sm" onClick={printPdf}>Print PDF</button><button className="btn btn-primary btn-sm" onClick={exportExcel}>Download Data in Excel</button></div></div></div>
-    <div className="card advanced-report-print-area" style={{marginTop:16}}><div className="card-hdr"><span className="card-title">{template==="hof"?"HOF Names Directory":"Results"} ({rows.length})</span></div><div className="print-header" style={{padding:"14px 0"}}><h2 style={{margin:"0 0 4px"}}>Husaini Mohallah Database</h2><p style={{margin:0}}>{template==="hof"?"HOF Names Directory":template==="compact"?"Compact Mumin Register":"Detailed Mumin Register"} · {rows.length} records</p></div><div style={{overflowX:"auto"}}><table><thead><tr>{columns.map(function(key){var col=REPORT_COLUMNS.find(function(x){return x.key===key;});return <th key={key}>{col?col.label:key}</th>;})}</tr></thead><tbody>{rows.map(function(m){return <tr key={m.id}>{columns.map(function(key){if(key==="photo")return <td key={key}><PhotoCell url={m.photo_url} name={m.name}/></td>;var value=rowValue(m,key,rowCtx);return <td key={key}>{value===""||value===null?"—":value}</td>;})}</tr>;})}</tbody></table></div><div className="muted no-print" style={{padding:12}}>Showing all {rows.length} filtered results. Use Print Report or Print PDF for the selected layout.</div></div>
+    <div className="card advanced-report-print-area" style={{marginTop:16}}><div className="card-hdr"><span className="card-title">{template==="hof"?"HOF Names Directory":"Results"} ({rows.length})</span></div><div className="print-header" style={{padding:"14px 0"}}><h2 style={{margin:"0 0 4px"}}>Husaini Mohallah Database</h2><p style={{margin:0}}>{template==="hof"?"HOF Names Directory":template==="compact"?"Compact Mumin Register":"Detailed Mumin Register"} · {rows.length} records</p></div><div style={{overflowX:"auto"}}><table><thead><tr>{shownColumns.map(function(key){var col=REPORT_COLUMNS.find(function(x){return x.key===key;});return <th key={key}>{col?col.label:key}</th>;})}</tr></thead><tbody>{rows.map(function(m){return <tr key={m.id}>{shownColumns.map(function(key){if(key==="photo")return <td key={key}><PhotoCell url={m.photo_url} name={m.name}/></td>;var value=rowValue(m,key,rowCtx);return <td key={key}>{value===""||value===null?"—":value}</td>;})}</tr>;})}</tbody></table></div><div className="muted no-print" style={{padding:12}}>Showing all {rows.length} filtered results. Use Print Report or Print PDF for the selected layout.</div></div>
   </div>;
 }
