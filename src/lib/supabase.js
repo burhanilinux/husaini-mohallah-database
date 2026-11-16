@@ -145,7 +145,7 @@ export async function sbGet(table, params) {
 export async function sbInsert(table, body, returnRepresentation) {
   var preference = returnRepresentation === false ? "return=minimal" : "return=representation";
   var res = await request(buildRestUrl(table), { method: "POST", headers: Object.assign({}, getHeaders(), { "Prefer": preference }), body: JSON.stringify(body) }, false);
-  return res.json();
+  return returnRepresentation === false ? null : res.json();
 }
 
 export async function sbUpsert(table, body, onConflict) {
