@@ -198,7 +198,7 @@ export function AppProvider({ children }) {
       else await sbUpdate("sectors", sectorForm.id, payload);
       await logActivity(sectorModal.mode === "add" ? "create" : "update", "sector", payload.name, getUserEmail());
       showToast(sectorModal.mode === "add" ? "Sector created" : "Sector updated");
-      await loadAll(); closeSectorModal();
+      await loadAll({ sectors: true, activity: true }); closeSectorModal();
     } catch (e) { showToast("Error: " + e.message, "error"); }
     setSaving(false);
   }
@@ -225,7 +225,7 @@ export function AppProvider({ children }) {
       await sbDelete("sectors", sec.id);
       await logActivity("delete", "sector", sec.name, getUserEmail());
       showToast(affectedCount > 0 ? "Sector deleted, " + affectedCount + " member assignment(s) cleared" : "Sector deleted");
-      await loadAll();
+      await loadAll({ mumin: true, sectors: true, subSectors: true, activity: true });
     } catch (e) { showToast("Error: " + e.message, "error"); }
   }
 
@@ -251,7 +251,7 @@ export function AppProvider({ children }) {
       else await sbUpdate("sub_sectors", subSectorForm.id, payload);
       await logActivity(subSectorModal.mode === "add" ? "create" : "update", "sub_sector", payload.name, getUserEmail());
       showToast(subSectorModal.mode === "add" ? "Sub-Sector created" : "Sub-Sector updated");
-      await loadAll(); closeSubSectorModal();
+      await loadAll({ subSectors: true, activity: true }); closeSubSectorModal();
     } catch (e) { showToast("Error: " + e.message, "error"); }
     setSaving(false);
   }
@@ -271,7 +271,7 @@ export function AppProvider({ children }) {
       await sbDelete("sub_sectors", sub.id);
       await logActivity("delete", "sub_sector", sub.name, getUserEmail());
       showToast(affectedCount > 0 ? "Sub-Sector deleted, " + affectedCount + " member assignment(s) cleared" : "Sub-Sector deleted");
-      await loadAll();
+      await loadAll({ mumin: true, subSectors: true, activity: true });
     } catch (e) { showToast("Error: " + e.message, "error"); }
   }
 
@@ -292,7 +292,10 @@ export function AppProvider({ children }) {
       await sbUpdate(type === "mumin" ? "mumin_data" : "umoor_files", rec.id, { deleted_at: null });
       await logActivity("restore", type, rec.name || rec.title || ("#" + rec.id), getUserEmail());
       showToast("Restored successfully");
-      await loadAll(); await loadTrash();
+      await loadAll(type === "mumin"
+        ? { mumin: true, activity: true }
+        : { files: true, activity: true });
+      await loadTrash();
     } catch (e) { showToast("Error: " + e.message, "error"); }
     setRestoring(false);
   }
@@ -365,7 +368,7 @@ export function AppProvider({ children }) {
         }
         await logActivity("restore_backup", "system", addedMumin + " members, " + addedFiles + " files", getUserEmail());
         showToast("Restored " + addedMumin + " members and " + addedFiles + " files");
-        await loadAll();
+        await loadAll({ mumin: true, files: true, activity: true });
       } catch (err) {
         showToast("Error reading backup file: " + err.message, "error");
       }
@@ -375,36 +378,44 @@ export function AppProvider({ children }) {
   }
 
   // ── Load everything from Supabase ─────────────────────────────
-  async function loadAll() {
-    setLoading(true); setDbError(null);
+  async function loadAll(options) {
+    // Refresh only the collections affected by the action. A full refresh is
+    // still used for initial load and the explicit Retry action.
+    var opts = options || {};
+    var all = Object.keys(opts).length === 0;
+    setLoading(true);
+    // A partial refresh must not hide an earlier error from a collection it did not retry.
+    if (all) setDbError(null);
     try {
-      var results = await Promise.all([
-        sbGet("mumin_data", "order=id.asc"),
-        sbGet("umoor_files", "order=id.desc"),
-        sbGet("attachments", "order=id.asc"),
-        sbGet("activity_log", "order=id.desc&limit=200"),
-        sbGet("sectors", "order=name.asc"),
-        sbGet("sub_sectors", "order=name.asc"),
-      ]);
-      setMuminData((results[0] || []).filter(function (m) { return !m.deleted_at; }));
-      setFilesData((results[1] || []).filter(function (f) { return !f.deleted_at; }));
-      setAttsData(results[2] || []);
-      setActivityLog(results[3] || []);
-      setSectorsData(results[4] || []);
-      setSubSectorsData(results[5] || []);
+      var jobs = [];
+      if (all || opts.mumin) jobs.push(sbGet("mumin_data", "order=id.asc").then(function (rows) {
+        setMuminData((rows || []).filter(function (m) { return !m.deleted_at; }));
+      }));
+      if (all || opts.files) jobs.push(sbGet("umoor_files", "order=id.desc").then(function (rows) {
+        setFilesData((rows || []).filter(function (f) { return !f.deleted_at; }));
+      }));
+      if (all || opts.attachments) jobs.push(sbGet("attachments", "order=id.asc").then(function (rows) {
+        setAttsData(rows || []);
+      }));
+      if (all || opts.activity) jobs.push(sbGet("activity_log", "order=id.desc&limit=200").then(function (rows) {
+        setActivityLog(rows || []);
+      }));
+      if (all || opts.sectors) jobs.push(sbGet("sectors", "order=name.asc").then(function (rows) {
+        setSectorsData(rows || []);
+      }));
+      if (all || opts.subSectors) jobs.push(sbGet("sub_sectors", "order=name.asc").then(function (rows) {
+        setSubSectorsData(rows || []);
+      }));
+      await Promise.all(jobs);
     } catch (e) {
       setDbError(e.message);
     }
     setLoading(false);
+  }
 
-    // Reports-page-only reference data. Kept out of the Promise.all above and
-    // failed independently: these tables/columns have drifted from what the
-    // migration files describe (see 20260911_extend_mumineen_schema.sql's
-    // CREATE TABLE IF NOT EXISTS comment), so a missing/renamed column here
-    // must never take down mumin_data, sectors, etc. Each report reads these
-    // with `|| []` defaults, so an empty result just means that one report
-    // (Organisation Directory / Import History) shows no data instead of
-    // the whole app failing to load.
+  // Organisation Directory and Import History data is loaded only when a
+  // reports screen is opened, not on every application start.
+  async function loadReportReferenceData() {
     try {
       var refResults = await Promise.all([
         sbGet("organisations", "order=org_id.asc"),
@@ -418,6 +429,11 @@ export function AppProvider({ children }) {
       console.warn("Organisation/import-log reference data failed to load (non-fatal):", e.message);
     }
   }
+
+  useEffect(function () {
+    if (session && (page === "reports" || page === "report-builder")) loadReportReferenceData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, page]);
 
   // Kick off the initial load once auth has resolved to a signed-in session.
   // (Auth bootstrap itself — reading localStorage, validating the token —
@@ -494,7 +510,7 @@ export function AppProvider({ children }) {
       else await sbUpdate("mumin_data", form.id, payload);
       await logActivity(modal.mode === "add" ? "create" : "update", "mumin", payload.name, getUserEmail());
       showToast(modal.mode === "add" ? "Mumin record saved ☁" : "Record updated");
-      await loadAll(); closeModal();
+      await loadAll({ mumin: true, activity: true }); closeModal();
     } catch (e) { showToast("Error: " + e.message, "error"); }
     setSaving(false); setUploadingPhoto(false);
   }
@@ -543,7 +559,7 @@ export function AppProvider({ children }) {
       }
       await logActivity(modal.mode === "add" ? "create" : "update", "file", payload.title, getUserEmail());
       showToast(modal.mode === "add" ? "File saved ☁" : "File updated");
-      await loadAll(); closeModal();
+      await loadAll({ files: true, attachments: true, activity: true }); closeModal();
     } catch (e) { showToast("Error: " + e.message, "error"); setUploading(false); }
     setSaving(false);
   }
@@ -556,7 +572,9 @@ export function AppProvider({ children }) {
       var name  = rec ? (rec.name || rec.title || ("#" + id)) : ("#" + id);
       await sbUpdate(table, id, { deleted_at: new Date().toISOString() });
       await logActivity("delete", type, name, getUserEmail());
-      showToast("Moved to Trash"); await loadAll();
+      showToast("Moved to Trash"); await loadAll(type === "mumin"
+        ? { mumin: true, activity: true }
+        : { files: true, activity: true });
     } catch (e) { showToast("Error: " + e.message, "error"); }
   }
 
@@ -579,7 +597,7 @@ export function AppProvider({ children }) {
         ok++;
       } catch (e) {}
     }
-    await loadAll(); setImporting(false); setIeModal(false);
+    await loadAll({ mumin: true, activity: true }); setImporting(false); setIeModal(false);
     showToast("Imported " + ok + " of " + rows.length + " records ☁");
   }
 
@@ -598,7 +616,7 @@ export function AppProvider({ children }) {
         ok++;
       } catch (e) {}
     }
-    await loadAll(); setImporting(false); setIeModal(false);
+    await loadAll({ files: true, activity: true }); setImporting(false); setIeModal(false);
     showToast("Imported " + ok + " of " + rows.length + " records ☁");
   }
 

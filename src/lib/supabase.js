@@ -35,7 +35,7 @@ export function getToken() {
 function getHeaders(extra) {
   return Object.assign({
     "Content-Type": "application/json", "apikey": SUPABASE_ANON,
-    "Authorization": "Bearer " + getToken(), "Prefer": "return=representation",
+    "Authorization": "Bearer " + getToken(),
   }, extra || {});
 }
 
@@ -142,9 +142,10 @@ export async function sbGet(table, params) {
   return all;
 }
 
-export async function sbInsert(table, body) {
-  var res = await request(buildRestUrl(table), { method: "POST", headers: getHeaders(), body: JSON.stringify(body) }, false);
-  return res.json();
+export async function sbInsert(table, body, returnRepresentation) {
+  var preference = returnRepresentation === false ? "return=minimal" : "return=representation";
+  var res = await request(buildRestUrl(table), { method: "POST", headers: Object.assign({}, getHeaders(), { "Prefer": preference }), body: JSON.stringify(body) }, false);
+  return returnRepresentation === false ? null : res.json();
 }
 
 export async function sbUpsert(table, body, onConflict) {
@@ -160,8 +161,7 @@ export async function sbUpsert(table, body, onConflict) {
 }
 
 export async function sbUpdate(table, id, body) {
-  var res = await request(buildRestUrl(table, "id=eq." + encodeURIComponent(id)), { method: "PATCH", headers: getHeaders(), body: JSON.stringify(body) }, false);
-  return res.json();
+  await request(buildRestUrl(table, "id=eq." + encodeURIComponent(id)), { method: "PATCH", headers: Object.assign({}, getHeaders(), { "Prefer": "return=minimal" }), body: JSON.stringify(body) }, false);
 }
 
 export async function sbDelete(table, id) {
@@ -179,13 +179,12 @@ export async function sbDeleteWhere(table, filterQuery) {
 
 export async function sbUpdateWhere(table, filterQuery, body) {
   requireFilter(filterQuery);
-  var res = await request(buildRestUrl(table, filterQuery), { method: "PATCH", headers: getHeaders(), body: JSON.stringify(body) }, false);
-  return res.json();
+  await request(buildRestUrl(table, filterQuery), { method: "PATCH", headers: Object.assign({}, getHeaders(), { "Prefer": "return=minimal" }), body: JSON.stringify(body) }, false);
 }
 
 export async function logActivity(action, entityType, entityName, userEmail) {
   try {
-    await sbInsert("activity_log", { action, entity_type: entityType, entity_name: entityName || "", user_email: userEmail || "Unknown" });
+    await sbInsert("activity_log", { action, entity_type: entityType, entity_name: entityName || "", user_email: userEmail || "Unknown" }, false);
   } catch (e) { console.warn("Activity log failed", e); }
 }
 
