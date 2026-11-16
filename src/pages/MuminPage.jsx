@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useAppContext } from "../context/AppContext.jsx";
 import { Spinner, Avatar } from "../components/Shared.jsx";
 import { getMuminAge, compareMuminByAge } from "../lib/utils.js";
@@ -78,13 +79,14 @@ function buildFamilyGroups(muminData) {
 
 export function MuminPage() {
   var ctx = useAppContext();
+  var [activeSector, setActiveSector] = useState(null);
+  var [sectorSearch, setSectorSearch] = useState("");
   var muminData = ctx.muminData || [];
   var loading = ctx.loading;
   var canEdit = ctx.canEdit, canDelete = ctx.canDelete;
   var openModal = ctx.openModal, loadAll = ctx.loadAll;
   var search = ctx.search || "", setSearch = ctx.setSearch;
-  var selSector = ctx.selSector, setSelSector = ctx.setSelSector;
-  var areaSectors = ctx.areaSectors || [];
+  var areaSectors = (ctx.sectorsData || []).map(function (s) { return s.name; }).filter(Boolean).sort(function (a, b) { return a.localeCompare(b); });
   var setMuminPreview = ctx.setMuminPreview, deleteRecord = ctx.deleteRecord;
 
   var familyData = buildFamilyGroups(muminData);
@@ -93,7 +95,7 @@ export function MuminPage() {
 
   var q = search.trim().toLowerCase();
   var visibleGroups = grouped.filter(function (group) {
-    if (selSector && group.hof.area_sector !== selSector) return false;
+    if (activeSector && group.hof.area_sector !== activeSector) return false;
     if (!q) return true;
     var hof = group.hof;
     if (String(hof.name || "").toLowerCase().indexOf(q) >= 0 || String(hof.its_number || hof.its_id || "").indexOf(q) >= 0) return true;
@@ -104,14 +106,55 @@ export function MuminPage() {
 
   var visibleMemberCount = visibleGroups.reduce(function (total, group) { return total + group.members.length + 1; }, 0);
   var visibleUnlinked = unlinked.filter(function (m) {
+    if (activeSector && m.area_sector !== activeSector) return false;
     if (!q) return true;
     return [m.name, m.its_number, m.its_id, m.family_id, hofIdOf(m)].map(norm).join(" ").toLowerCase().indexOf(q) >= 0;
   });
 
+  var matchingSectors = areaSectors.filter(function (sector) {
+    return !sectorSearch.trim() || sector.toLowerCase().indexOf(sectorSearch.trim().toLowerCase()) >= 0;
+  });
+
+  if (!activeSector) {
+    return (
+      <div>
+        <div className="page-hdr">
+          <div className="page-title">Mumin Data</div>
+          <div className="page-sub">Search and select a sector to view its Mumineen</div>
+        </div>
+        <div className="card">
+          <div className="toolbar">
+            <input className="mumin-toolbar-search" placeholder="Search sectors…" value={sectorSearch} onChange={function (e) { setSectorSearch(e.target.value); }} />
+          </div>
+          {matchingSectors.length === 0 ? (
+            <div className="empty"><div className="empty-icon">🧭</div><div>No sectors found</div></div>
+          ) : (
+            <div className="umoor-grid" style={{ padding: 16 }}>
+              {matchingSectors.map(function (sector) {
+                var count = muminData.filter(function (m) { return !m.deleted_at && m.area_sector === sector; }).length;
+                return (
+                  <button type="button" key={sector} className="umoor-card" style={{ textAlign: "left", cursor: "pointer" }} onClick={function () { setActiveSector(sector); setSearch(""); }}>
+                    <div className="umoor-name">{sector}</div>
+                    <div className="umoor-count">{count} member{count !== 1 ? "s" : ""} · View sector</div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <div className="page-hdr">
-        <div className="page-title">Mumin Data</div>
+      <div className="page-hdr" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <div>
+          <div className="page-title">Mumin Data · {activeSector}</div>
+          <div className="page-sub">Heads of Family with their linked family members</div>
+        </div>
+        <button className="btn btn-ghost" onClick={function () { setActiveSector(null); setSearch(""); }}>← All Sectors</button>
+      </div>
         <div className="page-sub">Heads of Family with their linked family members</div>
       </div>
       <div className="card">
@@ -124,10 +167,7 @@ export function MuminPage() {
         </div>
         <div className="toolbar mumin-toolbar">
           <input className="mumin-toolbar-search" placeholder="Search HOF or family member…" value={search} onChange={function (e) { setSearch(e.target.value); }} />
-          <select value={selSector || ""} onChange={function (e) { setSelSector(e.target.value || null); }} className="mumin-toolbar-sector">
-            <option value="">All Sectors</option>
-            {areaSectors.map(function (s) { return <option key={s} value={s}>{s}</option>; })}
-          </select>
+          <span className="mumin-toolbar-sector" style={{ alignSelf: "center", color: "#c9a84c", fontSize: 12 }}>{activeSector}</span>
         </div>
         {loading ? <div className="loading"><Spinner /> Loading…</div> : visibleGroups.length === 0 ? (
           <div className="empty"><div className="empty-icon">👤</div><div>No HOF records found</div></div>
