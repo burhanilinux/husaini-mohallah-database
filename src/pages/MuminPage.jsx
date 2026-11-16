@@ -81,10 +81,10 @@ export function MuminPage() {
   var ctx = useAppContext();
   var [activeSector, setActiveSector] = useState(null);
   var [sectorSearch, setSectorSearch] = useState("");
-  var muminData = ctx.muminData || [];
-  var loading = ctx.loading;
+  var muminData = ctx.sectorMuminData || [];
+  var loading = ctx.sectorMuminLoading;
   var canEdit = ctx.canEdit, canDelete = ctx.canDelete;
-  var openModal = ctx.openModal, loadAll = ctx.loadAll;
+  var openModal = ctx.openModal, loadMuminSector = ctx.loadMuminSector;
   var search = ctx.search || "", setSearch = ctx.setSearch;
   var areaSectors = (ctx.sectorsData || []).map(function (s) { return s.name; }).filter(Boolean).sort(function (a, b) { return a.localeCompare(b); });
   var setMuminPreview = ctx.setMuminPreview, deleteRecord = ctx.deleteRecord;
@@ -131,11 +131,11 @@ export function MuminPage() {
           ) : (
             <div className="umoor-grid" style={{ padding: 16 }}>
               {matchingSectors.map(function (sector) {
-                var count = muminData.filter(function (m) { return !m.deleted_at && m.area_sector === sector; }).length;
+                var countLabel = "Open sector";
                 return (
-                  <button type="button" key={sector} className="umoor-card" style={{ textAlign: "left", cursor: "pointer" }} onClick={function () { setActiveSector(sector); setSearch(""); }}>
+                  <button type="button" key={sector} className="umoor-card" style={{ textAlign: "left", cursor: "pointer" }} onClick={function () { setActiveSector(sector); setSearch(""); loadMuminSector(sector); }}>
                     <div className="umoor-name">{sector}</div>
-                    <div className="umoor-count">{count} member{count !== 1 ? "s" : ""} · View sector</div>
+                    <div className="umoor-count">{countLabel}</div>
                   </button>
                 );
               })}
@@ -161,7 +161,7 @@ export function MuminPage() {
         <div className="card-hdr">
           <span className="card-title">Heads of Family ({visibleGroups.length}) · {visibleMemberCount} members</span>
           <div style={{ display: "flex", gap: 10 }}>
-            <button className="btn btn-ghost btn-sm" onClick={function () { loadAll({ mumin: true }); }}>{loading ? <Spinner /> : "↻"}</button>
+            <button className="btn btn-ghost btn-sm" onClick={function () { loadMuminSector(activeSector); }}>{loading ? <Spinner /> : "↻"}</button>
             {canEdit && <button className="btn btn-primary" onClick={function () { openModal("mumin", "add"); }}>+ Add Mumin</button>}
           </div>
         </div>

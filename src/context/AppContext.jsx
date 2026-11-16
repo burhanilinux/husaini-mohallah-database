@@ -38,6 +38,8 @@ export function AppProvider({ children }) {
 
   // ── Core data ─────────────────────────────────────────────────
   const [muminData, setMuminData] = useState([]);
+  const [sectorMuminData, setSectorMuminData] = useState([]);
+  const [sectorMuminLoading, setSectorMuminLoading] = useState(false);
   const [filesData, setFilesData] = useState([]);
   const [attsData, setAttsData] = useState([]);
   const [sectorsData, setSectorsData] = useState([]);
@@ -378,6 +380,20 @@ export function AppProvider({ children }) {
   }
 
   // ── Load everything from Supabase ─────────────────────────────
+  async function loadMuminSector(sectorName) {
+    if (!sectorName) { setSectorMuminData([]); return; }
+    setSectorMuminLoading(true);
+    try {
+      var rows = await sbGet("mumin_data", "area_sector=eq." + encodeURIComponent(sectorName) + "&order=id.asc");
+      setSectorMuminData((rows || []).filter(function (m) { return !m.deleted_at; }));
+    } catch (e) {
+      setDbError(e.message);
+      setSectorMuminData([]);
+    } finally {
+      setSectorMuminLoading(false);
+    }
+  }
+
   async function loadAll(options) {
     // Refresh only the collections affected by the action. A full refresh is
     // still used for initial load and the explicit Retry action.
@@ -664,7 +680,8 @@ export function AppProvider({ children }) {
     // nav
     page, setPage,
     // data
-    muminData, filesData, attsData, sectorsData, subSectorsData, activityLog,
+    muminData, sectorMuminData, sectorMuminLoading, loadMuminSector,
+    filesData, attsData, sectorsData, subSectorsData, activityLog,
     organisationsData, membershipsData, importLogData,
     usersData, setUsersData, loading, dbError, loadAll,
     // filters
