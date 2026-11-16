@@ -155,8 +155,6 @@ export function MuminPage() {
         </div>
         <button className="btn btn-ghost" onClick={function () { setActiveSector(null); setSearch(""); }}>← All Sectors</button>
       </div>
-        <div className="page-sub">Heads of Family with their linked family members</div>
-      </div>
       <div className="card">
         <div className="card-hdr">
           <span className="card-title">Heads of Family ({visibleGroups.length}) · {visibleMemberCount} members</span>
