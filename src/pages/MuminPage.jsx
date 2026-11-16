@@ -118,7 +118,7 @@ export function MuminPage() {
         <div className="card-hdr">
           <span className="card-title">Heads of Family ({visibleGroups.length}) · {visibleMemberCount} members</span>
           <div style={{ display: "flex", gap: 10 }}>
-            <button className="btn btn-ghost btn-sm" onClick={loadAll}>{loading ? <Spinner /> : "↻"}</button>
+            <button className="btn btn-ghost btn-sm" onClick={function () { loadAll({ mumin: true }); }}>{loading ? <Spinner /> : "↻"}</button>
             {canEdit && <button className="btn btn-primary" onClick={function () { openModal("mumin", "add"); }}>+ Add Mumin</button>}
           </div>
         </div>
