@@ -131,11 +131,10 @@ export function MuminPage() {
           ) : (
             <div className="umoor-grid" style={{ padding: 16 }}>
               {matchingSectors.map(function (sector) {
-                var count = muminData.filter(function (m) { return !m.deleted_at && m.area_sector === sector; }).length;
                 return (
                   <button type="button" key={sector} className="umoor-card" style={{ textAlign: "left", cursor: "pointer" }} onClick={function () { setActiveSector(sector); setSearch(""); }}>
                     <div className="umoor-name">{sector}</div>
-                    <div className="umoor-count">{count} member{count !== 1 ? "s" : ""} · View sector</div>
+                    <div className="umoor-count">Click to view members</div>
                   </button>
                 );
               })}
