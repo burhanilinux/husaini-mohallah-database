@@ -383,7 +383,9 @@ export function AppProvider({ children }) {
     // still used for initial load and the explicit Retry action.
     var opts = options || {};
     var all = Object.keys(opts).length === 0;
-    setLoading(true); setDbError(null);
+    setLoading(true);
+    // A partial refresh must not hide an earlier error from a collection it did not retry.
+    if (all) setDbError(null);
     try {
       var jobs = [];
       if (all || opts.mumin) jobs.push(sbGet("mumin_data", "order=id.asc").then(function (rows) {
