@@ -18,7 +18,7 @@ export function ReceptionPage(){
     setLookup(true);try{var rows=await sbGet("mumin_data","its_number=eq."+encodeURIComponent(x)+"&deleted_at=is.null&select=*");setMumin(rows&&rows[0]||null);if(!rows||!rows[0])setMsg("Mumin not found for this ITS.");}catch(e){setMsg(e.message||"Unable to fetch Mumin data.");}finally{setLookup(false);}
   }
   async function load(){try{var rows=await sbGet("reception_visits","visit_date=eq."+today()+"&select=*&order=ticket_no.asc");setVisits(rows||[]);}catch(e){setMsg(e.message||"Unable to load reception activity.");}}
-  useEffect(function(){load();var t=setInterval(load,15000);return function(){clearInterval(t)};},[]);
+  useEffect(function(){load();function poll(){if(document.visibilityState==="visible")load();}function onVisibility(){if(document.visibilityState==="visible")load();}var t=setInterval(poll,30000);document.addEventListener("visibilitychange",onVisibility);return function(){clearInterval(t);document.removeEventListener("visibilitychange",onVisibility);};},[]);
   async function issue(){
     var r=reason==="Other"?other.trim():reason;if(!mumin||!r)return setMsg(!mumin?"Fetch a valid Mumin first.":"Select the appointment reason.");
     setBusy(true);setMsg("");

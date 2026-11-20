@@ -8,6 +8,7 @@ import { sortFamilyMembers } from "../lib/utils.js";
 export function FamilyPage() {
   var ctx = useAppContext();
   var muminData = ctx.muminData || [];
+  var loadAll = ctx.loadAll;
   var canEdit = ctx.canEdit !== false;
   var [families, setFamilies] = useState([]);
   var [loading, setLoading] = useState(true);
@@ -26,16 +27,15 @@ export function FamilyPage() {
   }
   useEffect(function () { loadFamilies(); }, []);
 
-  function done(message) {
+  async function done(message) {
     setNotice(message); setAction(null); setSelected(null);
     setTimeout(function () { setNotice(null); }, 3500);
-    loadFamilies();
-    setTimeout(function () { window.location.reload(); }, 250);
+    await Promise.all([loadFamilies(), loadAll({ mumin: true })]);
   }
 
   async function run(fn, success) {
     setBusy(true); setError(null);
-    try { var result = await fn(); done(success(result)); }
+    try { var result = await fn(); await done(success(result)); }
     catch (e) { setError(e.message || "Family operation failed"); }
     finally { setBusy(false); }
   }

@@ -28,11 +28,11 @@ export function VajebaatPage() {
 
   async function load() {
     setLoading(true); setError("");
-    try { const data = await sbGet("vajebaat_entries","select=*&order=year.desc,its_number.asc"); setRows(data||[]); }
+    try { const data = await sbGet("vajebaat_entries","select=*&year=eq."+encodeURIComponent(year)+"&order=its_number.asc"); setRows(data||[]); }
     catch(e) { setError("Unable to load Vajebaat records. "+(e.message||"Check database access.")); }
     finally { setLoading(false); }
   }
-  useEffect(()=>{load();},[]);
+  useEffect(()=>{load();},[year]);
 
   const shown = useMemo(()=>rows.filter(r=>{
     const q=search.trim().toLowerCase();
