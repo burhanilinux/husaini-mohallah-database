@@ -208,7 +208,7 @@ export async function getStorageDisplayUrl(photoUrl) {
 }
 
 async function shrinkImage(blob, maxDimension) {
-  if (!blob || !/^image\\/(jpeg|png|webp)$/i.test(blob.type) || typeof createImageBitmap !== "function") return blob;
+  if (!blob || !/^image\/(jpeg|png|webp)$/i.test(blob.type) || typeof createImageBitmap !== "function") return blob;
   try {
     var bitmap = await createImageBitmap(blob), max = Math.max(160, Number(maxDimension) || 480);
     var scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
