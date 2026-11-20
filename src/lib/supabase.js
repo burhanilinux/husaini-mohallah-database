@@ -224,7 +224,7 @@ export async function uploadStorage(file, path, maxImageDimension) {
   var res2 = await fetch(file.dataUrl), blob = await res2.blob();
   if (maxImageDimension) {
     var originalType = blob.type; blob = await shrinkImage(blob, maxImageDimension);
-    if (blob && blob.type === "image/webp" && originalType !== "image/webp") path = path.replace(/\\.(jpe?g|png|webp)$/i, "") + ".webp";
+    if (blob && blob.type === "image/webp" && originalType !== "image/webp") path = path.replace(/\.(jpe?g|png|webp)$/i, "") + ".webp";
   }
   await request(SUPABASE_URL + "/storage/v1/object/uploads/" + path, {
     method: "POST", headers: { "apikey": SUPABASE_ANON, "Authorization": "Bearer " + getToken(), "Content-Type": blob.type || "application/octet-stream", "Cache-Control": "max-age=31536000" }, body: blob,
