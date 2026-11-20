@@ -1,6 +1,6 @@
 import { useAppContext } from "../context/AppContext.jsx";
 import { useState } from "react";
-import { sbUpdate } from "../lib/supabase.js";
+import { sbGet, sbUpdate } from "../lib/supabase.js";
 
 function relValue(m, keys) {
   for (var i = 0; i < keys.length; i++) {
@@ -46,12 +46,14 @@ export function RelationshipManagerPage() {
 
   async function linkMember(member, hof) {
     if (!canEdit || !hof || saving) return;
-    var oldSource = member.source_data && typeof member.source_data === "object" ? member.source_data : {};
-    var nextSource = Object.assign({}, oldSource, { HOF_ID: its(hof) });
     setSaving(true);
     try {
+      var sourceRows = await sbGet("mumin_data", "select=source_data&id=eq." + encodeURIComponent(member.id) + "&limit=1");
+      var oldSource = sourceRows && sourceRows[0] && sourceRows[0].source_data && typeof sourceRows[0].source_data === "object"
+        ? sourceRows[0].source_data : {};
+      var nextSource = Object.assign({}, oldSource, { HOF_ID: its(hof) });
       await sbUpdate("mumin_data", member.id, { source_data: nextSource });
-      await ctx.loadAll();
+      await ctx.loadAll({ mumin: true });
       ctx.showToast("Family relationship updated");
     } catch (e) {
       ctx.showToast("Error updating relationship: " + e.message, "error");

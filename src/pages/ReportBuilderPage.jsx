@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAppContext } from "../context/AppContext.jsx";
 import { getMuminAge, toXLS } from "../lib/utils.js";
 import { usePhotoUrl } from "../lib/usePhotoUrl.js";
 import { getPhotoUrl } from "../lib/storage.js";
+import { sbGet } from "../lib/supabase.js";
 
 var STORAGE="husaini_saved_reports_v1";
 var FIELD_OPTIONS=[
@@ -122,7 +123,17 @@ function PhotoCell({url,name}){
 function normalizeColumns(value){var allowed=REPORT_COLUMNS.map(function(x){return x.key;});var list=Array.isArray(value)?value.filter(function(x){return allowed.indexOf(x)>=0;}):[];return list.length?list:DEFAULT_COLUMNS.slice();}
 function loadSaved(){try{return JSON.parse(window.localStorage.getItem(STORAGE)||"[]");}catch(e){return [];}}
 export function ReportBuilderPage(){
-  var ctx=useAppContext(),data=(ctx.muminData||[]).filter(function(m){return !m.deleted_at;});
+  var ctx=useAppContext();
+  var [fullMuminData,setFullMuminData]=useState(null);
+  var [fullDataError,setFullDataError]=useState("");
+  useEffect(function(){
+    var cancelled=false;
+    sbGet("mumin_data","select=*&deleted_at=is.null&order=id.asc")
+      .then(function(rows){if(!cancelled)setFullMuminData(rows||[]);})
+      .catch(function(error){if(!cancelled)setFullDataError(error.message||"Unable to load full report data");});
+    return function(){cancelled=true;};
+  },[]);
+  var data=(fullMuminData||ctx.muminData||[]).filter(function(m){return !m.deleted_at;});
   var [search,setSearch]=useState(""),[startAge,setStartAge]=useState(""),[endAge,setEndAge]=useState(""),[sector,setSector]=useState(""),[gender,setGender]=useState(""),[status,setStatus]=useState(""),[hofOnly,setHofOnly]=useState(false),[hasPhone,setHasPhone]=useState(false);
   var [saved,setSaved]=useState(function(){return loadSaved();}),[savedName,setSavedName]=useState("");
   var [template,setTemplate]=useState("detailed");
@@ -194,6 +205,8 @@ export function ReportBuilderPage(){
   function toggleColumn(key){setColumnError("");setColumns(function(prev){if(prev.indexOf(key)>=0){if(prev.length===1){setColumnError("Select at least one column.");return prev;}return prev.filter(function(x){return x!==key;});}return prev.concat(key);});}
   return <div>
     <div className="page-hdr"><div className="page-title">Advanced Report Builder</div><div className="page-sub">Build, save and export filtered Mumin reports.</div></div>
+    {fullMuminData===null&&!fullDataError&&<div className="muted" style={{padding:"8px 2px"}}>Loading full member data for report fields…</div>}
+    {fullDataError&&<div className="alert alert-error" style={{marginBottom:12}}>Full report data could not be loaded: {fullDataError}</div>}
     <div className="card"><div className="advanced-search-filters">
       <input className="input" placeholder="Search name / ITS, or enter multiple ITS separated by commas (e.g. 20309520, 30336904, 30336905)" value={search} onChange={function(e){setSearch(e.target.value);}}/>
       <input className="input" type="number" min="0" placeholder="Start Age" value={startAge} onChange={function(e){setStartAge(e.target.value);}}/>

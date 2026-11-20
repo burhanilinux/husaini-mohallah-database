@@ -16,12 +16,18 @@ export function MuminPreview() {
   var setPage = ctx.setPage;
   var getFamilyBySabil = ctx.getFamilyBySabil, getSectorInfo = ctx.getSectorInfo;
   var [familyRecord, setFamilyRecord] = useState(null);
+  var [fullRecord, setFullRecord] = useState(null);
   var [showFullProfile, setShowFullProfile] = useState(false);
 
   useEffect(function () {
     var cancelled = false;
     setFamilyRecord(null);
+    setFullRecord(null);
     if (!muminPreview) return function () {};
+
+    sbGet("mumin_data", "select=*&id=eq." + encodeURIComponent(muminPreview.id) + "&limit=1")
+      .then(function (rows) { if (!cancelled) setFullRecord(rows && rows[0] || null); })
+      .catch(function () { if (!cancelled) setFullRecord(null); });
 
     var familyId = muminPreview.family_id;
     var its = muminPreview.its_id || muminPreview.its_number;
@@ -52,11 +58,10 @@ export function MuminPreview() {
 
   useEffect(function () { setShowFullProfile(false); }, [muminPreview && muminPreview.id]);
 
-  var signedPhoto = usePhotoUrl(muminPreview && muminPreview.photo_url);
+  var m = fullRecord && muminPreview && String(fullRecord.id) === String(muminPreview.id) ? fullRecord : muminPreview;
+  var signedPhoto = usePhotoUrl(m && m.photo_url);
 
   if (!muminPreview) return null;
-
-  var m = muminPreview;
   // Print windows open on a different origin, so give them the signed URL.
   var printable = Object.assign({}, m, { photo_url: signedPhoto || m.photo_url });
   var allMembers = (ctx.muminData || []).filter(function (o) { return !o.deleted_at; });

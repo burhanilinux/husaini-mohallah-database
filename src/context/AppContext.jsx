@@ -8,6 +8,26 @@ import { getUmoorPrefix, calcAge, downloadBlob, toXLS } from "../lib/utils.js";
 import { validateMuminForm, validateFileForm, getMuminDuplicateWarnings } from "../lib/validation.js";
 import { buildReportRows } from "../lib/reports.js";
 
+// Slim list payload: mirrored fields needed by app screens plus the two
+// source JSON keys used for authoritative HOF family relationships.
+const MUMIN_LIST_COLS = [
+  "id","its_id","its_number","name","dob","age","gender","phone","email","address",
+  "area_sector","sub_sector_id","sabil_no","family_id","spouse_its_id","status","photo_url","deleted_at",
+  "occupation","sub_occupation","qualification","languages","hunars","marital_status","blood_group","misaq",
+  "city","vatan","nationality","whatsapp_no","housing","type_of_house","data_verification_status",
+  "photo_verification_status","quran_sanad","qadambosi_sharaf","raudat_tahera_ziyarat","karbala_ziyarat",
+  "ashara_mubaraka","warakatul_tarkhis","last_scanned_event","last_scanned_place",
+  "hof_id:source_data->>HOF_ID","hof_fm_type:source_data->>HOF_FM_TYPE"
+].join(",");
+
+function normalizeMuminListRows(rows) {
+  return (rows || []).map(function (m) {
+    return Object.assign({}, m, {
+      source_data: { HOF_ID: m.hof_id || null, HOF_FM_TYPE: m.hof_fm_type || null }
+    });
+  });
+}
+
 const AppContext = createContext(null);
 
 export function useAppContext() {
@@ -388,8 +408,8 @@ export function AppProvider({ children }) {
     if (all) setDbError(null);
     try {
       var jobs = [];
-      if (all || opts.mumin) jobs.push(sbGet("mumin_data", "order=id.asc").then(function (rows) {
-        setMuminData((rows || []).filter(function (m) { return !m.deleted_at; }));
+      if (all || opts.mumin) jobs.push(sbGet("mumin_data", "select=" + MUMIN_LIST_COLS + "&deleted_at=is.null&order=id.asc").then(function (rows) {
+        setMuminData(normalizeMuminListRows(rows));
       }));
       if (all || opts.files) jobs.push(sbGet("umoor_files", "order=id.desc").then(function (rows) {
         setFilesData((rows || []).filter(function (f) { return !f.deleted_at; }));
@@ -511,8 +531,8 @@ export function AppProvider({ children }) {
       else await sbUpdate("mumin_data", form.id, payload);
       var savedId = modal.mode === "add" ? (Array.isArray(savedResult) ? savedResult[0] && savedResult[0].id : savedResult && savedResult.id) : form.id;
       if (savedId) {
-        var refreshedRows = await sbGet("mumin_data", "select=*&id=eq." + encodeURIComponent(savedId) + "&limit=1");
-        var refreshed = refreshedRows && refreshedRows[0];
+        var refreshedRows = await sbGet("mumin_data", "select=" + MUMIN_LIST_COLS + "&id=eq." + encodeURIComponent(savedId) + "&limit=1");
+        var refreshed = normalizeMuminListRows(refreshedRows)[0];
         if (refreshed) setMuminData(function (prev) {
           var next = prev.filter(function (m) { return m.id !== savedId; });
           if (!refreshed.deleted_at) next.push(refreshed);
