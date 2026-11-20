@@ -8,8 +8,11 @@ import { SUPABASE_URL, SUPABASE_ANON, getToken } from "./supabase.js";
 var BUCKET = "uploads";
 var PUBLIC_MARK = "/storage/v1/object/public/" + BUCKET + "/";
 var SIGN_MARK = "/storage/v1/object/sign/" + BUCKET + "/";
-var TTL_SECONDS = 3600;
+var TTL_SECONDS = 604800;
+var STORAGE_CACHE_KEY = "hm_photo_url_cache";
 var cache = new Map();   // path -> { url, exp }
+try { var saved = JSON.parse(localStorage.getItem(STORAGE_CACHE_KEY) || "{}"); Object.keys(saved).forEach(function (p) { if (saved[p] && saved[p].url && saved[p].exp > Date.now()) cache.set(p, saved[p]); }); } catch (_e) {}
+function persistCache() { try { var saved = {}; cache.forEach(function (v, p) { if (v.exp > Date.now()) saved[p] = v; }); localStorage.setItem(STORAGE_CACHE_KEY, JSON.stringify(saved)); } catch (_e) {} }
 var queue = new Map();   // path -> [resolve, ...]
 var timer = null;
 
@@ -56,6 +59,7 @@ async function flush() {
     if (url) cache.set(p, { url: url, exp: Date.now() + (TTL_SECONDS - 300) * 1000 });
     batch.get(p).forEach(function (done) { done(url); });
   });
+  if (Object.keys(signed).length) persistCache();
 }
 
 // Resolves to a displayable URL, or null when signing failed.

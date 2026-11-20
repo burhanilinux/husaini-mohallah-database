@@ -148,12 +148,12 @@ export async function sbInsert(table, body, returnRepresentation) {
   return returnRepresentation === false ? null : res.json();
 }
 
-export async function sbUpsert(table, body, onConflict) {
+export async function sbUpsert(table, body, onConflict, minimal) {
   if (!onConflict || !String(onConflict).trim()) throw new Error("sbUpsert requires an explicit unique conflict target");
-  var h = Object.assign({}, getHeaders(), { "Prefer": "return=representation,resolution=merge-duplicates" });
+  var h = Object.assign({}, getHeaders(), { "Prefer": (minimal ? "return=minimal" : "return=representation") + ",resolution=merge-duplicates" });
   try {
     var res = await request(buildRestUrl(table, "on_conflict=" + encodeURIComponent(onConflict)), { method: "POST", headers: h, body: JSON.stringify(body) }, false);
-    return res.json();
+    return minimal ? null : res.json();
   } catch (e) {
     if (e && e.code === "42P10") throw new SupabaseError("Upsert conflict target is not backed by a UNIQUE/EXCLUDE constraint: " + onConflict, e.status, e.code, e.details);
     throw e;
@@ -207,12 +207,28 @@ export async function getStorageDisplayUrl(photoUrl) {
   return data.signedURL.startsWith("http") ? data.signedURL : SUPABASE_URL + "/storage/v1" + data.signedURL;
 }
 
-export async function uploadStorage(file, path) {
+async function shrinkImage(blob, maxDimension) {
+  if (!blob || !/^image\\/(jpeg|png|webp)$/i.test(blob.type) || typeof createImageBitmap !== "function") return blob;
+  try {
+    var bitmap = await createImageBitmap(blob), max = Math.max(160, Number(maxDimension) || 480);
+    var scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
+    if (scale >= 1 && blob.type === "image/webp") { bitmap.close && bitmap.close(); return blob; }
+    var canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale)); canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close && bitmap.close();
+    return await new Promise(function (resolve) { canvas.toBlob(resolve, "image/webp", 0.8); }) || blob;
+  } catch (_e) { return blob; }
+}
+export async function uploadStorage(file, path, maxImageDimension) {
   var res2 = await fetch(file.dataUrl), blob = await res2.blob();
+  if (maxImageDimension) {
+    var originalType = blob.type; blob = await shrinkImage(blob, maxImageDimension);
+    if (blob && blob.type === "image/webp" && originalType !== "image/webp") path = path.replace(/\\.(jpe?g|png|webp)$/i, "") + ".webp";
+  }
   await request(SUPABASE_URL + "/storage/v1/object/uploads/" + path, {
-    method: "POST", headers: { "apikey": SUPABASE_ANON, "Authorization": "Bearer " + getToken(), "Content-Type": blob.type }, body: blob,
+    method: "POST", headers: { "apikey": SUPABASE_ANON, "Authorization": "Bearer " + getToken(), "Content-Type": blob.type || "application/octet-stream", "Cache-Control": "max-age=31536000" }, body: blob,
   }, false);
-  // Store a stable object reference; display components request fresh signed URLs.
   return SUPABASE_URL + "/storage/v1/object/public/uploads/" + path;
 }
 

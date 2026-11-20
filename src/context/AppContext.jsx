@@ -478,7 +478,7 @@ export function AppProvider({ children }) {
       if (muminPhotoFile) {
         setUploadingPhoto(true);
         var path = "mumin-photos/" + Date.now() + "-" + muminPhotoFile.name.replace(/[^a-zA-Z0-9.]/g, "_");
-        photoUrl = await uploadStorage(muminPhotoFile, path);
+        photoUrl = await uploadStorage(muminPhotoFile, path, 480);
         setUploadingPhoto(false);
       }
       var itsNumber = (form.its_number || "").trim();
@@ -506,11 +506,22 @@ export function AppProvider({ children }) {
         status: form.status || "Active",
         photo_url: photoUrl,
       };
-      if (modal.mode === "add") await sbInsert("mumin_data", payload);
+      var savedResult = null;
+      if (modal.mode === "add") savedResult = await sbInsert("mumin_data", payload);
       else await sbUpdate("mumin_data", form.id, payload);
+      var savedId = modal.mode === "add" ? (Array.isArray(savedResult) ? savedResult[0] && savedResult[0].id : savedResult && savedResult.id) : form.id;
+      if (savedId) {
+        var refreshedRows = await sbGet("mumin_data", "select=*&id=eq." + encodeURIComponent(savedId) + "&limit=1");
+        var refreshed = refreshedRows && refreshedRows[0];
+        if (refreshed) setMuminData(function (prev) {
+          var next = prev.filter(function (m) { return m.id !== savedId; });
+          if (!refreshed.deleted_at) next.push(refreshed);
+          return next.sort(function (a, b) { return Number(a.id) - Number(b.id); });
+        });
+      }
       await logActivity(modal.mode === "add" ? "create" : "update", "mumin", payload.name, getUserEmail());
       showToast(modal.mode === "add" ? "Mumin record saved ☁" : "Record updated");
-      await loadAll({ mumin: true, activity: true }); closeModal();
+      await loadAll({ activity: true }); closeModal();
     } catch (e) { showToast("Error: " + e.message, "error"); }
     setSaving(false); setUploadingPhoto(false);
   }
@@ -572,9 +583,9 @@ export function AppProvider({ children }) {
       var name  = rec ? (rec.name || rec.title || ("#" + id)) : ("#" + id);
       await sbUpdate(table, id, { deleted_at: new Date().toISOString() });
       await logActivity("delete", type, name, getUserEmail());
-      showToast("Moved to Trash"); await loadAll(type === "mumin"
-        ? { mumin: true, activity: true }
-        : { files: true, activity: true });
+      showToast("Moved to Trash");
+      if (type === "mumin") setMuminData(function (prev) { return prev.filter(function (m) { return m.id !== id; }); });
+      await loadAll({ activity: true });
     } catch (e) { showToast("Error: " + e.message, "error"); }
   }
 

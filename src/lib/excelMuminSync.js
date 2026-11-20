@@ -99,7 +99,7 @@ async function chunksUpsert(table, rows, conflict, chunkSize) {
   var count = 0;
   for (var i = 0; i < rows.length; i += chunkSize) {
     var chunk = rows.slice(i, i + chunkSize); if (!chunk.length) continue;
-    await sbUpsert(table, chunk, conflict); count += chunk.length;
+    await sbUpsert(table, chunk, conflict, true); count += chunk.length;
   }
   return count;
 }

@@ -13,7 +13,7 @@ export function Avatar({ url, name }) {
   const [failedSrc, setFailedSrc] = useState(null);
   const initial = (name || "?").trim().charAt(0).toUpperCase() || "?";
   if (src && failedSrc !== src) {
-    return <img src={src} alt="" onError={function () { setFailedSrc(src); }} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />;
+    return <img src={src} alt="" loading="lazy" decoding="async" onError={function () { setFailedSrc(src); }} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />;
   }
   return <span>{initial}</span>;
 }
@@ -22,7 +22,7 @@ export function Avatar({ url, name }) {
 export function PhotoThumb({ url, style }) {
   const src = usePhotoUrl(url);
   if (!src) return <div style={Object.assign({ background: "rgba(201,168,76,.1)" }, style)} />;
-  return <img src={src} alt="" style={style} />;
+  return <img src={src} alt="" loading="lazy" decoding="async" style={style} />;
 }
 
 // ── Attachment thumbnail (image / pdf / generic file icon) ────────
