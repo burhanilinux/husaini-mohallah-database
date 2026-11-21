@@ -29,7 +29,6 @@ import { MuminPreview } from "./modals/MuminPreview.jsx";
 import { Lightbox } from "./modals/Lightbox.jsx";
 const FamilyPage = lazy(() => import("./pages/FamilyPage.jsx").then((module) => ({ default: module.FamilyPage })));
 const SurveyManagementPage = lazy(() => import("./pages/SurveyManagementPage.jsx").then((module) => ({ default: module.SurveyManagementPage })));
-const ReceptionPage = lazy(() => import("./pages/ReceptionPage.jsx").then((module) => ({ default: module.ReceptionPage })));
 
 function ActivePage() {
   var ctx = useAppContext();
@@ -43,7 +42,6 @@ function ActivePage() {
     case "reports": return <ReportsPage />;
     case "report-builder": return <ReportBuilderPage />;
     case "activity": return <ActivityPage />;
-    case "reception": return <ReceptionPage />;
     case "users": return <UsersPage />;
     case "mohallah-survey": return <MohallahSurveyPage />;
     case "vajebaat": return <VajebaatPage />;
