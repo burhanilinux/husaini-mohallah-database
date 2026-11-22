@@ -324,33 +324,45 @@ h += "</div>";
   }
 }
 
-// ── A5 print (half-page, less paper wastage) ──────────────────────
+// ── A5 LANDSCAPE print (half-page, less paper wastage) ────────────
+// Layout: header across the top, two columns below.
+//   Left  = photo/name, personal & contact, community assignment
+//   Right = family & HOF with member table
 function openA5(title, html, targetWindow) {
   var css = [
-    "@page{size:A5 portrait;margin:8mm}",
+    "@page{size:A5 landscape;margin:7mm}",
     "*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}",
-    "html,body{margin:0;padding:0;background:#fff;color:#161616;font-family:Arial,Helvetica,sans-serif;font-size:8.5pt}",
-    ".sheet{width:100%;max-width:132mm;margin:0 auto}",
-    ".head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;border-bottom:1.5px solid #b08a2e;padding-bottom:6px}",
-    ".brand{font-size:13pt;font-weight:700}.sub{font-size:6.5pt;color:#777;margin-top:1px;letter-spacing:1px;text-transform:uppercase}",
-    ".date{text-align:right;font-size:6.5pt;color:#666;line-height:1.4}.date strong{color:#222;font-size:7.5pt}",
-    ".hero{display:flex;gap:9px;align-items:center;padding:7px 0 6px;border-bottom:1px solid #ddd}",
-    ".photo{width:16mm;height:19mm;flex:0 0 16mm;border:1px solid #d7d7d7;border-radius:4px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#f4f0e7;color:#9b7625;font-size:14pt;font-weight:700}",
+    "html,body{margin:0;padding:0;background:#fff;color:#161616;font-family:Arial,Helvetica,sans-serif;font-size:8pt}",
+    ".sheet{width:100%;max-width:196mm;margin:0 auto}",
+    ".head{display:flex;justify-content:space-between;gap:10px;align-items:flex-end;border-bottom:1.5px solid #b08a2e;padding-bottom:4px}",
+    ".brand{font-size:12pt;font-weight:700}.sub{font-size:6pt;color:#777;letter-spacing:1px;text-transform:uppercase}",
+    ".date{text-align:right;font-size:6pt;color:#666;line-height:1.35}.date strong{color:#222;font-size:7pt}",
+    ".cols{display:grid;grid-template-columns:90mm 1fr;column-gap:6mm;margin-top:5px;align-items:start}",
+    ".hero{display:flex;gap:8px;align-items:center;padding-bottom:5px;border-bottom:1px solid #ddd}",
+    ".photo{width:16mm;height:19mm;flex:0 0 16mm;border:1px solid #d7d7d7;border-radius:3px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#f4f0e7;color:#9b7625;font-size:14pt;font-weight:700}",
     ".photo img{width:100%;height:100%;object-fit:cover}",
-    ".name{font-size:13pt;font-weight:700;margin-bottom:2px}.meta{font-size:7.5pt;color:#555}.badge{display:inline-block;border:1px solid #cfcfcf;border-radius:10px;padding:1px 6px;font-size:6.5pt;margin-left:4px}",
-    ".section{margin-top:7px}.section-title{font-size:6.5pt;text-transform:uppercase;letter-spacing:1.2px;color:#8a681d;font-weight:700;border-bottom:1px solid #eadfbe;padding-bottom:2px;margin-bottom:4px}",
-    ".grid{display:grid;grid-template-columns:1fr 1fr;gap:3px 6px}.field{border:1px solid #e1e1e1;border-radius:3px;padding:3px 5px}.field.full{grid-column:1/-1}.label{font-size:5.8pt;color:#777;text-transform:uppercase;letter-spacing:.5px;margin-bottom:1px}.value{font-size:8pt;font-weight:600;word-break:break-word;line-height:1.25}",
-    ".family{border:1px solid #e7dcc0;border-radius:4px;overflow:hidden;margin-top:4px}",
-    ".family-head,.member{display:grid;grid-template-columns:8mm 1fr 20mm 9mm 20mm;column-gap:2mm;align-items:center}",
-    ".family-head{background:#faf7ef;font-size:6pt;text-transform:uppercase;color:#777;padding:3px 5px}",
-    ".member{padding:2px 5px;border-top:1px solid #eee;font-size:7.5pt;break-inside:avoid;page-break-inside:avoid}",
+    ".name{font-size:12pt;font-weight:700;margin-bottom:2px;line-height:1.15}.meta{font-size:7pt;color:#555}",
+    ".badge{display:inline-block;border:1px solid #cfcfcf;border-radius:9px;padding:0 5px;font-size:6pt;margin-left:4px}",
+    ".section{margin-top:5px}",
+    ".section-title{font-size:6pt;text-transform:uppercase;letter-spacing:1.1px;color:#8a681d;font-weight:700;border-bottom:1px solid #eadfbe;padding-bottom:1px;margin-bottom:3px}",
+    ".grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 4px}",
+    ".field{border:1px solid #e1e1e1;border-radius:3px;padding:2px 4px;min-width:0}.field.full{grid-column:1/-1}",
+    ".label{font-size:5.3pt;color:#777;text-transform:uppercase;letter-spacing:.4px}",
+    ".value{font-size:7.5pt;font-weight:600;word-break:break-word;line-height:1.2}",
+    ".family{border:1px solid #e7dcc0;border-radius:3px;overflow:hidden;margin-top:3px}",
+    ".family-head,.member{display:grid;grid-template-columns:7mm 1fr 19mm 8mm 19mm;column-gap:2mm;align-items:center}",
+    ".family-head{background:#faf7ef;font-size:5.5pt;text-transform:uppercase;color:#777;padding:2px 4px}",
+    ".member{padding:1.5px 4px;border-top:1px solid #eee;font-size:7pt;break-inside:avoid;page-break-inside:avoid}",
     ".family-head span:nth-child(3),.family-head span:nth-child(4),.member span:nth-child(3),.member span:nth-child(4){text-align:center;font-variant-numeric:tabular-nums}",
-    ".member-photo{width:6mm;height:7mm;object-fit:cover;border:1px solid #ddd;border-radius:2px;background:#f4f0e7}",
-    ".member-photo.empty{display:flex;align-items:center;justify-content:center;color:#9b7625;font-size:6pt;font-weight:700}",
-    ".member.hof{font-weight:700}.role{color:#8a681d;font-size:6.5pt}",
-    ".quality{border:1px solid #e3c66d;background:#fffaf0;border-radius:4px;padding:4px 6px;font-size:6.8pt;color:#674e12;line-height:1.4}",
-    ".footer{margin-top:8px;padding-top:4px;border-top:1px solid #ddd;display:flex;justify-content:space-between;gap:6px;font-size:6pt;color:#888}",
-    "@media screen{body{background:#eee;padding:14px}.sheet{background:#fff;padding:8mm;max-width:148mm;box-shadow:0 2px 12px rgba(0,0,0,.12)}}",
+    ".member-photo{width:5.5mm;height:6.5mm;object-fit:cover;border:1px solid #ddd;border-radius:2px;background:#f4f0e7}",
+    ".member-photo.empty{display:flex;align-items:center;justify-content:center;color:#9b7625;font-size:5.5pt;font-weight:700}",
+    ".member.hof{font-weight:700}.role{color:#8a681d;font-size:6pt}",
+    /* Large families: shrink rows, then drop photos so it still fits one page */
+    ".dense .member{font-size:6.3pt;padding:1px 4px}.dense .member-photo{width:4.5mm;height:5mm}.dense .family-head,.dense .member{grid-template-columns:6mm 1fr 18mm 7mm 17mm}",
+    ".tight .member{font-size:5.8pt;padding:.5px 4px}.tight .family-head,.tight .member{grid-template-columns:1fr 18mm 7mm 17mm}.tight .member-photo,.tight .family-head span:first-child,.tight .member>:first-child{display:none}",
+    ".quality{border:1px solid #e3c66d;background:#fffaf0;border-radius:3px;padding:3px 5px;font-size:6.3pt;color:#674e12;line-height:1.35}",
+    ".footer{margin-top:5px;padding-top:3px;border-top:1px solid #ddd;display:flex;justify-content:space-between;gap:6px;font-size:5.5pt;color:#888}",
+    "@media screen{body{background:#eee;padding:14px}.sheet{background:#fff;padding:7mm;max-width:210mm;box-shadow:0 2px 12px rgba(0,0,0,.12)}}",
   ].join("");
   var doc = "<!doctype html><html><head><meta charset='utf-8'><title>" + esc(title) + "</title><style>" + css + "</style></head><body>" + html + "<script>window.onload=function(){var images=Array.prototype.slice.call(document.images);Promise.all(images.map(function(img){if(img.complete)return Promise.resolve();return new Promise(function(resolve){img.onload=resolve;img.onerror=resolve;});})).then(function(){setTimeout(function(){window.print();},250);});};</script></body></html>";
   var win = targetWindow || window.open("", "_blank");
@@ -381,8 +393,16 @@ export function printMuminA5(m, familyRecord, familyMembers, sectorInfo, photoUr
     return "<div class='field" + (full ? " full" : "") + "'><div class='label'>" + esc(label) + "</div><div class='value'>" + esc(value == null || value === "" ? "—" : value) + "</div></div>";
   }
 
-  var h = "<div class='sheet'>";
-  h += "<div class='head'><div><div class='brand'>Husaini Mohallah</div><div class='sub'>Mumineen Community Database</div></div><div class='date'><strong>Mumin Profile</strong><br>Printed " + esc(today) + "</div></div>";
+  var count = (familyMembers || []).length;
+  var density = count > 14 ? " tight" : count > 8 ? " dense" : "";
+
+  var h = "<div class='sheet" + density + "'>";
+  h += "<div class='head'><div><div class='brand'>Husaini Mohallah</div><div class='sub'>Mumineen Community Database</div></div><div class='date'><strong>Mumin Profile</strong> · Printed " + esc(today) + "</div></div>";
+
+  h += "<div class='cols'>";
+
+  // ── Left column ──
+  h += "<div class='col-left'>";
   h += "<div class='hero'><div class='photo'>" + photo + "</div><div><div class='name'>" + esc(m.name || "Unnamed Mumin") + "</div><div class='meta'>ITS: <strong>" + esc(m.its_number || "—") + "</strong>" + (m.status ? "<span class='badge'>" + esc(m.status) + "</span>" : "") + "</div></div></div>";
 
   h += "<div class='section'><div class='section-title'>Personal & Contact</div><div class='grid'>";
@@ -400,12 +420,16 @@ export function printMuminA5(m, familyRecord, familyMembers, sectorInfo, photoUr
   h += field("Sub-Sector", sectorInfo && sectorInfo.subSectorName);
   h += field("Musaid", sectorInfo && sectorInfo.musaidName, true);
   h += "</div></div>";
+  h += "</div>";
 
-  h += "<div class='section'><div class='section-title'>Family & Head of Family</div><div class='grid'>";
+  // ── Right column ──
+  h += "<div class='col-right'>";
+  h += "<div class='section' style='margin-top:0'><div class='section-title'>Family & Head of Family</div><div class='grid' style='grid-template-columns:1fr 1fr 1fr'>";
   h += field("Family ID", m.family_id);
   h += field("Head of Family ITS", familyRecord && familyRecord.hof_its_id);
+  h += field("Members", count || "—");
   h += "</div>";
-  if (familyMembers && familyMembers.length) {
+  if (count) {
     h += "<div class='family'><div class='family-head'><span>Photo</span><span>Family Member</span><span>ITS</span><span>Age</span><span>Role</span></div>";
     familyMembers.forEach(function (member) {
       var isHof = familyRecord && familyRecord.hof_its_id && (String(member.its_id) === String(familyRecord.hof_its_id) || String(member.its_number) === String(familyRecord.hof_its_id));
@@ -420,10 +444,12 @@ export function printMuminA5(m, familyRecord, familyMembers, sectorInfo, photoUr
     h += "</div>";
   }
   h += "</div>";
-
   if (warnings.length) {
     h += "<div class='section'><div class='section-title'>Data Quality</div><div class='quality'>" + warnings.map(esc).join(" &nbsp;•&nbsp; ") + "</div></div>";
   }
+  h += "</div>"; // col-right
+
+  h += "</div>"; // cols
   h += "<div class='footer'><span>Husaini Mohallah Database</span><span>Confidential community record</span><span>" + esc(new Date().toLocaleString()) + "</span></div></div>";
   openA5("Mumin Profile A5 - " + (m.name || ""), h, targetWindow);
 }
