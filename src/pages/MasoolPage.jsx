@@ -64,6 +64,7 @@ export function MasoolPage() {
       subs: subs.map(function (sub) {
         var musaid = leaderOf(sub.musaid_its, sub.musaid_name, sub.musaid_phone);
         return {
+          id: sub.id,
           name: sub.name,
           musaidName: musaid.name,
           musaidIts: musaid.its,
@@ -74,6 +75,18 @@ export function MasoolPage() {
         };
       }),
     };
+  }
+
+  // Print data for a single Musaid / sub-sector (no Masool block).
+  function subSectorPrintData(sec, sub) {
+    var full = sectorPrintData(sec);
+    var match = full.subs.filter(function (s) { return String(s.id) === String(sub.id); })[0];
+    return Object.assign({}, full, {
+      hideMasool: true,
+      hofs: match ? match.hofs : [],
+      unassignedHofs: [],
+      subs: match ? [match] : [],
+    });
   }
 
   return (
@@ -153,12 +166,11 @@ export function MasoolPage() {
                               </span>
                             )}
                           </div>
-                          {canEdit && (
-                            <div style={{ display: "flex", gap: 6 }}>
-                              <button className="btn btn-ghost btn-sm" onClick={function () { openSubSectorModal("edit", sec.id, sub); }}>Edit</button>
-                              {canDelete && <button className="btn btn-danger" onClick={function () { deleteSubSector(sub); }}>🗑</button>}
-                            </div>
-                          )}
+                          <div style={{ display: "flex", gap: 6 }}>
+                            <button className="btn btn-ghost btn-sm" onClick={function () { printMasoolHofDirectory([subSectorPrintData(sec, sub)], sub.name + " — HOF Directory"); }}>🖨 Print</button>
+                            {canEdit && <button className="btn btn-ghost btn-sm" onClick={function () { openSubSectorModal("edit", sec.id, sub); }}>Edit</button>}
+                            {canDelete && <button className="btn btn-danger" onClick={function () { deleteSubSector(sub); }}>🗑</button>}
+                          </div>
                         </div>
                       );
                     })}
