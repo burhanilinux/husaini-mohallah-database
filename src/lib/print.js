@@ -31,17 +31,17 @@ var PRINT_CSS = [
   ".print-footer{margin-top:36px;padding-top:12px;border-top:1px solid #e5e5e5;font-size:10px;color:#aaa;display:flex;justify-content:space-between}",
   ".idcard-page{display:flex;align-items:center;justify-content:center;min-height:90vh;background:#f3f3f3}",
   ".idcard{width:300px;border-radius:18px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.25);font-family:'Roboto',sans-serif;position:relative;background:#15110a}",
-  ".idcard-top{position:relative;height:170px;background:linear-gradient(135deg,#1a1410 0%,#2a1f10 35%,#8a6a1a 70%,#c9a84c 100%);overflow:hidden}",
+  ".idcard-top{position:relative;height:196px;background:linear-gradient(135deg,#1a1410 0%,#2a1f10 35%,#8a6a1a 70%,#c9a84c 100%);overflow:hidden}",
   ".idcard-diag1{position:absolute;width:220px;height:220px;background:rgba(0,0,0,.28);transform:rotate(45deg);top:-90px;left:-70px}",
   ".idcard-diag2{position:absolute;width:180px;height:180px;background:rgba(0,0,0,.22);transform:rotate(45deg);top:30px;right:-90px}",
   ".idcard-brand{position:relative;z-index:2;text-align:center;padding-top:14px}",
   ".idcard-brand-name{font-size:11px;font-weight:700;letter-spacing:2px;color:#fff;text-transform:uppercase}",
   ".idcard-brand-sub{font-size:8px;letter-spacing:2px;color:#e8d9b0;text-transform:uppercase;margin-top:2px}",
-  ".idcard-photo-wrap{position:absolute;left:50%;top:78px;transform:translateX(-50%);width:104px;height:104px;border-radius:14px;background:#fff;border:3px solid rgba(255,255,255,.9);box-shadow:0 6px 16px rgba(0,0,0,.3);overflow:hidden;z-index:3;display:flex;align-items:center;justify-content:center}",
+  ".idcard-photo-wrap{position:absolute;left:50%;top:66px;transform:translateX(-50%);width:104px;height:104px;border-radius:14px;background:#fff;border:3px solid rgba(255,255,255,.9);box-shadow:0 6px 16px rgba(0,0,0,.3);overflow:hidden;z-index:3;display:flex;align-items:center;justify-content:center}",
   ".idcard-photo-wrap img{width:100%;height:100%;object-fit:cover}",
   ".idcard-photo-initial{font-size:40px;font-weight:700;color:#8a6a1a;background:#f0e6cc;width:100%;height:100%;display:flex;align-items:center;justify-content:center}",
-  ".idcard-body{background:#15110a;padding-top:62px;padding-bottom:18px;text-align:center}",
-  ".idcard-name{font-size:17px;font-weight:800;letter-spacing:.5px;color:#fff;text-transform:uppercase;margin-bottom:3px}",
+  ".idcard-body{background:#15110a;padding-top:20px;padding-bottom:18px;text-align:center}",
+  ".idcard-name{font-size:17px;font-weight:800;letter-spacing:.5px;color:#fff;text-transform:uppercase;margin-bottom:16px}",
   ".idcard-role{font-size:10px;font-weight:600;letter-spacing:2px;color:#c9a84c;text-transform:uppercase;margin-bottom:16px}",
   ".idcard-info{padding:0 26px;text-align:left}",
   ".idcard-info-row{display:flex;font-size:10px;color:#d8cdb0;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.06)}",
@@ -149,7 +149,6 @@ export function printIdCard(m, sabilFamily, sectorInfo) {
   h += "</div>";
   h += "<div class='idcard-body'>";
   h += "<div class='idcard-name'>" + esc(m.name || "") + "</div>";
-  h += "<div class='idcard-role'>" + esc(m.status || "Mumin") + "</div>";
   h += "<div class='idcard-info'>";
   h += "<div class='idcard-info-row'><span class='idcard-info-label'>ITS No.</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + esc(m.its_number || "\u2014") + "</span></div>";
   h += "<div class='idcard-info-row'><span class='idcard-info-label'>Phone</span><span class='idcard-info-colon'>:</span><span class='idcard-info-val'>" + esc(m.phone || "\u2014") + "</span></div>";
