@@ -323,3 +323,107 @@ h += "</div>";
     setTimeout(function () { URL.revokeObjectURL(url); }, 15000);
   }
 }
+
+// ── A5 print (half-page, less paper wastage) ──────────────────────
+function openA5(title, html, targetWindow) {
+  var css = [
+    "@page{size:A5 portrait;margin:8mm}",
+    "*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}",
+    "html,body{margin:0;padding:0;background:#fff;color:#161616;font-family:Arial,Helvetica,sans-serif;font-size:8.5pt}",
+    ".sheet{width:100%;max-width:132mm;margin:0 auto}",
+    ".head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;border-bottom:1.5px solid #b08a2e;padding-bottom:6px}",
+    ".brand{font-size:13pt;font-weight:700}.sub{font-size:6.5pt;color:#777;margin-top:1px;letter-spacing:1px;text-transform:uppercase}",
+    ".date{text-align:right;font-size:6.5pt;color:#666;line-height:1.4}.date strong{color:#222;font-size:7.5pt}",
+    ".hero{display:flex;gap:9px;align-items:center;padding:7px 0 6px;border-bottom:1px solid #ddd}",
+    ".photo{width:16mm;height:19mm;flex:0 0 16mm;border:1px solid #d7d7d7;border-radius:4px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#f4f0e7;color:#9b7625;font-size:14pt;font-weight:700}",
+    ".photo img{width:100%;height:100%;object-fit:cover}",
+    ".name{font-size:13pt;font-weight:700;margin-bottom:2px}.meta{font-size:7.5pt;color:#555}.badge{display:inline-block;border:1px solid #cfcfcf;border-radius:10px;padding:1px 6px;font-size:6.5pt;margin-left:4px}",
+    ".section{margin-top:7px}.section-title{font-size:6.5pt;text-transform:uppercase;letter-spacing:1.2px;color:#8a681d;font-weight:700;border-bottom:1px solid #eadfbe;padding-bottom:2px;margin-bottom:4px}",
+    ".grid{display:grid;grid-template-columns:1fr 1fr;gap:3px 6px}.field{border:1px solid #e1e1e1;border-radius:3px;padding:3px 5px}.field.full{grid-column:1/-1}.label{font-size:5.8pt;color:#777;text-transform:uppercase;letter-spacing:.5px;margin-bottom:1px}.value{font-size:8pt;font-weight:600;word-break:break-word;line-height:1.25}",
+    ".family{border:1px solid #e7dcc0;border-radius:4px;overflow:hidden;margin-top:4px}",
+    ".family-head,.member{display:grid;grid-template-columns:8mm 1fr 20mm 9mm 20mm;column-gap:2mm;align-items:center}",
+    ".family-head{background:#faf7ef;font-size:6pt;text-transform:uppercase;color:#777;padding:3px 5px}",
+    ".member{padding:2px 5px;border-top:1px solid #eee;font-size:7.5pt;break-inside:avoid;page-break-inside:avoid}",
+    ".family-head span:nth-child(3),.family-head span:nth-child(4),.member span:nth-child(3),.member span:nth-child(4){text-align:center;font-variant-numeric:tabular-nums}",
+    ".member-photo{width:6mm;height:7mm;object-fit:cover;border:1px solid #ddd;border-radius:2px;background:#f4f0e7}",
+    ".member-photo.empty{display:flex;align-items:center;justify-content:center;color:#9b7625;font-size:6pt;font-weight:700}",
+    ".member.hof{font-weight:700}.role{color:#8a681d;font-size:6.5pt}",
+    ".quality{border:1px solid #e3c66d;background:#fffaf0;border-radius:4px;padding:4px 6px;font-size:6.8pt;color:#674e12;line-height:1.4}",
+    ".footer{margin-top:8px;padding-top:4px;border-top:1px solid #ddd;display:flex;justify-content:space-between;gap:6px;font-size:6pt;color:#888}",
+    "@media screen{body{background:#eee;padding:14px}.sheet{background:#fff;padding:8mm;max-width:148mm;box-shadow:0 2px 12px rgba(0,0,0,.12)}}",
+  ].join("");
+  var doc = "<!doctype html><html><head><meta charset='utf-8'><title>" + esc(title) + "</title><style>" + css + "</style></head><body>" + html + "<script>window.onload=function(){var images=Array.prototype.slice.call(document.images);Promise.all(images.map(function(img){if(img.complete)return Promise.resolve();return new Promise(function(resolve){img.onload=resolve;img.onerror=resolve;});})).then(function(){setTimeout(function(){window.print();},250);});};</script></body></html>";
+  var win = targetWindow || window.open("", "_blank");
+  if (!win) { alert("Please allow popups for printing."); return; }
+  if (targetWindow) {
+    win.document.open(); win.document.write(doc); win.document.close();
+  } else {
+    var url = URL.createObjectURL(new Blob([doc], { type: "text/html;charset=utf-8" }));
+    win.location.href = url;
+    setTimeout(function () { URL.revokeObjectURL(url); }, 15000);
+  }
+}
+
+export function printMuminA5(m, familyRecord, familyMembers, sectorInfo, photoUrl, targetWindow) {
+  var today = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
+  var age = getMuminAge(m);
+  var initial = esc((m.name || "?").trim().charAt(0).toUpperCase());
+  var photo = (photoUrl || m.photo_url) ? "<img src='" + esc(photoUrl || m.photo_url) + "' alt=''>" : initial;
+  var warnings = [];
+  if (!m.its_number) warnings.push("Missing ITS number");
+  if (!m.phone) warnings.push("Missing phone number");
+  if (!m.dob && !m.age) warnings.push("Missing DOB / age");
+  if (!m.area_sector) warnings.push("Area Sector not assigned");
+  if (!familyRecord) warnings.push("Family record not assigned");
+  if (familyRecord && !familyRecord.hof_its_id) warnings.push("Family has no HOF assigned");
+
+  function field(label, value, full) {
+    return "<div class='field" + (full ? " full" : "") + "'><div class='label'>" + esc(label) + "</div><div class='value'>" + esc(value == null || value === "" ? "—" : value) + "</div></div>";
+  }
+
+  var h = "<div class='sheet'>";
+  h += "<div class='head'><div><div class='brand'>Husaini Mohallah</div><div class='sub'>Mumineen Community Database</div></div><div class='date'><strong>Mumin Profile</strong><br>Printed " + esc(today) + "</div></div>";
+  h += "<div class='hero'><div class='photo'>" + photo + "</div><div><div class='name'>" + esc(m.name || "Unnamed Mumin") + "</div><div class='meta'>ITS: <strong>" + esc(m.its_number || "—") + "</strong>" + (m.status ? "<span class='badge'>" + esc(m.status) + "</span>" : "") + "</div></div></div>";
+
+  h += "<div class='section'><div class='section-title'>Personal & Contact</div><div class='grid'>";
+  h += field("Age / DOB", (age == null ? "—" : age) + (m.dob ? " • " + m.dob : ""));
+  h += field("Gender", m.gender);
+  h += field("Phone", m.phone);
+  h += field("Email", m.email);
+  h += field("Address", m.address, true);
+  h += "</div></div>";
+
+  h += "<div class='section'><div class='section-title'>Community Assignment</div><div class='grid'>";
+  h += field("Area Sector", (sectorInfo && sectorInfo.sectorName) || m.area_sector);
+  h += field("Sabil No.", (familyRecord && familyRecord.sabil_no) || m.sabil_no);
+  h += field("Masool", sectorInfo && sectorInfo.masoolName);
+  h += field("Sub-Sector", sectorInfo && sectorInfo.subSectorName);
+  h += field("Musaid", sectorInfo && sectorInfo.musaidName, true);
+  h += "</div></div>";
+
+  h += "<div class='section'><div class='section-title'>Family & Head of Family</div><div class='grid'>";
+  h += field("Family ID", m.family_id);
+  h += field("Head of Family ITS", familyRecord && familyRecord.hof_its_id);
+  h += "</div>";
+  if (familyMembers && familyMembers.length) {
+    h += "<div class='family'><div class='family-head'><span>Photo</span><span>Family Member</span><span>ITS</span><span>Age</span><span>Role</span></div>";
+    familyMembers.forEach(function (member) {
+      var isHof = familyRecord && familyRecord.hof_its_id && (String(member.its_id) === String(familyRecord.hof_its_id) || String(member.its_number) === String(familyRecord.hof_its_id));
+      var memberAge = getMuminAge(member);
+      var memberPhotoUrl = member.photo_url || member.photoUrl || member.profile_photo_url || "";
+      var memberInitial = esc((member.name || "?").trim().charAt(0).toUpperCase());
+      var memberPhoto = memberPhotoUrl
+        ? "<img class='member-photo' src='" + esc(memberPhotoUrl) + "' alt=''>"
+        : "<span class='member-photo empty'>" + memberInitial + "</span>";
+      h += "<div class='member" + (isHof ? " hof" : "") + "'>" + memberPhoto + "<span>" + (isHof ? "★ " : "") + esc(member.name || "—") + "</span><span>" + esc(member.its_number || "—") + "</span><span>" + esc(memberAge == null ? "—" : memberAge) + "</span><span class='role'>" + (isHof ? "Head of Family" : "Family Member") + "</span></div>";
+    });
+    h += "</div>";
+  }
+  h += "</div>";
+
+  if (warnings.length) {
+    h += "<div class='section'><div class='section-title'>Data Quality</div><div class='quality'>" + warnings.map(esc).join(" &nbsp;•&nbsp; ") + "</div></div>";
+  }
+  h += "<div class='footer'><span>Husaini Mohallah Database</span><span>Confidential community record</span><span>" + esc(new Date().toLocaleString()) + "</span></div></div>";
+  openA5("Mumin Profile A5 - " + (m.name || ""), h, targetWindow);
+}
