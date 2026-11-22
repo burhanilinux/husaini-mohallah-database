@@ -58,9 +58,11 @@ function hofTable(hofs, photoMap) {
   return h + "</tbody></table>";
 }
 
-// sectors: [{ name, masoolName, masoolIts, masoolPhone, masoolPhoto,
+// sectors: [{ name, hideMasool?, masoolName, masoolIts, masoolPhone, masoolPhoto,
 //             hofs:[{name,its,phone,photo_url}], unassignedHofs:[...],
 //             subs:[{ name, musaidName, musaidIts, musaidPhone, musaidPhoto, hofs:[...] }] }]
+// When hideMasool is true (single Musaid print) the Masool block and the
+// "directly under Masool" table are omitted.
 // Must be called directly from a click handler (opens the window synchronously).
 export function printMasoolHofDirectory(sectors, title) {
   var win = window.open("", "_blank");
@@ -71,8 +73,10 @@ export function printMasoolHofDirectory(sectors, title) {
 
   var all = [];
   sectors.forEach(function (s) {
-    all = all.concat(s.hofs || [], s.unassignedHofs || []);
-    if (s.masoolPhoto) all.push({ photo_url: s.masoolPhoto });
+    if (!s.hideMasool) {
+      all = all.concat(s.unassignedHofs || []);
+      if (s.masoolPhoto) all.push({ photo_url: s.masoolPhoto });
+    }
     (s.subs || []).forEach(function (sub) {
       all = all.concat(sub.hofs || []);
       if (sub.musaidPhoto) all.push({ photo_url: sub.musaidPhoto });
@@ -93,12 +97,14 @@ export function printMasoolHofDirectory(sectors, title) {
         body += "<div class='head'><div><div class='brand'>Husaini Mohallah</div><div class='sub'>HOF Directory by Masool &amp; Musaid</div></div><div class='date'><strong>" + esc(title || "Sector Report") + "</strong><br>Printed " + esc(today) + "</div></div>";
         body += "<div class='sec-name'>" + esc(s.name) + "</div>";
         body += "<div class='sec-meta'>" + (s.hofs || []).length + " HOF" + ((s.hofs || []).length === 1 ? "" : "s") + " · " + (s.subs || []).length + " sub-sector" + ((s.subs || []).length === 1 ? "" : "s") + "</div>";
-        body += leadHtml("Masool", s.masoolName, s.masoolIts, s.masoolPhone, s.masoolPhoto, photoMap, "Sector: <strong>" + esc(s.name) + "</strong>");
-        if ((s.unassignedHofs || []).length) {
-          body += "<div class='blk-title'>HOFs directly under Masool (no sub-sector)</div>" + hofTable(s.unassignedHofs, photoMap);
+        if (!s.hideMasool) {
+          body += leadHtml("Masool", s.masoolName, s.masoolIts, s.masoolPhone, s.masoolPhoto, photoMap, "Sector: <strong>" + esc(s.name) + "</strong>");
+          if ((s.unassignedHofs || []).length) {
+            body += "<div class='blk-title'>HOFs directly under Masool (no sub-sector)</div>" + hofTable(s.unassignedHofs, photoMap);
+          }
         }
         (s.subs || []).forEach(function (sub) {
-          body += leadHtml("Musaid", sub.musaidName, sub.musaidIts, sub.musaidPhone, sub.musaidPhoto, photoMap, "Sub-Sector: <strong>" + esc(sub.name) + "</strong>", "margin-top:16px");
+          body += leadHtml("Musaid", sub.musaidName, sub.musaidIts, sub.musaidPhone, sub.musaidPhoto, photoMap, "Sub-Sector: <strong>" + esc(sub.name) + "</strong>", s.hideMasool ? "" : "margin-top:16px");
           body += hofTable(sub.hofs || [], photoMap);
         });
         body += "<div class='footer'><span>Husaini Mohallah Database</span><span>Confidential community record</span><span>Printed: " + esc(new Date().toLocaleString()) + "</span></div></div>";
