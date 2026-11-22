@@ -80,8 +80,7 @@ export function printMasoolHofDirectory(sectors, title) {
           body += "<div class='lead' style='margin-top:16px'><span class='role'>Musaid</span><span class='nm'>" + esc(sub.musaidName || "Not assigned") + "</span><span>" + esc(sub.musaidPhone || "") + "</span><span style='margin-left:auto;color:#555'>Sub-Sector: <strong>" + esc(sub.name) + "</strong></span></div>";
           body += hofTable(sub.hofs || [], photoMap);
         });
-        if ((s.unassignedHofs || []).length) {
-          body += "<div class='blk-title' style='margin-top:16px'>HOFs not assigned to a sub-sector</div>" + hofTable(s.unassignedHofs, photoMap);
+        
         }
         body += "<div class='footer'><span>Husaini Mohallah Database</span><span>Confidential community record</span><span>Printed: " + esc(new Date().toLocaleString()) + "</span></div></div>";
       });
