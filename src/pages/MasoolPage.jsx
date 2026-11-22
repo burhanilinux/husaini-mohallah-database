@@ -33,9 +33,15 @@ export function MasoolPage() {
 
   function sectorPrintData(sec) {
     var subs = getSubSectorsFor(sec.id);
-    var nameOf = function (its, fallback) {
-      if (its) { var m = getMuminByIts(its); return m ? m.name : String(its); }
-      return fallback || "";
+    // Resolves a leader (Masool/Musaid) from their ITS so we can show ITS, phone and photo.
+    var leaderOf = function (its, fallbackName, fallbackPhone) {
+      var m = its ? getMuminByIts(its) : null;
+      return {
+        name: m ? m.name : (its ? String(its) : (fallbackName || "")),
+        its: its ? String(its) : "",
+        phone: fallbackPhone || (m && (m.phone || m.whatsapp_no)) || "",
+        photo_url: (m && m.photo_url) || "",
+      };
     };
     var secName = norm(sec.name).toLowerCase();
     var sectorHofs = muminData.filter(function (m) {
@@ -43,20 +49,26 @@ export function MasoolPage() {
     });
     var subIds = {};
     subs.forEach(function (s) { subIds[String(s.id)] = true; });
+    var masool = leaderOf(sec.masool_its, sec.masool_name, sec.masool_phone);
     return {
       name: sec.name,
-      masoolName: nameOf(sec.masool_its, sec.masool_name),
-      masoolPhone: sec.masool_phone || "",
+      masoolName: masool.name,
+      masoolIts: masool.its,
+      masoolPhone: masool.phone,
+      masoolPhoto: masool.photo_url,
       memberCount: getMuminCountForSector(sec.name),
       hofs: sectorHofs.map(toRow).sort(byName),
       unassignedHofs: sectorHofs.filter(function (m) {
         return !m.sub_sector_id || !subIds[String(m.sub_sector_id)];
       }).map(toRow).sort(byName),
       subs: subs.map(function (sub) {
+        var musaid = leaderOf(sub.musaid_its, sub.musaid_name, sub.musaid_phone);
         return {
           name: sub.name,
-          musaidName: nameOf(sub.musaid_its, sub.musaid_name),
-          musaidPhone: sub.musaid_phone || "",
+          musaidName: musaid.name,
+          musaidIts: musaid.its,
+          musaidPhone: musaid.phone,
+          musaidPhoto: musaid.photo_url,
           memberCount: getMuminCountForSubSector(sub.id),
           hofs: sectorHofs.filter(function (m) { return String(m.sub_sector_id) === String(sub.id); }).map(toRow).sort(byName),
         };
