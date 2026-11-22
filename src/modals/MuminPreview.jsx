@@ -7,7 +7,7 @@ import { sbGet } from "../lib/supabase.js";
 import { getMuminAge, sortFamilyMembers } from "../lib/utils.js";
 import { getExtendedProfile } from "../lib/muminProfile.js";
 import { printIdCard } from "../lib/print.js";
-import { printMuminA4, printMuminFullProfile } from "../lib/muminA4Print.js";
+import { printMuminA4, printMuminA5, printMuminFullProfile } from "../lib/muminA4Print.js";
 
 export function MuminPreview() {
   var ctx = useAppContext();
@@ -227,6 +227,7 @@ export function MuminPreview() {
             {canEdit && <button className="btn btn-primary" onClick={function () { setMuminPreview(null); openModal("mumin", "edit", m); }}>✎ Edit Record</button>}
             <button className="btn btn-ghost" onClick={function () { printIdCard(printable, sabilFamily, sectorInfo); }}>🪪 ID Card</button>
             <button className="btn btn-primary" onClick={function () { printWithFamilyPhotos(function (members, win) { printMuminA4(printable, familyRecord, members, sectorInfo, undefined, win); }); }}>🖨 Print A4</button>
+            <button className="btn btn-ghost" onClick={function () { printWithFamilyPhotos(function (members, win) { printMuminA5(printable, familyRecord, members, sectorInfo, undefined, win); }); }}>🖨 Print A5</button>
             <button className="btn btn-ghost" onClick={function () { printWithFamilyPhotos(function (members, win) { printMuminFullProfile(printable, familyRecord, members, sectorInfo, win); }); }}>📋 Print Full Profile</button>
             {m.family_id && <button className="btn btn-ghost" onClick={function () { close(); setPage("families"); }}>🏠 Open Families</button>}
             <button className="btn btn-ghost" onClick={close}>Close</button>
