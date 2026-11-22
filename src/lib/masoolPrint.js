@@ -15,9 +15,13 @@ var CSS = [
   ".brand{font-size:17pt;font-weight:700}.sub{font-size:8pt;color:#777;letter-spacing:1.2px;text-transform:uppercase;margin-top:2px}",
   ".date{text-align:right;font-size:8pt;color:#666;line-height:1.5}",
   ".sec-name{font-size:16pt;font-weight:700;margin:4px 0 2px}.sec-meta{font-size:9pt;color:#555;margin-bottom:10px}",
-  ".lead{display:flex;gap:18px;border:1px solid #e7dcc0;background:#faf7ef;border-radius:5px;padding:7px 10px;margin:8px 0 6px;font-size:9pt;align-items:baseline}",
+  ".lead{display:flex;gap:12px;border:1px solid #e7dcc0;background:#faf7ef;border-radius:5px;padding:7px 10px;margin:8px 0 6px;font-size:9pt;align-items:center;break-inside:avoid}",
+  ".lead .ph{margin:0;flex:0 0 auto}",
+  ".lead .info{display:flex;flex-direction:column;gap:2px;min-width:0}",
   ".lead .role{font-size:7.5pt;text-transform:uppercase;letter-spacing:1.2px;color:#8a681d;font-weight:700}",
   ".lead .nm{font-weight:700;font-size:10.5pt}",
+  ".lead .meta{font-size:9pt;color:#444}",
+  ".lead .tag{margin-left:auto;color:#555;text-align:right}",
   ".blk-title{font-size:8pt;text-transform:uppercase;letter-spacing:1.5px;color:#8a681d;font-weight:700;border-bottom:1px solid #eadfbe;padding-bottom:3px;margin:12px 0 4px}",
   "table{width:100%;border-collapse:collapse}",
   "thead{display:table-header-group}tr{break-inside:avoid;page-break-inside:avoid}",
@@ -31,6 +35,17 @@ var CSS = [
   "@media screen{body{background:#eee;padding:18px}.sector{background:#fff;padding:12mm;margin:0 auto 16px;max-width:210mm;box-shadow:0 2px 12px rgba(0,0,0,.12)}}"
 ].join("");
 
+// Masool / Musaid header card: photo, role, name, ITS, phone.
+function leadHtml(role, name, its, phone, photoUrl, photoMap, tag, extraStyle) {
+  var url = photoUrl ? photoMap[photoUrl] : null;
+  var initial = esc((name || "?").trim().charAt(0).toUpperCase());
+  var photo = url ? "<img class='ph' src='" + esc(url) + "' alt=''>" : "<div class='ph e'>" + initial + "</div>";
+  return "<div class='lead'" + (extraStyle ? " style='" + extraStyle + "'" : "") + ">" + photo +
+    "<div class='info'><span class='role'>" + esc(role) + "</span><span class='nm'>" + esc(name || "Not assigned") + "</span>" +
+    "<span class='meta'>ITS: " + esc(its || "—") + " &nbsp;·&nbsp; Phone: " + esc(phone || "—") + "</span></div>" +
+    (tag ? "<div class='tag'>" + tag + "</div>" : "") + "</div>";
+}
+
 function hofTable(hofs, photoMap) {
   if (!hofs.length) return "<div class='empty'>No HOF records found.</div>";
   var h = "<table><thead><tr><th>#</th><th>Photo</th><th>HOF Name</th><th>ITS No.</th><th>Phone</th></tr></thead><tbody>";
@@ -43,8 +58,9 @@ function hofTable(hofs, photoMap) {
   return h + "</tbody></table>";
 }
 
-// sectors: [{ name, masoolName, masoolPhone, hofs:[{name,its,phone,photo_url}],
-//             subs:[{ name, musaidName, musaidPhone, hofs:[...] }], unassignedHofs:[...] }]
+// sectors: [{ name, masoolName, masoolIts, masoolPhone, masoolPhoto,
+//             hofs:[{name,its,phone,photo_url}], unassignedHofs:[...],
+//             subs:[{ name, musaidName, musaidIts, musaidPhone, musaidPhoto, hofs:[...] }] }]
 // Must be called directly from a click handler (opens the window synchronously).
 export function printMasoolHofDirectory(sectors, title) {
   var win = window.open("", "_blank");
@@ -56,7 +72,11 @@ export function printMasoolHofDirectory(sectors, title) {
   var all = [];
   sectors.forEach(function (s) {
     all = all.concat(s.hofs || [], s.unassignedHofs || []);
-    (s.subs || []).forEach(function (sub) { all = all.concat(sub.hofs || []); });
+    if (s.masoolPhoto) all.push({ photo_url: s.masoolPhoto });
+    (s.subs || []).forEach(function (sub) {
+      all = all.concat(sub.hofs || []);
+      if (sub.musaidPhoto) all.push({ photo_url: sub.musaidPhoto });
+    });
   });
   var urls = {};
   all.forEach(function (m) { if (m.photo_url) urls[m.photo_url] = true; });
@@ -73,15 +93,14 @@ export function printMasoolHofDirectory(sectors, title) {
         body += "<div class='head'><div><div class='brand'>Husaini Mohallah</div><div class='sub'>HOF Directory by Masool &amp; Musaid</div></div><div class='date'><strong>" + esc(title || "Sector Report") + "</strong><br>Printed " + esc(today) + "</div></div>";
         body += "<div class='sec-name'>" + esc(s.name) + "</div>";
         body += "<div class='sec-meta'>" + (s.hofs || []).length + " HOF" + ((s.hofs || []).length === 1 ? "" : "s") + " · " + (s.subs || []).length + " sub-sector" + ((s.subs || []).length === 1 ? "" : "s") + "</div>";
-        body += "<div class='lead'><span class='role'>Masool</span><span class='nm'>" + esc(s.masoolName || "Not assigned") + "</span><span>" + esc(s.masoolPhone || "") + "</span></div>";
+        body += leadHtml("Masool", s.masoolName, s.masoolIts, s.masoolPhone, s.masoolPhoto, photoMap, "Sector: <strong>" + esc(s.name) + "</strong>");
         if ((s.unassignedHofs || []).length) {
           body += "<div class='blk-title'>HOFs directly under Masool (no sub-sector)</div>" + hofTable(s.unassignedHofs, photoMap);
-        }        (s.subs || []).forEach(function (sub) {
-          body += "<div class='lead' style='margin-top:16px'><span class='role'>Musaid</span><span class='nm'>" + esc(sub.musaidName || "Not assigned") + "</span><span>" + esc(sub.musaidPhone || "") + "</span><span style='margin-left:auto;color:#555'>Sub-Sector: <strong>" + esc(sub.name) + "</strong></span></div>";
+        }
+        (s.subs || []).forEach(function (sub) {
+          body += leadHtml("Musaid", sub.musaidName, sub.musaidIts, sub.musaidPhone, sub.musaidPhoto, photoMap, "Sub-Sector: <strong>" + esc(sub.name) + "</strong>", "margin-top:16px");
           body += hofTable(sub.hofs || [], photoMap);
         });
-        
-        }
         body += "<div class='footer'><span>Husaini Mohallah Database</span><span>Confidential community record</span><span>Printed: " + esc(new Date().toLocaleString()) + "</span></div></div>";
       });
       var doc = "<!doctype html><html><head><meta charset='utf-8'><title>" + esc(title || "Sector HOF Directory") + "</title><style>" + CSS + "</style></head><body>" + body +
