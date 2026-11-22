@@ -1,38 +1,69 @@
-import { printSectorDetails } from "../lib/print.js";
+import { printMasoolHofDirectory } from "../lib/masoolPrint.js";
 import { useAppContext } from "../context/AppContext.jsx";
 import { Spinner } from "../components/Shared.jsx";
+
+function norm(v) { return String(v == null ? "" : v).trim(); }
+function isHof(m) {
+  var src = m.source_data || {};
+  var type = norm(src.HOF_FM_TYPE).toUpperCase();
+  var hofId = norm(src.HOF_ID);
+  var its = norm(m.its_id || m.its_number);
+  return type === "HOF" || (hofId !== "" && hofId === its);
+}
+function toRow(m) {
+  return {
+    name: m.name || "",
+    its: m.its_number || m.its_id || "",
+    phone: m.phone || m.whatsapp_no || "",
+    photo_url: m.photo_url || "",
+  };
+}
+function byName(a, b) { return String(a.name).localeCompare(String(b.name)); }
 
 export function MasoolPage() {
   var ctx = useAppContext();
   var canEdit = ctx.canEdit, canDelete = ctx.canDelete;
   var loading = ctx.loading, sectorsData = ctx.sectorsData;
+  var muminData = ctx.muminData || [];
   var expandedSector = ctx.expandedSector, setExpandedSector = ctx.setExpandedSector;
   var openSectorModal = ctx.openSectorModal, deleteSector = ctx.deleteSector;
   var openSubSectorModal = ctx.openSubSectorModal, deleteSubSector = ctx.deleteSubSector;
   var getSubSectorsFor = ctx.getSubSectorsFor, getMuminCountForSector = ctx.getMuminCountForSector;
   var getMuminCountForSubSector = ctx.getMuminCountForSubSector, getMuminByIts = ctx.getMuminByIts;
-  
-function sectorPrintData(sec) {
-  var subs = getSubSectorsFor(sec.id);
-  var nameOf = function (its, fallback) {
-    if (its) { var m = getMuminByIts(its); return m ? m.name : String(its); }
-    return fallback || "";
-  };
-  return {
-    name: sec.name,
-    masoolName: nameOf(sec.masool_its, sec.masool_name),
-    masoolPhone: sec.masool_phone || "",
-    memberCount: getMuminCountForSector(sec.name),
-    subs: subs.map(function (sub) {
-      return {
-        name: sub.name,
-        musaidName: nameOf(sub.musaid_its, sub.musaid_name),
-        musaidPhone: sub.musaid_phone || "",
-        memberCount: getMuminCountForSubSector(sub.id),
-      };
-    }),
-  };
-}
+
+  function sectorPrintData(sec) {
+    var subs = getSubSectorsFor(sec.id);
+    var nameOf = function (its, fallback) {
+      if (its) { var m = getMuminByIts(its); return m ? m.name : String(its); }
+      return fallback || "";
+    };
+    var secName = norm(sec.name).toLowerCase();
+    var sectorHofs = muminData.filter(function (m) {
+      return !m.deleted_at && isHof(m) && norm(m.area_sector).toLowerCase() === secName;
+    });
+    var subIds = {};
+    subs.forEach(function (s) { subIds[String(s.id)] = true; });
+    return {
+      name: sec.name,
+      masoolName: nameOf(sec.masool_its, sec.masool_name),
+      masoolPhone: sec.masool_phone || "",
+      memberCount: getMuminCountForSector(sec.name),
+      hofs: sectorHofs.map(toRow).sort(byName),
+      unassignedHofs: sectorHofs.filter(function (m) {
+        return !m.sub_sector_id || !subIds[String(m.sub_sector_id)];
+      }).map(toRow).sort(byName),
+      subs: subs.map(function (sub) {
+        return {
+          name: sub.name,
+          musaidName: nameOf(sub.musaid_its, sub.musaid_name),
+          musaidPhone: sub.musaid_phone || "",
+          memberCount: getMuminCountForSubSector(sub.id),
+          hofs: sectorHofs.filter(function (m) { return String(m.sub_sector_id) === String(sub.id); }).map(toRow).sort(byName),
+        };
+      }),
+    };
+  }
+
   return (
     <div>
       <div className="page-hdr" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
@@ -41,9 +72,9 @@ function sectorPrintData(sec) {
           <div className="page-sub">Sectors, their Masool, sub-sectors and Musaid</div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-  {sectorsData.length > 0 && <button className="btn btn-ghost" onClick={function () { printSectorDetails(sectorsData.map(sectorPrintData), "All Sectors"); }}>🖨 Print All</button>}
-  {canEdit && <button className="btn btn-primary" onClick={function () { openSectorModal("add"); }}>+ New Sector</button>}
-</div>
+          {sectorsData.length > 0 && <button className="btn btn-ghost" onClick={function () { printMasoolHofDirectory(sectorsData.map(sectorPrintData), "All Sectors"); }}>🖨 Print All</button>}
+          {canEdit && <button className="btn btn-primary" onClick={function () { openSectorModal("add"); }}>+ New Sector</button>}
+        </div>
       </div>
 
       {loading ? <div className="loading"><Spinner /> Loading…</div> : sectorsData.length === 0 ? (
@@ -80,13 +111,11 @@ function sectorPrintData(sec) {
                       </span>
                     )}
                   </div>
-                  {canEdit && (
-                   <div style={{ display: "flex", gap: 6 }} onClick={function (e) { e.stopPropagation(); }}>
-  <button className="btn btn-ghost btn-sm" onClick={function () { printSectorDetails([sectorPrintData(sec)], sec.name + " — Sector Details"); }}>🖨 Print</button>
-  {canEdit && <button className="btn btn-ghost btn-sm" onClick={function () { openSectorModal("edit", sec); }}>Edit</button>}
-  {canDelete && <button className="btn btn-danger" onClick={function () { deleteSector(sec); }}>🗑</button>}
-</div>
-                  )}
+                  <div style={{ display: "flex", gap: 6 }} onClick={function (e) { e.stopPropagation(); }}>
+                    <button className="btn btn-ghost btn-sm" onClick={function () { printMasoolHofDirectory([sectorPrintData(sec)], sec.name + " — HOF Directory"); }}>🖨 Print</button>
+                    {canEdit && <button className="btn btn-ghost btn-sm" onClick={function () { openSectorModal("edit", sec); }}>Edit</button>}
+                    {canDelete && <button className="btn btn-danger" onClick={function () { deleteSector(sec); }}>🗑</button>}
+                  </div>
                 </div>
 
                 {expanded && (
