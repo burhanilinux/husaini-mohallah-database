@@ -74,8 +74,9 @@ export function printMasoolHofDirectory(sectors, title) {
         body += "<div class='sec-name'>" + esc(s.name) + "</div>";
         body += "<div class='sec-meta'>" + (s.hofs || []).length + " HOF" + ((s.hofs || []).length === 1 ? "" : "s") + " · " + (s.subs || []).length + " sub-sector" + ((s.subs || []).length === 1 ? "" : "s") + "</div>";
         body += "<div class='lead'><span class='role'>Masool</span><span class='nm'>" + esc(s.masoolName || "Not assigned") + "</span><span>" + esc(s.masoolPhone || "") + "</span></div>";
-        body += "<div class='blk-title'>All HOFs in " + esc(s.name) + "</div>" + hofTable(s.hofs || [], photoMap);
-        (s.subs || []).forEach(function (sub) {
+        if ((s.unassignedHofs || []).length) {
+          body += "<div class='blk-title'>HOFs directly under Masool (no sub-sector)</div>" + hofTable(s.unassignedHofs, photoMap);
+        }        (s.subs || []).forEach(function (sub) {
           body += "<div class='lead' style='margin-top:16px'><span class='role'>Musaid</span><span class='nm'>" + esc(sub.musaidName || "Not assigned") + "</span><span>" + esc(sub.musaidPhone || "") + "</span><span style='margin-left:auto;color:#555'>Sub-Sector: <strong>" + esc(sub.name) + "</strong></span></div>";
           body += hofTable(sub.hofs || [], photoMap);
         });
