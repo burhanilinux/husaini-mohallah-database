@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useAppContext } from "../context/AppContext.jsx";
 import { getMuminAge, toXLS } from "../lib/utils.js";
 import { usePhotoUrl } from "../lib/usePhotoUrl.js";
 import { getPhotoUrl } from "../lib/storage.js";
-import { sbGet } from "../lib/supabase.js";
 
 var STORAGE="husaini_saved_reports_v1";
 var FIELD_OPTIONS=[
@@ -123,17 +122,7 @@ function PhotoCell({url,name}){
 function normalizeColumns(value){var allowed=REPORT_COLUMNS.map(function(x){return x.key;});var list=Array.isArray(value)?value.filter(function(x){return allowed.indexOf(x)>=0;}):[];return list.length?list:DEFAULT_COLUMNS.slice();}
 function loadSaved(){try{return JSON.parse(window.localStorage.getItem(STORAGE)||"[]");}catch(e){return [];}}
 export function ReportBuilderPage(){
-  var ctx=useAppContext();
-  var [fullMuminData,setFullMuminData]=useState(null);
-  var [fullDataError,setFullDataError]=useState("");
-  useEffect(function(){
-    var cancelled=false;
-    sbGet("mumin_data","select=*&deleted_at=is.null&order=id.asc")
-      .then(function(rows){if(!cancelled)setFullMuminData(rows||[]);})
-      .catch(function(error){if(!cancelled)setFullDataError(error.message||"Unable to load full report data");});
-    return function(){cancelled=true;};
-  },[]);
-  var data=(fullMuminData||ctx.muminData||[]).filter(function(m){return !m.deleted_at;});
+  var ctx=useAppContext(),data=(ctx.muminData||[]).filter(function(m){return !m.deleted_at;});
   var [search,setSearch]=useState(""),[startAge,setStartAge]=useState(""),[endAge,setEndAge]=useState(""),[sector,setSector]=useState(""),[gender,setGender]=useState(""),[status,setStatus]=useState(""),[hofOnly,setHofOnly]=useState(false),[hasPhone,setHasPhone]=useState(false);
   var [saved,setSaved]=useState(function(){return loadSaved();}),[savedName,setSavedName]=useState("");
   var [template,setTemplate]=useState("detailed");
@@ -186,16 +175,30 @@ export function ReportBuilderPage(){
     if(hofOnly)filterBits.push("HOF only");
     if(hasPhone)filterBits.push("Has phone");
     var head=shownColumns.map(function(key){var col=REPORT_COLUMNS.find(function(x){return x.key===key;});return "<th>"+esc(col?col.label:key)+"</th>";}).join("");
-    var bodyRows=rows.map(function(m,i){return "<tr><td class='sr'>"+(i+1)+"</td>"+shownColumns.map(function(key){if(key==="photo"){var pu=photos[i];return "<td>"+(pu?"<img class='ph' src='"+esc(pu)+"' alt=''>":"<span class='ph e'>"+esc((m.name||"?").trim().charAt(0).toUpperCase())+"</span>")+"</td>";}var v=rowValue(m,key,rowCtx);return "<td>"+esc(v===""||v===null||v===undefined?"—":v)+"</td>";}).join("")+"</tr>";}).join("");
+    var NO_SECTOR="No Sector Assigned";
+    var groups={};
+    rows.forEach(function(m,i){var k=String(m.area_sector||"").trim()||NO_SECTOR;(groups[k]=groups[k]||[]).push({m:m,i:i});});
+    var sectorKeys=Object.keys(groups).sort(function(a,b){if(a===NO_SECTOR)return 1;if(b===NO_SECTOR)return -1;return a.localeCompare(b,undefined,{numeric:true});});
+    function cellHtml(m,key,i){
+      if(key==="photo"){var pu=photos[i];return "<td>"+(pu?"<img class='ph' src='"+esc(pu)+"' alt=''>":"<span class='ph e'>"+esc((m.name||"?").trim().charAt(0).toUpperCase())+"</span>")+"</td>";}
+      var v=rowValue(m,key,rowCtx);return "<td>"+esc(v===""||v===null||v===undefined?"—":v)+"</td>";
+    }
+    // One section per sector, each starting on a new page, serial numbers restart per sector.
+    var sections=sectorKeys.map(function(k){
+      var g=groups[k];
+      var trs=g.map(function(x,j){return "<tr><td class='sr'>"+(j+1)+"</td>"+shownColumns.map(function(key){return cellHtml(x.m,key,x.i);}).join("")+"</tr>";}).join("");
+      return "<section class='sec'><div class='sec-h'><span>Sector: "+esc(k)+"</span><span>"+g.length+" record"+(g.length===1?"":"s")+"</span></div><table><thead><tr><th>#</th>"+head+"</tr></thead><tbody>"+trs+"</tbody></table></section>";
+    }).join("");
     var css="@page{size:A4 "+(landscape?"landscape":"portrait")+";margin:10mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}body{margin:0;font-family:Arial,Helvetica,sans-serif;color:#111;background:#fff}"+
       "h1{font-size:18px;margin:0 0 2px}.sub{font-size:11px;color:#555;margin-bottom:6px}.meta{display:flex;justify-content:space-between;gap:12px;border-top:2px solid #b08a2e;border-bottom:1px solid #bbb;padding:6px 0;margin-bottom:8px;font-size:10px;color:#333}"+
       "table{width:100%;border-collapse:collapse;table-layout:auto;font-size:"+fontPx+"px}thead{display:table-header-group}tr{break-inside:avoid;page-break-inside:avoid}th,td{border:1px solid #aaa;padding:3px 4px;text-align:left;vertical-align:top;word-break:break-word}th{background:#eee;font-weight:700}td.sr{color:#666;text-align:right}.ph{width:9mm;height:11mm;object-fit:cover;border:1px solid #ccc;border-radius:2px;display:block}.ph.e{display:flex;align-items:center;justify-content:center;background:#f4f0e7;color:#9b7625;font-weight:700}"+
+      ".sec{break-after:page;page-break-after:always}.sec:last-of-type{break-after:auto;page-break-after:auto}.sec-h{display:flex;justify-content:space-between;background:#f4f0e7;border:1px solid #b08a2e;border-left:4px solid #b08a2e;padding:5px 8px;margin:0 0 4px;font-size:12px;font-weight:700}"+
       ".foot{margin-top:8px;font-size:9px;color:#666;display:flex;justify-content:space-between}@media screen{body{padding:16px}.tip{margin:0 0 12px;padding:8px 10px;background:#f4f1e6;border:1px solid #d9cfa8;font-size:12px}}@media print{.tip{display:none}}";
     var doc="<!doctype html><html><head><meta charset='utf-8'><title>"+esc(title)+" — Husaini Mohallah</title><style>"+css+"</style></head><body>"+
       "<div class='tip'>In the print dialog, choose <b>Save as PDF</b> as the destination.</div>"+
       "<h1>Husaini Mohallah Database</h1><div class='sub'>"+esc(title)+"</div>"+
-      "<div class='meta'><span>Records: <b>"+rows.length+"</b></span><span>"+esc(filterBits.length?filterBits.join(" · "):"No filters applied")+"</span><span>Generated: "+esc(new Date().toLocaleString())+"</span></div>"+
-      "<table><thead><tr><th>#</th>"+head+"</tr></thead><tbody>"+bodyRows+"</tbody></table>"+
+      "<div class='meta'><span>Records: <b>"+rows.length+"</b> · Sectors: <b>"+sectorKeys.length+"</b></span><span>"+esc(filterBits.length?filterBits.join(" · "):"No filters applied")+"</span><span>Generated: "+esc(new Date().toLocaleString())+"</span></div>"+
+      sections+
       "<div class='foot'><span>Husaini Mohallah Database · Confidential community record</span><span>"+n+" column"+(n===1?"":"s")+"</span></div>"+
       "<script>window.addEventListener('load',function(){setTimeout(function(){window.print()},300)});<\/script></body></html>";
     w.document.open();w.document.write(doc);w.document.close();
@@ -205,8 +208,6 @@ export function ReportBuilderPage(){
   function toggleColumn(key){setColumnError("");setColumns(function(prev){if(prev.indexOf(key)>=0){if(prev.length===1){setColumnError("Select at least one column.");return prev;}return prev.filter(function(x){return x!==key;});}return prev.concat(key);});}
   return <div>
     <div className="page-hdr"><div className="page-title">Advanced Report Builder</div><div className="page-sub">Build, save and export filtered Mumin reports.</div></div>
-    {fullMuminData===null&&!fullDataError&&<div className="muted" style={{padding:"8px 2px"}}>Loading full member data for report fields…</div>}
-    {fullDataError&&<div className="alert alert-error" style={{marginBottom:12}}>Full report data could not be loaded: {fullDataError}</div>}
     <div className="card"><div className="advanced-search-filters">
       <input className="input" placeholder="Search name / ITS, or enter multiple ITS separated by commas (e.g. 20309520, 30336904, 30336905)" value={search} onChange={function(e){setSearch(e.target.value);}}/>
       <input className="input" type="number" min="0" placeholder="Start Age" value={startAge} onChange={function(e){setStartAge(e.target.value);}}/>
