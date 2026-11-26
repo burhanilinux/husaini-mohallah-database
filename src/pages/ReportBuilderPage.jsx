@@ -145,12 +145,6 @@ export function ReportBuilderPage(){
   function removeReport(name){var next=saved.filter(function(x){return x.name!==name;});window.localStorage.setItem(STORAGE,JSON.stringify(next));setSaved(next);}
   function reset(){apply({});}
   function printReport(){ printElements(document.querySelector(".advanced-report-print-area"), "Advanced Report"); }
-    var body=document.body;
-    function clearPrintMode(){delete body.dataset.print;}
-    body.dataset.print="advanced-report";
-    window.addEventListener("afterprint",clearPrintMode,{once:true});
-    window.print();
-  }
   // Opens a clean, self-contained A4 document with the selected columns and
   // filtered rows, then triggers the print dialog (choose "Save as PDF").
   async function printPdf(){
