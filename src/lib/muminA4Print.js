@@ -1,4 +1,5 @@
 import { getMuminAge } from "./utils.js";
+import { printHtml } from "./printFrame.js";
 
 function esc(value) {
   return String(value == null ? "" : value)
@@ -30,15 +31,8 @@ function openA4(title, html, targetWindow) {
     "@media screen{body{background:#eee;padding:18px}.sheet{background:#fff;padding:12mm;box-shadow:0 2px 12px rgba(0,0,0,.12)}}",
   ].join("");
   var doc = "<!doctype html><html><head><meta charset='utf-8'><title>" + esc(title) + "</title><style>" + css + "</style></head><body>" + html + "<script>window.onload=function(){var images=Array.prototype.slice.call(document.images);Promise.all(images.map(function(img){if(img.complete)return Promise.resolve();return new Promise(function(resolve){img.onload=resolve;img.onerror=resolve;});})).then(function(){setTimeout(function(){window.print();},250);});};</script></body></html>";
-  var win = targetWindow || window.open("", "_blank");
-  if (!win) { alert("Please allow popups for printing."); return; }
-  if (targetWindow) {
-    win.document.open(); win.document.write(doc); win.document.close();
-  } else {
-    var url = URL.createObjectURL(new Blob([doc], { type: "text/html;charset=utf-8" }));
-    win.location.href = url;
-    setTimeout(function () { URL.revokeObjectURL(url); }, 15000);
-  }
+  printHtml(title, doc);          // in openA4 and openA5
+printHtml("Full Profile - " + (m.name || ""), doc);   // in printMuminFullProfile
 }
 
 export function printMuminA4(m, familyRecord, familyMembers, sectorInfo, photoUrl, targetWindow) {
@@ -313,15 +307,8 @@ h += "</div>";
   h += "<div class='footer'><span>Husaini Mohallah Database</span><span>Confidential — full community record</span><span>Printed: " + esc(new Date().toLocaleString()) + "</span></div></div>";
 
   var doc = "<!doctype html><html><head><meta charset='utf-8'><title>" + esc("Full Profile - " + (m.name || "")) + "</title><style>" + css + "</style></head><body>" + h + "<script>window.onload=function(){setTimeout(function(){window.print()},120)};</script></body></html>";
-  var win = targetWindow || window.open("", "_blank");
-  if (!win) { alert("Please allow popups for printing."); return; }
-  if (targetWindow) {
-    win.document.open(); win.document.write(doc); win.document.close();
-  } else {
-    var url = URL.createObjectURL(new Blob([doc], { type: "text/html;charset=utf-8" }));
-    win.location.href = url;
-    setTimeout(function () { URL.revokeObjectURL(url); }, 15000);
-  }
+  printHtml(title, doc);          // in openA4 and openA5
+printHtml("Full Profile - " + (m.name || ""), doc);   // in printMuminFullProfile
 }
 
 // ── A5 LANDSCAPE print (half-page, less paper wastage) ────────────
@@ -365,15 +352,8 @@ function openA5(title, html, targetWindow) {
     "@media screen{body{background:#eee;padding:14px}.sheet{background:#fff;padding:7mm;max-width:210mm;box-shadow:0 2px 12px rgba(0,0,0,.12)}}",
   ].join("");
   var doc = "<!doctype html><html><head><meta charset='utf-8'><title>" + esc(title) + "</title><style>" + css + "</style></head><body>" + html + "<script>window.onload=function(){var images=Array.prototype.slice.call(document.images);Promise.all(images.map(function(img){if(img.complete)return Promise.resolve();return new Promise(function(resolve){img.onload=resolve;img.onerror=resolve;});})).then(function(){setTimeout(function(){window.print();},250);});};</script></body></html>";
-  var win = targetWindow || window.open("", "_blank");
-  if (!win) { alert("Please allow popups for printing."); return; }
-  if (targetWindow) {
-    win.document.open(); win.document.write(doc); win.document.close();
-  } else {
-    var url = URL.createObjectURL(new Blob([doc], { type: "text/html;charset=utf-8" }));
-    win.location.href = url;
-    setTimeout(function () { URL.revokeObjectURL(url); }, 15000);
-  }
+printHtml(title, doc);          // in openA4 and openA5
+printHtml("Full Profile - " + (m.name || ""), doc);   // in printMuminFullProfile
 }
 
 export function printMuminA5(m, familyRecord, familyMembers, sectorInfo, photoUrl, targetWindow) {
