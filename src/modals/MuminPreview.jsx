@@ -117,26 +117,6 @@ export function MuminPreview() {
     })
     .catch(function () { alert("Unable to prepare family photos for printing. Please try again."); });
 }
-    function memberPhotoValue(member) {
-      var src = member && member.source_data || {};
-      return member.photo_url || member.photoUrl || member.profile_photo_url ||
-        member.profilePhotoUrl || member.photo_path || member.photoPath ||
-        member.avatar_url || member.avatarUrl ||
-        src.photo_url || src.Photo_URL || src.Photo_Url || src.Profile_Photo ||
-        src.Profile_Photo_URL || src.profile_photo_url || "";
-    }
-    Promise.all(familyMembers.map(function (member) {
-      return getPhotoUrl(memberPhotoValue(member));
-    })).then(function (urls) {
-      var printableMembers = familyMembers.map(function (member, index) {
-        return Object.assign({}, member, { photo_url: urls[index] || memberPhotoValue(member) });
-      });
-      printFn(printableMembers, printWindow);
-    }).catch(function () {
-      printWindow.close();
-      alert("Unable to prepare family photos for printing. Please try again.");
-    });
-  }
 
   return (
     <div className="preview-overlay" onClick={close}>
