@@ -66,10 +66,8 @@ function hofTable(hofs, photoMap) {
 // "directly under Masool" table are omitted.
 // Must be called directly from a click handler (opens the window synchronously).
 export function printMasoolHofDirectory(sectors, title) {
-  var win = window.open("", "_blank");
   if (!win) { alert("Please allow popups for printing."); return; }
   win.document.open();
-  win.document.write("<p style='font-family:Arial;padding:20px'>Preparing report with photos…</p>");
   win.document.close();
 
   var all = [];
@@ -112,10 +110,9 @@ export function printMasoolHofDirectory(sectors, title) {
       });
       var doc = "<!doctype html><html><head><meta charset='utf-8'><title>" + esc(title || "Sector HOF Directory") + "</title><style>" + CSS + "</style></head><body>" + body +
         "<script>window.onload=function(){var imgs=Array.prototype.slice.call(document.images);Promise.all(imgs.map(function(i){if(i.complete)return Promise.resolve();return new Promise(function(r){i.onload=r;i.onerror=r;});})).then(function(){setTimeout(function(){window.print();},250);});};<\/script></body></html>";
-      win.document.open(); win.document.write(doc); win.document.close();
+      printHtml(title || "Sector HOF Directory", doc);
     })
     .catch(function () {
-      try { win.close(); } catch (_e) {}
       alert("Unable to prepare photos for printing. Please try again.");
     });
 }
