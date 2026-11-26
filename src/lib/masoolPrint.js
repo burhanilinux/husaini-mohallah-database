@@ -66,7 +66,7 @@ function hofTable(hofs, photoMap) {
 // "directly under Masool" table are omitted.
 // Must be called directly from a click handler (opens the window synchronously).
 export function printMasoolHofDirectory(sectors, title) {
-obsolete undefined popup block  var all = [];
+  var all = [];
   sectors.forEach(function (s) {
     if (!s.hideMasool) {
       all = all.concat(s.unassignedHofs || []);
