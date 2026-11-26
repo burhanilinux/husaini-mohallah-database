@@ -219,3 +219,16 @@
     background: #fff !important;
   }
 }
+
+
+/* Keep the application shell out of native browser print and undo mobile table rules. */
+@media print {
+  .network-status, .mobile-menu-trigger, .mobile-nav-backdrop, .sb-mobile-header, .toast {
+    display: none !important;
+  }
+  html, body, #root { overflow: visible !important; }
+  table { display: table !important; overflow: visible !important; }
+  table thead { display: table-header-group !important; min-width: 0 !important; }
+  table tbody { display: table-row-group !important; min-width: 0 !important; }
+  .card:has(table) { overflow: visible !important; }
+}
