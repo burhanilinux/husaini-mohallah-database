@@ -3,6 +3,7 @@ import { useAppContext } from "../context/AppContext.jsx";
 import { getMuminAge, toXLS } from "../lib/utils.js";
 import { usePhotoUrl } from "../lib/usePhotoUrl.js";
 import { getPhotoUrl } from "../lib/storage.js";
+import { printHtml, printElements } from "../lib/printFrame.js";
 
 var STORAGE="husaini_saved_reports_v1";
 var FIELD_OPTIONS=[
@@ -143,7 +144,7 @@ export function ReportBuilderPage(){
   function saveReport(){var name=savedName.trim();if(!name){alert("Enter a report name.");return;}var next=saved.filter(function(x){return x.name.toLowerCase()!==name.toLowerCase();});next.unshift({name:name,filters:filters(),updatedAt:new Date().toISOString()});next=next.slice(0,20);window.localStorage.setItem(STORAGE,JSON.stringify(next));setSaved(next);setSavedName("");}
   function removeReport(name){var next=saved.filter(function(x){return x.name!==name;});window.localStorage.setItem(STORAGE,JSON.stringify(next));setSaved(next);}
   function reset(){apply({});}
-  function printReport(){
+  function printReport(){ printElements(document.querySelector(".advanced-report-print-area"), "Advanced Report"); }
     var body=document.body;
     function clearPrintMode(){delete body.dataset.print;}
     body.dataset.print="advanced-report";
@@ -154,13 +155,10 @@ export function ReportBuilderPage(){
   // filtered rows, then triggers the print dialog (choose "Save as PDF").
   async function printPdf(){
     if(!rows.length){alert("No records match the current filters.");return;}
-    var w=window.open("","_blank","width=1200,height=800");
-    if(!w){alert("Your browser blocked the print window. Allow pop-ups for this site and try again.");return;}
     var photos=[];
     if(columns.indexOf("photo")>=0){
-      w.document.open();w.document.write("<p style='font-family:Arial;padding:20px'>Preparing report with photos…</p>");w.document.close();
       try{photos=await Promise.all(rows.map(function(m){return m.photo_url?getPhotoUrl(m.photo_url):Promise.resolve(null);}));}
-      catch(e){try{w.close();}catch(_e){}alert("Unable to prepare photos for the PDF. Please try again.");return;}
+      catch(e){alert("Unable to prepare photos for the PDF. Please try again.");return;}
     }
     var n=shownColumns.length;
     var landscape=n>6;
@@ -201,7 +199,7 @@ export function ReportBuilderPage(){
       sections+
       "<div class='foot'><span>Husaini Mohallah Database · Confidential community record</span><span>"+n+" column"+(n===1?"":"s")+"</span></div>"+
       "<script>window.addEventListener('load',function(){setTimeout(function(){window.print()},300)});<\/script></body></html>";
-    w.document.open();w.document.write(doc);w.document.close();
+    printHtml(title+" — Husaini Mohallah",doc);
   }
   function exportExcel(){var exportData=data.slice();exportData._subSectors=ctx.subSectorsData||[];var out=rows.map(function(m){var item={};shownColumns.forEach(function(key){var col=REPORT_COLUMNS.find(function(x){return x.key===key;});if(col)item[col.label]=key==="photo"?(m.photo_url?"Yes":""):rowValue(m,key,exportData);});return item;});var headers=shownColumns.map(function(key){var col=REPORT_COLUMNS.find(function(x){return x.key===key;});return col?col.label:key;});toXLS(out,headers,"advanced_report");}
   function toggleAllFields(all){setColumnError("");setColumns(all?REPORT_COLUMNS.map(function(c){return c.key;}):DEFAULT_COLUMNS.slice());}
