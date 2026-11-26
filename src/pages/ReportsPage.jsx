@@ -1,5 +1,6 @@
 import { useAppContext } from "../context/AppContext.jsx";
 import { getMuminAge, sortFamilyMembers } from "../lib/utils.js";
+import { printElements } from "../lib/printFrame.js";
 
 function ext(m) { return m.source_data || {}; }
 function getVal(m, col, key) { return m[col] || ext(m)[key] || ""; }
@@ -37,7 +38,12 @@ export function ReportsPage() {
     { id: "activity_log", icon: "🕘", label: "Activity Log", desc: "History of system actions", data: activityLog.length + " entries" },
   ];
 
-  function printReport(r) { setPrintTarget(r); setTimeout(function () { window.print(); }, 300); }
+  function printReport(r) {
+    setPrintTarget(r);
+    setTimeout(function () {
+      printElements([document.getElementById("print-header"), document.getElementById("report-print-area")], "Husaini Mohallah — " + r.label);
+    }, 250);
+  }
 
   return (
     <div>
@@ -59,7 +65,7 @@ export function ReportsPage() {
         </div>
       </div>}
 
-      <div style={{ marginTop: 24 }}>
+      <div id="report-print-area" style={{ marginTop: 24 }}>
         {printTarget && printTarget.id === "mumin" && <table style={{ width: "100%", borderCollapse: "collapse" }}><thead><tr><th>ITS</th><th>Name</th><th>Age</th><th>Gender</th><th>Phone</th><th>Address</th><th>Sector</th><th>Masool</th><th>Status</th></tr></thead><tbody>{muminData.map(function (m) { var si = getSectorInfo(m); return <tr key={m.id}><td>{m.its_number}</td><td>{m.name}</td><td>{getMuminAge(m)}</td><td>{m.gender}</td><td>{m.phone}</td><td>{m.address}</td><td>{m.area_sector || "—"}</td><td>{si.masoolName || "—"}</td><td>{m.status}</td></tr>; })}</tbody></table>}
 
         {printTarget && printTarget.id === "families" && (function () { var groups = {}; muminData.forEach(function (m) { if (m.sabil_no && String(m.sabil_no).trim()) { var k = String(m.sabil_no).trim(); if (!groups[k]) groups[k] = []; groups[k].push(m); } }); return <table style={{ width: "100%", borderCollapse: "collapse" }}><thead><tr><th>Sabil No.</th><th>Members</th><th>Names</th></tr></thead><tbody>{Object.keys(groups).sort().map(function (k) { return <tr key={k}><td>{k}</td><td>{groups[k].length}</td><td>{sortFamilyMembers(groups[k]).map(function (m) { return m.name; }).join(", ")}</td></tr>; })}</tbody></table>; })()}
