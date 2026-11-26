@@ -108,10 +108,15 @@ export function MuminPreview() {
   function openSibling(member) { setMuminPreview(member); }
 
   function printWithFamilyPhotos(printFn) {
-    // Open synchronously from the click gesture; resolve private Storage paths
-    // before writing the print document into this tab.
-    var printWindow = window.open("", "_blank");
-    if (!printWindow) { alert("Please allow popups for printing."); return; }
+  function memberPhotoValue(member) { /* keep your existing body unchanged */ }
+  Promise.all(familyMembers.map(function (member) { return getPhotoUrl(memberPhotoValue(member)); }))
+    .then(function (urls) {
+      printFn(familyMembers.map(function (member, i) {
+        return Object.assign({}, member, { photo_url: urls[i] || memberPhotoValue(member) });
+      }));
+    })
+    .catch(function () { alert("Unable to prepare family photos for printing. Please try again."); });
+}
     function memberPhotoValue(member) {
       var src = member && member.source_data || {};
       return member.photo_url || member.photoUrl || member.profile_photo_url ||
