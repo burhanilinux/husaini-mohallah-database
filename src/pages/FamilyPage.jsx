@@ -99,7 +99,7 @@ function FamilyModal({ row, canEdit, busy, onClose, onAction }) {
 }
 
 function printFamily(row) {
-Family popup open  var body = row.members.map(function (m) { return "<tr><td>" + esc(m.its_number || m.its_id) + "</td><td>" + esc(m.name) + (String(m.its_id) === String(row.family.hof_its_id) ? " ★ HOF" : "") + "</td><td>" + esc(m.age || "—") + "</td><td>" + esc(m.gender || "—") + "</td><td>" + esc(m.area_sector || "—") + "</td></tr>"; }).join("");
+  var body = row.members.map(function (m) { return "<tr><td>" + esc(m.its_number || m.its_id) + "</td><td>" + esc(m.name) + (String(m.its_id) === String(row.family.hof_its_id) ? " ★ HOF" : "") + "</td><td>" + esc(m.age || "—") + "</td><td>" + esc(m.gender || "—") + "</td><td>" + esc(m.area_sector || "—") + "</td></tr>"; }).join("");
   printHtml("Family " + row.family.family_id, "<!doctype html><html><head><title>Family " + esc(row.family.family_id) + "</title><style>body{font-family:Arial,sans-serif;padding:28px;color:#222}h1{margin-bottom:4px}p{color:#666}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #ccc;padding:8px;text-align:left}th{background:#f3f3f3}@media print{button{display:none}}</style></head><body><h1>Family " + esc(row.family.family_id) + "</h1><p>HOF: " + esc(row.hof ? row.hof.name : "Not assigned") + " &nbsp; | &nbsp; Sabil: " + esc(row.family.sabil_no || "—") + " &nbsp; | &nbsp; Members: " + row.members.length + "</p><table><thead><tr><th>ITS</th><th>Name</th><th>Age</th><th>Gender</th><th>Sector</th></tr></thead><tbody>" + body + "</tbody></table><script>window.onload=function(){window.print();}</script></body></html>");
 }
 
