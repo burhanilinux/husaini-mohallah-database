@@ -3,6 +3,7 @@ import { useAppContext } from "../context/AppContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { sbDelete, sbGet, sbInsert, sbUpdate, logActivity } from "../lib/supabase.js";
 import { SurveyVisitEntry } from "./SurveyVisitEntry.jsx";
+import { printElements } from "../lib/printFrame.js";
 
 var QUESTION_TYPES = [
   { value: "text", label: "Short text" },
@@ -262,10 +263,7 @@ export function SurveyManagementPage() {
 
   function printReport() {
     if (!reportRows.length) return;
-    var body = document.body;
-    body.dataset.print = "survey";
-    window.addEventListener("afterprint", function () { delete body.dataset.print; }, { once: true });
-    window.print();
+    printElements(document.querySelector(".survey-report-section"), (selectedSurvey ? selectedSurvey.title : "Survey") + " — Report");
   }
 
   var counts = assignments.reduce(function (a, x) { a[x.status] = (a[x.status] || 0) + 1; return a; }, {});
