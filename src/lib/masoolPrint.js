@@ -1,4 +1,5 @@
 import { getPhotoUrl } from "./storage.js";
+import { printHtml } from "./printFrame.js";
 
 function esc(v) {
   return String(v == null ? "" : v)
