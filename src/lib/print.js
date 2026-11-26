@@ -1,4 +1,5 @@
 import { getMuminAge } from "./utils.js";
+import { printHtml } from "./printFrame.js";
 
 // ── Shared print stylesheet (used by every print popup) ───────────
 var PRINT_CSS = [
@@ -60,13 +61,8 @@ function esc(value) {
 // ── Popup opener (Blob URL — avoids the document.write CSS-as-text bug) ──
 function openPrint(title, bodyHtml) {
   var fullHtml = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>" + esc(title) +
-    "</title><style>" + PRINT_CSS + "</style></head><body>" + bodyHtml +
-    "<scr" + "ipt>window.onload=function(){window.print();}<" + "/scr" + "ipt></body></html>";
-  var blob = new Blob([fullHtml], { type: "text/html;charset=utf-8" });
-  var url  = URL.createObjectURL(blob);
-  var w    = window.open(url, "_blank");
-  if (!w) { alert("Please allow popups for this site to enable printing."); return; }
-  setTimeout(function () { URL.revokeObjectURL(url); }, 15000);
+    "</title><style>" + PRINT_CSS + "</style></head><body>" + bodyHtml + "</body></html>";
+  printHtml(title, fullHtml);
 }
 
 // ── Individual Mumin record ────────────────────────────────────────
