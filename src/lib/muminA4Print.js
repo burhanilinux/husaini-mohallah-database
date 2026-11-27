@@ -1,3 +1,4 @@
+import { remarksSectionHtml, REMARKS_CSS } from "./notes.js";
 import { getMuminAge } from "./utils.js";
 import { printHtml } from "./printFrame.js";
 
@@ -30,11 +31,11 @@ function openA4(title, html, targetWindow) {
     ".no-print{display:none!important}",
     "@media screen{body{background:#eee;padding:18px}.sheet{background:#fff;padding:12mm;box-shadow:0 2px 12px rgba(0,0,0,.12)}}",
   ].join("");
-  var doc = "<!doctype html><html><head><meta charset='utf-8'><title>" + esc(title) + "</title><style>" + css + "</style></head><body>" + html + "<script>window.onload=function(){var images=Array.prototype.slice.call(document.images);Promise.all(images.map(function(img){if(img.complete)return Promise.resolve();return new Promise(function(resolve){img.onload=resolve;img.onerror=resolve;});})).then(function(){setTimeout(function(){window.print();},250);});};</script></body></html>";
+  var doc = "<!doctype html><html><head><meta charset='utf-8'><title>" + esc(title) + "</title><style>" + css + REMARKS_CSS + "</style></head><body>" + html + "<script>window.onload=function(){var images=Array.prototype.slice.call(document.images);Promise.all(images.map(function(img){if(img.complete)return Promise.resolve();return new Promise(function(resolve){img.onload=resolve;img.onerror=resolve;});})).then(function(){setTimeout(function(){window.print();},250);});};</script></body></html>";
   printHtml(title, doc);
 }
 
-export function printMuminA4(m, familyRecord, familyMembers, sectorInfo, photoUrl, targetWindow) {
+export function printMuminA4(m, familyRecord, familyMembers, sectorInfo, photoUrl, targetWindow, notes) {
   var today = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
   var age = getMuminAge(m);
   var initial = esc((m.name || "?").trim().charAt(0).toUpperCase());
@@ -84,9 +85,11 @@ export function printMuminA4(m, familyRecord, familyMembers, sectorInfo, photoUr
   }
   h += "</div>";
 
+  h += remarksSectionHtml(notes);
   if (warnings.length) {
     h += "<div class='section'><div class='section-title'>Data Quality</div><div class='quality'>" + warnings.map(esc).join(" &nbsp;•&nbsp; ") + "</div></div>";
   }
+  h += remarksSectionHtml(notes);
   h += "<div class='footer'><span>Husaini Mohallah Database</span><span>Confidential community record</span><span>Printed: " + esc(new Date().toLocaleString()) + "</span></div></div>";
   openA4("Mumin Profile - " + (m.name || ""), h, targetWindow);
 }
@@ -194,7 +197,7 @@ function manualFallbackValue(m, sourceKey) {
   return Object.prototype.hasOwnProperty.call(map, sourceKey) ? map[sourceKey] : "";
 }
 
-export function printMuminFullProfile(m, familyRecord, familyMembers, sectorInfo, targetWindow) {
+export function printMuminFullProfile(m, familyRecord, familyMembers, sectorInfo, targetWindow, notes) {
   var today = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
   var src = m.source_data || {};
   var hasSource = !!m.source_data;
@@ -305,7 +308,7 @@ h += "</div>";
 
   h += "<div class='footer'><span>Husaini Mohallah Database</span><span>Confidential — full community record</span><span>Printed: " + esc(new Date().toLocaleString()) + "</span></div></div>";
 
-  var doc = "<!doctype html><html><head><meta charset='utf-8'><title>" + esc("Full Profile - " + (m.name || "")) + "</title><style>" + css + "</style></head><body>" + h + "<script>window.onload=function(){setTimeout(function(){window.print()},120)};</script></body></html>";
+  var doc = "<!doctype html><html><head><meta charset='utf-8'><title>" + esc("Full Profile - " + (m.name || "")) + "</title><style>" + css + REMARKS_CSS + "</style></head><body>" + h + "<script>window.onload=function(){setTimeout(function(){window.print()},120)};</script></body></html>";
   printHtml("Full Profile - " + (m.name || ""), doc);
 }
 
@@ -349,11 +352,11 @@ function openA5(title, html, targetWindow) {
     ".footer{margin-top:5px;padding-top:3px;border-top:1px solid #ddd;display:flex;justify-content:space-between;gap:6px;font-size:5.5pt;color:#888}",
     "@media screen{body{background:#eee;padding:14px}.sheet{background:#fff;padding:7mm;max-width:210mm;box-shadow:0 2px 12px rgba(0,0,0,.12)}}",
   ].join("");
-  var doc = "<!doctype html><html><head><meta charset='utf-8'><title>" + esc(title) + "</title><style>" + css + "</style></head><body>" + html + "<script>window.onload=function(){var images=Array.prototype.slice.call(document.images);Promise.all(images.map(function(img){if(img.complete)return Promise.resolve();return new Promise(function(resolve){img.onload=resolve;img.onerror=resolve;});})).then(function(){setTimeout(function(){window.print();},250);});};</script></body></html>";
+  var doc = "<!doctype html><html><head><meta charset='utf-8'><title>" + esc(title) + "</title><style>" + css + REMARKS_CSS + "</style></head><body>" + html + "<script>window.onload=function(){var images=Array.prototype.slice.call(document.images);Promise.all(images.map(function(img){if(img.complete)return Promise.resolve();return new Promise(function(resolve){img.onload=resolve;img.onerror=resolve;});})).then(function(){setTimeout(function(){window.print();},250);});};</script></body></html>";
 printHtml(title, doc);
 }
 
-export function printMuminA5(m, familyRecord, familyMembers, sectorInfo, photoUrl, targetWindow) {
+export function printMuminA5(m, familyRecord, familyMembers, sectorInfo, photoUrl, targetWindow, notes) {
   var today = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
   var age = getMuminAge(m);
   var initial = esc((m.name || "?").trim().charAt(0).toUpperCase());
@@ -424,6 +427,7 @@ export function printMuminA5(m, familyRecord, familyMembers, sectorInfo, photoUr
   if (warnings.length) {
     h += "<div class='section'><div class='section-title'>Data Quality</div><div class='quality'>" + warnings.map(esc).join(" &nbsp;•&nbsp; ") + "</div></div>";
   }
+  h += remarksSectionHtml(notes);
   h += "</div>"; // col-right
 
   h += "</div>"; // cols
