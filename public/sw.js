@@ -1,4 +1,4 @@
-const CACHE_NAME = "husaini-mohallah-v9";
+const CACHE_NAME = "husaini-mohallah-v10";
 const OFFLINE_URL = "/";
 
 const APP_SHELL = [
