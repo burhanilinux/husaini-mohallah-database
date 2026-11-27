@@ -40,9 +40,49 @@ export function closePrintFrame() {
   if (keyHandler) { document.removeEventListener("keydown", keyHandler); keyHandler = null; }
 }
 
+// iOS standalone PWAs do not reliably expose the native print sheet from
+// window.print(). Open the same report as a normal Safari document instead.
+function isIOSStandalone() {
+  var ua = navigator.userAgent || "";
+  var ios = /iPad|iPhone|iPod/.test(ua) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  var standalone = navigator.standalone === true;
+  try { standalone = standalone || window.matchMedia("(display-mode: standalone)").matches; } catch (_e) {}
+  return ios && standalone;
+}
+
+function openIOSPrintDocument() {
+  if (!overlayEl || !overlayEl.__printHtml) {
+    alert("The print document is no longer available. Close this preview and try again.");
+    return;
+  }
+  var source = new DOMParser().parseFromString(overlayEl.__printHtml, "text/html");
+  Array.prototype.slice.call(source.querySelectorAll("script")).forEach(function (script) {
+    script.parentNode.removeChild(script);
+  });
+  source.title = overlayEl.__printTitle || "Husaini Mohallah Print";
+  var toolbar = source.createElement("div");
+  toolbar.className = "ios-print-toolbar";
+  toolbar.innerHTML = "<button type='button' onclick='window.print()'>Print / Save PDF</button>" +
+    "<span>Use this page's Print button, or Safari Share → Print.</span>";
+  source.body.insertBefore(toolbar, source.body.firstChild);
+  var style = source.createElement("style");
+  style.textContent = ".ios-print-toolbar{position:sticky;top:0;z-index:99999;display:flex;align-items:center;gap:12px;padding:12px 14px;background:#17212b;color:#fff;font:14px -apple-system,BlinkMacSystemFont,sans-serif;box-shadow:0 2px 8px #0002}.ios-print-toolbar button{border:0;border-radius:8px;background:#c9a84c;color:#171717;font-weight:700;padding:11px 15px;font-size:14px}.ios-print-toolbar span{font-size:12px;line-height:1.35}@media print{.ios-print-toolbar{display:none!important}}";
+  source.head.appendChild(style);
+  var blob = new Blob(["<!doctype html>\n" + source.documentElement.outerHTML], { type: "text/html;charset=utf-8" });
+  var url = URL.createObjectURL(blob);
+  var opened = window.open(url, "_blank");
+  if (!opened) window.location.href = url;
+  setTimeout(function () { URL.revokeObjectURL(url); }, 10 * 60 * 1000);
+}
+
 function printNow() {
+  if (isIOSStandalone()) {
+    openIOSPrintDocument();
+    return;
+  }
   try { window.focus(); window.print(); }
-  catch (_e) { alert("Printing isn't available here. Use your browser menu → Print / Share."); }
+  catch (_e) { alert("Printing isn't available here. Open this report in Safari and use Share → Print."); }
 }
 
 export function printHtml(title, html, options) {
@@ -84,6 +124,9 @@ export function printHtml(title, html, options) {
   keyHandler = function (e) { if (e.key === "Escape") closePrintFrame(); };
   document.addEventListener("keydown", keyHandler);
   overlayEl = overlay;
+  // Keep the original, complete document for the iOS Safari print fallback.
+  overlay.__printHtml = String(html);
+  overlay.__printTitle = title || "Husaini Mohallah Print";
 
   if (!opts.manual && isDesktopPointer()) setTimeout(printNow, 350);
 }
