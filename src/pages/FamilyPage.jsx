@@ -5,6 +5,8 @@ import { createFamily, updateFamily, moveMember, mergeFamilies, splitFamily } fr
 import { Spinner } from "../components/Shared.jsx";
 import { sortFamilyMembers } from "../lib/utils.js";
 import { printHtml } from "../lib/printFrame.js";
+import { useRecordNotes, printableNotes, remarksSectionHtml, REMARKS_CSS } from "../lib/notes.js";
+import { NotesPanel } from "../components/NotesPanel.jsx";
 
 export function FamilyPage() {
   var ctx = useAppContext();
@@ -87,20 +89,30 @@ export function FamilyPage() {
 function FamilyModal({ row, canEdit, busy, onClose, onAction }) {
   var [hof, setHof] = useState(row.family.hof_its_id || "");
   var [sabil, setSabil] = useState(row.family.sabil_no || "");
+  var notesApi = useRecordNotes("family", row.family.family_id, !!canEdit);
+  var [includeNotes, setIncludeNotes] = useState(false);
+  var printableCount = notesApi.notes.filter(function (n) { return n.is_printable; }).length;
   return <div className="modal-overlay" onClick={onClose}><div className="modal" onClick={function (e) { e.stopPropagation(); }} style={{ maxWidth: 900, width: "calc(100% - 32px)" }}>
     <div className="modal-hdr"><div className="modal-title">Family {row.family.family_id}</div><button className="modal-close" onClick={onClose}>×</button></div>
     <div style={{ padding: 20 }}>
       <div className="form-grid" style={{ marginBottom: 18 }}><label>Sabil No<input value={sabil} disabled={!canEdit} onChange={function (e) { setSabil(e.target.value); }} /></label><label>Head of Family ITS<input value={hof} disabled={!canEdit} placeholder="ITS number" onChange={function (e) { setHof(e.target.value); }} /></label></div>
-      {canEdit && <div style={{ display: "flex", gap: 8, marginBottom: 18, flexWrap: "wrap" }}><button className="btn btn-primary btn-sm" disabled={busy} onClick={function () { onAction({ type: "save", hof: hof, sabil: sabil }); }}>Save Family</button><button className="btn btn-ghost btn-sm" onClick={function () { onAction({ type: "move" }); }}>Move Member</button><button className="btn btn-ghost btn-sm" onClick={function () { onAction({ type: "split" }); }}>Split Family</button><button className="btn btn-ghost btn-sm" onClick={function () { onAction({ type: "merge" }); }}>Merge Family</button><button className="btn btn-ghost btn-sm" onClick={function () { printFamily(row); }}>Print</button><button className="btn btn-ghost btn-sm" onClick={function () { exportFamily(row); }}>Export CSV</button></div>}
-      {!canEdit && <div style={{ marginBottom: 14 }}><button className="btn btn-ghost btn-sm" onClick={function () { printFamily(row); }}>Print Family</button><button className="btn btn-ghost btn-sm" style={{ marginLeft: 8 }} onClick={function () { exportFamily(row); }}>Export CSV</button></div>}
+      {canEdit && <div style={{ display: "flex", gap: 8, marginBottom: 18, flexWrap: "wrap" }}><button className="btn btn-primary btn-sm" disabled={busy} onClick={function () { onAction({ type: "save", hof: hof, sabil: sabil }); }}>Save Family</button><button className="btn btn-ghost btn-sm" onClick={function () { onAction({ type: "move" }); }}>Move Member</button><button className="btn btn-ghost btn-sm" onClick={function () { onAction({ type: "split" }); }}>Split Family</button><button className="btn btn-ghost btn-sm" onClick={function () { onAction({ type: "merge" }); }}>Merge Family</button><button className="btn btn-ghost btn-sm" onClick={function () { printFamily(row, printableNotes(notesApi.notes, includeNotes)); }}>Print</button><button className="btn btn-ghost btn-sm" onClick={function () { exportFamily(row); }}>Export CSV</button></div>}
+      {!canEdit && <div style={{ marginBottom: 14 }}><button className="btn btn-ghost btn-sm" onClick={function () { printFamily(row, printableNotes(notesApi.notes, includeNotes)); }}>Print Family</button><button className="btn btn-ghost btn-sm" style={{ marginLeft: 8 }} onClick={function () { exportFamily(row); }}>Export CSV</button></div>}
+      {canEdit && <NotesPanel api={notesApi} userEmail={ctx.getUserEmail()} canDelete={ctx.canDelete} title="Family Notes" />}
+      {canEdit && (
+        <label style={{ textTransform: "none", letterSpacing: 0, fontSize: 12, color: "#9ca3af", display: "flex", alignItems: "center", gap: 6, marginTop: 10, cursor: printableCount ? "pointer" : "default", opacity: printableCount ? 1 : 0.5 }}>
+          <input type="checkbox" style={{ width: "auto", minWidth: 13 }} disabled={!printableCount} checked={includeNotes} onChange={function (e) { setIncludeNotes(e.target.checked); }} />
+          Include printable notes on print
+        </label>
+      )}
       <table><thead><tr><th>ITS</th><th>Name</th><th>Relation</th><th>Age</th><th>Gender</th><th>Sector</th></tr></thead><tbody>{row.members.map(function (m) { return <tr key={m.id}><td>{m.its_number}</td><td style={{ fontWeight: String(m.its_id) === String(row.family.hof_its_id) ? 600 : 400 }}>{m.name}{String(m.its_id) === String(row.family.hof_its_id) ? " ★ HOF" : ""}</td><td>{m.spouse_its_id ? "Spouse linked" : "—"}</td><td>{m.age || "—"}</td><td>{m.gender || "—"}</td><td>{m.area_sector || "—"}</td></tr>; })}</tbody></table>
     </div>
   </div></div>;
 }
 
-function printFamily(row) {
+function printFamily(row, notes) {
   var body = row.members.map(function (m) { return "<tr><td>" + esc(m.its_number || m.its_id) + "</td><td>" + esc(m.name) + (String(m.its_id) === String(row.family.hof_its_id) ? " ★ HOF" : "") + "</td><td>" + esc(m.age || "—") + "</td><td>" + esc(m.gender || "—") + "</td><td>" + esc(m.area_sector || "—") + "</td></tr>"; }).join("");
-  printHtml("Family " + row.family.family_id, "<!doctype html><html><head><title>Family " + esc(row.family.family_id) + "</title><style>body{font-family:Arial,sans-serif;padding:28px;color:#222}h1{margin-bottom:4px}p{color:#666}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #ccc;padding:8px;text-align:left}th{background:#f3f3f3}@media print{button{display:none}}</style></head><body><h1>Family " + esc(row.family.family_id) + "</h1><p>HOF: " + esc(row.hof ? row.hof.name : "Not assigned") + " &nbsp; | &nbsp; Sabil: " + esc(row.family.sabil_no || "—") + " &nbsp; | &nbsp; Members: " + row.members.length + "</p><table><thead><tr><th>ITS</th><th>Name</th><th>Age</th><th>Gender</th><th>Sector</th></tr></thead><tbody>" + body + "</tbody></table><script>window.onload=function(){window.print();}</script></body></html>");
+  printHtml("Family " + row.family.family_id, "<!doctype html><html><head><title>Family " + esc(row.family.family_id) + "</title><style>body{font-family:Arial,sans-serif;padding:28px;color:#222}h1{margin-bottom:4px}p{color:#666}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #ccc;padding:8px;text-align:left}th{background:#f3f3f3}@media print{button{display:none}}" + REMARKS_CSS + "</style></head><body><h1>Family " + esc(row.family.family_id) + "</h1><p>HOF: " + esc(row.hof ? row.hof.name : "Not assigned") + " &nbsp; | &nbsp; Sabil: " + esc(row.family.sabil_no || "—") + " &nbsp; | &nbsp; Members: " + row.members.length + "</p><table><thead><tr><th>ITS</th><th>Name</th><th>Age</th><th>Gender</th><th>Sector</th></tr></thead><tbody>" + body + "</tbody></table>" + remarksSectionHtml(notes) + "<script>window.onload=function(){window.print();}</script></body></html>");
 }
 
 function exportFamily(row) {
