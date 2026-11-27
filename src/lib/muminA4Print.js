@@ -85,7 +85,6 @@ export function printMuminA4(m, familyRecord, familyMembers, sectorInfo, photoUr
   }
   h += "</div>";
 
-  h += remarksSectionHtml(notes);
   if (warnings.length) {
     h += "<div class='section'><div class='section-title'>Data Quality</div><div class='quality'>" + warnings.map(esc).join(" &nbsp;•&nbsp; ") + "</div></div>";
   }
@@ -306,6 +305,7 @@ h += "</div>";
   }
   h += "</div>";
 
+  h += remarksSectionHtml(notes);
   h += "<div class='footer'><span>Husaini Mohallah Database</span><span>Confidential — full community record</span><span>Printed: " + esc(new Date().toLocaleString()) + "</span></div></div>";
 
   var doc = "<!doctype html><html><head><meta charset='utf-8'><title>" + esc("Full Profile - " + (m.name || "")) + "</title><style>" + css + REMARKS_CSS + "</style></head><body>" + h + "<script>window.onload=function(){setTimeout(function(){window.print()},120)};</script></body></html>";
