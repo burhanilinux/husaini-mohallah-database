@@ -8,6 +8,8 @@ import { getMuminAge, sortFamilyMembers } from "../lib/utils.js";
 import { getExtendedProfile } from "../lib/muminProfile.js";
 import { printIdCard } from "../lib/print.js";
 import { printMuminA4, printMuminA5, printMuminFullProfile } from "../lib/muminA4Print.js";
+import { useRecordNotes, printableNotes } from "../lib/notes.js";
+import { NotesPanel } from "../components/NotesPanel.jsx";
 
 export function MuminPreview() {
   var ctx = useAppContext();
@@ -18,6 +20,7 @@ export function MuminPreview() {
   var [familyRecord, setFamilyRecord] = useState(null);
   var [fullRecord, setFullRecord] = useState(null);
   var [showFullProfile, setShowFullProfile] = useState(false);
+  var [includeNotes, setIncludeNotes] = useState(false);
 
   useEffect(function () {
     var cancelled = false;
@@ -56,10 +59,13 @@ export function MuminPreview() {
     return function () { cancelled = true; };
   }, [muminPreview]);
 
-  useEffect(function () { setShowFullProfile(false); }, [muminPreview && muminPreview.id]);
+  useEffect(function () { setShowFullProfile(false); setIncludeNotes(false); }, [muminPreview && muminPreview.id]);
 
   var m = fullRecord && muminPreview && String(fullRecord.id) === String(muminPreview.id) ? fullRecord : muminPreview;
   var signedPhoto = usePhotoUrl(m && m.photo_url);
+  var notesApi = useRecordNotes("mumin", m && m.id, !!canEdit);
+  var printNotes = printableNotes(notesApi.notes, includeNotes);
+  var printableCount = notesApi.notes.filter(function (n) { return n.is_printable; }).length;
 
   if (!muminPreview) return null;
   // Print windows open on a different origin, so give them the signed URL.
@@ -210,12 +216,19 @@ export function MuminPreview() {
             </div>
           )}
 
+          {canEdit && <NotesPanel api={notesApi} userEmail={ctx.getUserEmail()} canDelete={ctx.canDelete} />}
+          {canEdit && (
+            <label style={{ textTransform: "none", letterSpacing: 0, fontSize: 12, color: "#9ca3af", display: "flex", alignItems: "center", gap: 6, marginTop: 10, cursor: printableCount ? "pointer" : "default", opacity: printableCount ? 1 : 0.5 }}>
+              <input type="checkbox" style={{ width: "auto", minWidth: 13 }} disabled={!printableCount} checked={includeNotes} onChange={function (e) { setIncludeNotes(e.target.checked); }} />
+              Include printable notes on A4 / A5 / Full Profile ({printableCount})
+            </label>
+          )}
           <div className="preview-actions" style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
             {canEdit && <button className="btn btn-primary" onClick={function () { setMuminPreview(null); openModal("mumin", "edit", m); }}>✎ Edit Record</button>}
             <button className="btn btn-ghost" onClick={function () { printIdCard(printable, sabilFamily, sectorInfo); }}>🪪 ID Card</button>
-            <button className="btn btn-primary" onClick={function () { printWithFamilyPhotos(function (members) { printMuminA4(printable, familyRecord, members, sectorInfo); }); }}>🖨 Print A4</button>
-            <button className="btn btn-ghost" onClick={function () { printWithFamilyPhotos(function (members) { printMuminA5(printable, familyRecord, members, sectorInfo); }); }}>🖨 Print A5</button>
-            <button className="btn btn-ghost" onClick={function () { printWithFamilyPhotos(function (members) { printMuminFullProfile(printable, familyRecord, members, sectorInfo); }); }}>📋 Print Full Profile</button>
+            <button className="btn btn-primary" onClick={function () { printWithFamilyPhotos(function (members) { printMuminA4(printable, familyRecord, members, sectorInfo, undefined, undefined, printNotes); }); }}>🖨 Print A4</button>
+            <button className="btn btn-ghost" onClick={function () { printWithFamilyPhotos(function (members) { printMuminA5(printable, familyRecord, members, sectorInfo, undefined, undefined, printNotes); }); }}>🖨 Print A5</button>
+            <button className="btn btn-ghost" onClick={function () { printWithFamilyPhotos(function (members) { printMuminFullProfile(printable, familyRecord, members, sectorInfo, undefined, printNotes); }); }}>📋 Print Full Profile</button>
             {m.family_id && <button className="btn btn-ghost" onClick={function () { close(); setPage("families"); }}>🏠 Open Families</button>}
             <button className="btn btn-ghost" onClick={close}>Close</button>
           </div>

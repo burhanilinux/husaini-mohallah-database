@@ -89,8 +89,10 @@ export async function mergeFamilies(targetFamilyId, sourceFamilyId) {
   try {
     if (originalHof) await updateFamily(source, { hof_its_id: null });
     if (members.length) await sbUpdateWhere("mumin_data", "family_id=eq." + source, { family_id: target });
+    await sbUpdateWhere("record_notes", "family_id=eq." + source, { family_id: target });
     await sbDeleteWhere("families", "family_id=eq." + source);
   } catch (e) {
+    try { await sbUpdateWhere("record_notes", "family_id=eq." + target, { family_id: source }); } catch (_rollbackNotesError) {}
     try {
       if (members.length) await sbUpdateWhere("mumin_data", "its_id=in.(" + members.map(function (m) { return m.its_id; }).join(",") + ")", { family_id: source });
     } catch (_rollbackMembersError) {}
