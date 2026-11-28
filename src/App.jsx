@@ -26,7 +26,6 @@ import { SubSectorModal } from "./modals/SubSectorModal.jsx";
 import { TrashModal } from "./modals/TrashModal.jsx";
 import { MuminPreview } from "./modals/MuminPreview.jsx";
 import { Lightbox } from "./modals/Lightbox.jsx";
-const FamilyPage = lazy(() => import("./pages/FamilyPage.jsx").then((module) => ({ default: module.FamilyPage })));
 const SurveyManagementPage = lazy(() => import("./pages/SurveyManagementPage.jsx").then((module) => ({ default: module.SurveyManagementPage })));
 const UmbPage = lazy(() => import("./pages/UmbPage.jsx").then((module) => ({ default: module.UmbPage })));
 
@@ -44,7 +43,6 @@ function ActivePage() {
     case "users": return <UsersPage />;
     case "mohallah-survey": return <MohallahSurveyPage />;
     case "vajebaat": return <VajebaatPage />;
-    case "families": return <FamilyPage />;
     case "survey-management": return <SurveyManagementPage />;
     case "umb": return <UmbPage />;
     default: return <Dashboard />;

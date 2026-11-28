@@ -15,7 +15,6 @@ export function MuminPreview() {
   var ctx = useAppContext();
   var muminPreview = ctx.muminPreview, setMuminPreview = ctx.setMuminPreview;
   var canEdit = ctx.canEdit, openModal = ctx.openModal;
-  var setPage = ctx.setPage;
   var getFamilyBySabil = ctx.getFamilyBySabil, getSectorInfo = ctx.getSectorInfo;
   var [familyRecord, setFamilyRecord] = useState(null);
   var [fullRecord, setFullRecord] = useState(null);
@@ -229,8 +228,7 @@ export function MuminPreview() {
             <button className="btn btn-primary" onClick={function () { printWithFamilyPhotos(function (members) { printMuminA4(printable, familyRecord, members, sectorInfo, undefined, undefined, printNotes); }); }}>🖨 Print A4</button>
             <button className="btn btn-ghost" onClick={function () { printWithFamilyPhotos(function (members) { printMuminA5(printable, familyRecord, members, sectorInfo, undefined, undefined, printNotes); }); }}>🖨 Print A5</button>
             <button className="btn btn-ghost" onClick={function () { printWithFamilyPhotos(function (members) { printMuminFullProfile(printable, familyRecord, members, sectorInfo, undefined, printNotes); }); }}>📋 Print Full Profile</button>
-            {m.family_id && <button className="btn btn-ghost" onClick={function () { close(); setPage("families"); }}>🏠 Open Families</button>}
-            <button className="btn btn-ghost" onClick={close}>Close</button>
+                        <button className="btn btn-ghost" onClick={close}>Close</button>
           </div>
         </div>
       </div>

@@ -14,7 +14,7 @@ export function Sidebar(){
   function backup(){downloadFullBackup();setMobileOpen(false);} function restore(){document.getElementById("restore-file-input")?.click();setMobileOpen(false);}
   var navItems=[
     {id:"dashboard",icon:"◈",label:"Dashboard"},{id:"mohallah-survey",icon:"📋",label:"Mohallah Survey (Legacy)"},
-    {id:"mumin",icon:"👤",label:"Mumin Data"},{id:"families",icon:"🏠",label:"Families & HOF"},{id:"umb",icon:"🗂",label:"Umoor Marafiq Burhaniyah"},{id:"masool",icon:"🧭",label:"Masool"},{id:"vajebaat",icon:"₹",label:"Vajebaat"},
+    {id:"mumin",icon:"👤",label:"Mumin Data"},{id:"umb",icon:"🗂",label:"Umoor Marafiq Burhaniyah"},{id:"masool",icon:"🧭",label:"Masool"},{id:"vajebaat",icon:"₹",label:"Vajebaat"},
     {id:"data-quality",icon:"✓",label:"Data Quality"},
     {id:"reports",icon:"🖨",label:"Reports"},{id:"report-builder",icon:"🧰",label:"Advanced Report Builder"},{id:"survey-management",icon:"📝",label:"Survey Management"},{id:"activity",icon:"🕘",label:"Activity Log"},{id:"users",icon:"👥",label:"Users"}];
   var canEdit=!!ctx.canEdit,isAdmin=!!ctx.isAdmin;
