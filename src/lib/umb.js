@@ -16,8 +16,9 @@ export function listDocumentTypes() {
   return sbGet("umb_document_types", "order=sort_order.asc,name.asc");
 }
 
-export function listDocuments() {
-  return sbGet("umb_documents", "select=*&order=created_at.desc");
+// Documents are only ever fetched for the one person who has been selected.
+export function listDocumentsForPerson(muminId) {
+  return sbGet("umb_documents", "mumin_id=eq." + encodeURIComponent(muminId) + "&select=*&order=created_at.desc");
 }
 
 export async function addDocumentType(name, isRequired, userEmail) {
