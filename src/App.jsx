@@ -13,7 +13,6 @@ const IEModal = lazy(() => import("./modals/IEModal.jsx").then((module) => ({ de
 const Dashboard = lazy(() => import("./pages/Dashboard.jsx").then((module) => ({ default: module.Dashboard })));
 const MuminPage = lazy(() => import("./pages/MuminPage.jsx").then((module) => ({ default: module.MuminPage })));
 const DataQualityPage = lazy(() => import("./pages/DataQualityPage.jsx").then((module) => ({ default: module.DataQualityPage })));
-const AdvancedSearchPage = lazy(() => import("./pages/AdvancedSearchPage.jsx").then((module) => ({ default: module.AdvancedSearchPage })));
 const MasoolPage = lazy(() => import("./pages/MasoolPage.jsx").then((module) => ({ default: module.MasoolPage })));
 const ReportsPage = lazy(() => import("./pages/ReportsPage.jsx").then((module) => ({ default: module.ReportsPage })));
 const ReportBuilderPage = lazy(() => import("./pages/ReportBuilderPage.jsx").then((module) => ({ default: module.ReportBuilderPage })));
@@ -38,7 +37,6 @@ function ActivePage() {
     case "statistics": return <Dashboard />;
     case "mumin": return <MuminPage />;
     case "data-quality": return <DataQualityPage />;
-    case "advanced-search": return <AdvancedSearchPage />;
     case "masool": return <MasoolPage />;
     case "reports": return <ReportsPage />;
     case "report-builder": return <ReportBuilderPage />;
